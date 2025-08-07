@@ -7,6 +7,7 @@ import {
   Dimensions,
   SafeAreaView,
   ImageBackground,
+  Image,
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -16,21 +17,13 @@ const GAME_MODES = [
     id: 'quick-flush',
     title: 'QUICK FLUSH',
     subtitle: '60 SECOND CHALLENGE',
-    backgroundColor: '#FFB347', // Orange-yellow like the reference
-    borderColor: '#8B4513', // Dark brown border
-    textColor: '#FFFDD0', // Creamy off-white
-    textOutline: '#8B4513', // Dark brown outline
-    subtitleColor: '#8B4513', // Dark brown for subtitle
+    imageSource: require('../../assets/quick_flush.png'),
   },
   {
     id: 'endless-plunge',
     title: 'ENDLESS PLUNGE',
     subtitle: '3 MISSES ALLOWED',
-    backgroundColor: '#FFB347', // Orange-yellow like the reference
-    borderColor: '#8B4513', // Dark brown border
-    textColor: '#FFFDD0', // Creamy off-white
-    textOutline: '#8B4513', // Dark brown outline
-    subtitleColor: '#8B4513', // Dark brown for subtitle
+    imageSource: require('../../assets/endless_plunge.png'),
   },
 ];
 
@@ -44,9 +37,9 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <ImageBackground 
-      source={require('../../assets/wall.png')} 
+      source={require('../../assets/background_.png')} 
       style={styles.container}
-      resizeMode="repeat"
+      resizeMode="stretch"
     >
 
       {/* Header */}
@@ -63,20 +56,15 @@ export default function HomeScreen({ navigation }) {
           {GAME_MODES.map((mode, index) => (
             <TouchableOpacity
               key={mode.id}
-              style={[
-                styles.gameModeCard,
-                { 
-                  backgroundColor: mode.backgroundColor,
-                  borderColor: mode.borderColor,
-                }
-              ]}
+              style={styles.gameModeCard}
               onPress={() => navigateToGame(mode.id)}
               activeOpacity={0.8}
             >
-              <View style={styles.gameModeContent}>
-                <Text style={[styles.gameModeTitle, { color: mode.textColor, textShadowColor: mode.textOutline }]}>{mode.title}</Text>
-                <Text style={[styles.gameModeSubtitle, { color: mode.subtitleColor, textShadowColor: mode.textOutline }]}>{mode.subtitle}</Text>
-              </View>
+              <Image 
+                source={mode.imageSource}
+                style={styles.gameModeImage}
+                resizeMode="contain"
+              />
             </TouchableOpacity>
           ))}
         </View>
@@ -147,8 +135,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   gameModeCard: {
-    borderRadius: 25,
-    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -158,34 +146,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     minHeight: 120,
-    justifyContent: 'center',
-    borderWidth: 4,
-    position: 'relative',
-    // Create pot/cauldron shape with rounded top and bottom
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    borderBottomLeftRadius: 35,
-    borderBottomRightRadius: 35,
   },
-  gameModeContent: {
-    alignItems: 'center',
-  },
-  gameModeTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 1,
-    letterSpacing: 1,
-  },
-  gameModeSubtitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 1,
-    letterSpacing: 0.5,
+  gameModeImage: {
+    width: width * 0.8,
+    height: 120,
   },
 
   footer: {
