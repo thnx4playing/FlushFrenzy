@@ -23,8 +23,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
 
   // Animated values
   const paperPosition = useRef(new Animated.ValueXY({ 
-    x: width / 2 - 30, 
-    y: height - 120
+    x: width / 2 - 40, 
+    y: height - 200
   })).current;
   const paperScale = useRef(new Animated.Value(1)).current;
   
@@ -232,7 +232,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       
       // Reset paper position
       Animated.spring(paperPosition, {
-        toValue: { x: width / 2 - 30, y: height - 120 },
+        toValue: { x: width / 2 - 40, y: height - 200 },
         useNativeDriver: false,
       }).start();
     },
@@ -393,16 +393,16 @@ const styles = StyleSheet.create({
   },
   paper: {
     position: 'absolute',
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
   },
   flyingPaper: {
     position: 'absolute',
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,

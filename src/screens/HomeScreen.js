@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   },
   quickFlushImage: {
     width: width * 0.95,
-    height: 180,
+    height: 360,
     alignSelf: 'center',
   },
   endlessPlungeImage: {
