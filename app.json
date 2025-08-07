@@ -2,7 +2,7 @@
   "expo": {
     "name": "ToiletOlympicsGameV2",
     "slug": "ToiletOlympicsGameV2",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.thnx4playing.ToiletOlympicsGameV2",
-      "buildNumber": "8",
+      "buildNumber": "9",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
