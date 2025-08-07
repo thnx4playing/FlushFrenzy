@@ -4,246 +4,162 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Dimensions,
+  SafeAreaView,
 } from 'react-native';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
-const GAMES = [
+const GAME_MODES = [
   {
-    id: 'toilet-paper-toss',
-    title: 'Toilet Paper Toss',
-    description: 'Aim and throw toilet paper rolls into the toilet!',
-    icon: '🧻',
-    difficulty: 'Easy',
+    id: 'quick-flush',
+    title: 'Quick Flush',
+    description: '60 second challenge - Score as many points as you can!',
+    icon: '⏱️',
     color: '#4ECDC4',
+    gradient: ['#4ECDC4', '#44A08D'],
   },
   {
-    id: 'plunger-push',
-    title: 'Plunger Push',
-    description: 'Test your strength with the mighty plunger!',
-    icon: '🪠',
-    difficulty: 'Medium',
+    id: 'endless-plunge',
+    title: 'Endless Plunge',
+    description: 'Flick toilet paper until you miss 3 times!',
+    icon: '♾️',
     color: '#45B7D1',
-  },
-  {
-    id: 'flush-rush',
-    title: 'Flush Rush',
-    description: 'Race against time to flush as many toilets as possible!',
-    icon: '🚽',
-    difficulty: 'Hard',
-    color: '#96CEB4',
-  },
-  {
-    id: 'soap-slide',
-    title: 'Soap Slide',
-    description: 'Navigate through slippery soap obstacles!',
-    icon: '🧼',
-    difficulty: 'Medium',
-    color: '#FFEAA7',
+    gradient: ['#45B7D1', '#96CEB4'],
   },
 ];
 
 export default function GameSelectScreen({ navigation }) {
-  const handleGameSelect = (gameId) => {
-    navigation.navigate('Game', { gameId });
+  const navigateToGame = (gameMode) => {
+    navigation.navigate('Game', { 
+      gameId: 'toilet-paper-toss',
+      gameMode: gameMode 
+    });
   };
-
-  const getDifficultyColor = (difficulty) => {
-    switch (difficulty) {
-      case 'Easy':
-        return '#2ECC71';
-      case 'Medium':
-        return '#F39C12';
-      case 'Hard':
-        return '#E74C3C';
-      default:
-        return '#95A5A6';
-    }
-  };
-
-  const renderGameCard = (game) => (
-    <TouchableOpacity
-      key={game.id}
-      style={[styles.gameCard, { backgroundColor: game.color }]}
-      onPress={() => handleGameSelect(game.id)}
-      activeOpacity={0.8}
-    >
-      <View style={styles.gameIcon}>
-        <Text style={styles.gameIconText}>{game.icon}</Text>
-      </View>
-      
-      <View style={styles.gameInfo}>
-        <Text style={styles.gameTitle}>{game.title}</Text>
-        <Text style={styles.gameDescription}>{game.description}</Text>
-        
-        <View style={styles.difficultyContainer}>
-          <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(game.difficulty) }]}>
-            <Text style={styles.difficultyText}>{game.difficulty}</Text>
-          </View>
-        </View>
-      </View>
-      
-      <View style={styles.playArrow}>
-        <Text style={styles.playArrowText}>▶️</Text>
-      </View>
-    </TouchableOpacity>
-  );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
+        <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
-        
         <Text style={styles.title}>Choose Your Challenge</Text>
-        <Text style={styles.subtitle}>Pick a toilet Olympics event!</Text>
       </View>
 
-      <ScrollView
-        style={styles.gamesList}
-        contentContainerStyle={styles.gamesListContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {GAMES.map(renderGameCard)}
-        
-        <View style={styles.comingSoon}>
-          <Text style={styles.comingSoonTitle}>🚧 More Games Coming Soon! 🚧</Text>
-          <Text style={styles.comingSoonText}>
-            Stay tuned for more hilarious toilet-themed challenges!
-          </Text>
+      <View style={styles.content}>
+        <Text style={styles.subtitle}>Toilet Paper Toss</Text>
+        <Text style={styles.description}>
+          Master the art of toilet paper tossing! Aim carefully and score big!
+        </Text>
+
+        <View style={styles.gameModesContainer}>
+          {GAME_MODES.map((mode) => (
+            <TouchableOpacity
+              key={mode.id}
+              style={[styles.gameModeCard, { backgroundColor: mode.color }]}
+              onPress={() => navigateToGame(mode.id)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.gameModeContent}>
+                <Text style={styles.gameModeIcon}>{mode.icon}</Text>
+                <Text style={styles.gameModeTitle}>{mode.title}</Text>
+                <Text style={styles.gameModeDescription}>{mode.description}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
         </View>
-      </ScrollView>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#f8f9fa',
   },
   header: {
-    backgroundColor: '#2E86AB',
-    paddingTop: 60,
-    paddingBottom: 30,
-    paddingHorizontal: 20,
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
   },
   backButton: {
-    position: 'absolute',
-    left: 20,
-    top: 60,
-    padding: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginRight: 15,
   },
   backButtonText: {
-    color: 'white',
-    fontSize: 18,
+    fontSize: 16,
+    color: '#007AFF',
     fontWeight: '600',
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
-    marginBottom: 8,
+    color: '#2c3e50',
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    padding: 20,
   },
   subtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-  },
-  gamesList: {
-    flex: 1,
-  },
-  gamesListContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  gameCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    marginBottom: 15,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  gameIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  gameIconText: {
-    fontSize: 30,
-  },
-  gameInfo: {
-    flex: 1,
-  },
-  gameTitle: {
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#2C3E50',
-    marginBottom: 5,
-  },
-  gameDescription: {
-    fontSize: 14,
-    color: '#5A6C7D',
+    color: '#2c3e50',
+    textAlign: 'center',
     marginBottom: 10,
-    lineHeight: 18,
   },
-  difficultyContainer: {
-    flexDirection: 'row',
+  description: {
+    fontSize: 16,
+    color: '#6c757d',
+    textAlign: 'center',
+    marginBottom: 40,
+    lineHeight: 24,
   },
-  difficultyBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+  gameModesContainer: {
+    gap: 20,
   },
-  difficultyText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
+  gameModeCard: {
+    borderRadius: 20,
+    padding: 25,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    transform: [{ scale: 1 }],
   },
-  playArrow: {
-    marginLeft: 10,
-  },
-  playArrowText: {
-    fontSize: 24,
-  },
-  comingSoon: {
-    marginTop: 30,
-    padding: 20,
-    backgroundColor: '#E8F4FD',
-    borderRadius: 15,
+  gameModeContent: {
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#B3D9F2',
-    borderStyle: 'dashed',
   },
-  comingSoonTitle: {
-    fontSize: 18,
+  gameModeIcon: {
+    fontSize: 48,
+    marginBottom: 15,
+  },
+  gameModeTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#2E86AB',
-    marginBottom: 8,
+    color: '#fff',
+    marginBottom: 10,
     textAlign: 'center',
   },
-  comingSoonText: {
-    fontSize: 14,
-    color: '#5A6C7D',
+  gameModeDescription: {
+    fontSize: 16,
+    color: '#fff',
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 22,
+    opacity: 0.9,
   },
 });

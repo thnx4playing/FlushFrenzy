@@ -11,222 +11,254 @@ import {
 
 const { width, height } = Dimensions.get('window');
 
-export default function ToiletPaperToss({ onGameComplete }) {
+export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(gameMode === 'quick-flush' ? 60 : 0);
   const [gameActive, setGameActive] = useState(false);
+  const [misses, setMisses] = useState(0);
   const [tosses, setTosses] = useState([]);
   const [nextTossId, setNextTossId] = useState(0);
 
-  // Animated values for toilet paper
-  const paperPosition = useRef(new Animated.ValueXY({ x: width / 2 - 25, y: height - 200 })).current;
-  const toiletPosition = { x: width / 2 - 40, y: 100 };
+  // Animated values
+  const paperPosition = useRef(new Animated.ValueXY({ 
+    x: width / 2 - 30, 
+    y: height - 150 // Moved up to be more accessible
+  })).current;
+  const paperScale = useRef(new Animated.Value(1)).current;
+  const toiletPosition = { x: width / 2 - 50, y: 120 };
+
+  // Game mode specific logic
+  const isQuickFlush = gameMode === 'quick-flush';
+  const isEndlessPlunge = gameMode === 'endless-plunge';
+  const maxMisses = 3;
 
   useEffect(() => {
     let timer;
-    if (gameActive && timeLeft > 0) {
+    if (gameActive && isQuickFlush && timeLeft > 0) {
       timer = setTimeout(() => {
         setTimeLeft(timeLeft - 1);
       }, 1000);
-    } else if (timeLeft === 0) {
+    } else if (isQuickFlush && timeLeft === 0) {
+      endGame();
+    } else if (isEndlessPlunge && misses >= maxMisses) {
       endGame();
     }
     return () => clearTimeout(timer);
-  }, [gameActive, timeLeft]);
+  }, [gameActive, timeLeft, misses, isQuickFlush, isEndlessPlunge]);
 
-  const startGame = () => {
-    setGameActive(true);
-    setScore(0);
-    setTimeLeft(30);
-    setTosses([]);
-    resetPaperPosition();
-  };
+  useEffect(() => {
+    if (gameMode) {
+      setGameActive(true);
+      setScore(0);
+      setMisses(0);
+      setTosses([]);
+      setNextTossId(0);
+      if (isQuickFlush) {
+        setTimeLeft(60);
+      }
+    }
+  }, [gameMode]);
 
   const endGame = () => {
     setGameActive(false);
     onGameComplete(score);
   };
 
-  const resetPaperPosition = () => {
-    paperPosition.setValue({ x: width / 2 - 25, y: height - 200 });
+  const calculateScore = (distance) => {
+    const centerDistance = Math.abs(distance);
+    if (centerDistance < 30) return 100; // Center hit
+    if (centerDistance < 60) return 50;  // Outer ring
+    return 0; // Miss
   };
 
-  const calculateDistance = (x1, y1, x2, y2) => {
-    return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-  };
-
-  const handleToss = (gestureState) => {
-    const { dx, dy, vx, vy } = gestureState;
-    const power = Math.min(Math.sqrt(vx * vx + vy * vy) / 10, 20);
+  const createToss = (startX, startY, velocityX, velocityY) => {
+    const tossId = nextTossId;
+    setNextTossId(nextTossId + 1);
     
-    // Calculate trajectory
-    const targetX = paperPosition.x._value + dx * 2;
-    const targetY = Math.max(50, paperPosition.y._value + dy * 2);
-
+    const toss = {
+      id: tossId,
+      x: startX,
+      y: startY,
+      velocityX,
+      velocityY,
+      gravity: 0.8,
+      time: 0,
+    };
+    
+    setTosses(prev => [...prev, toss]);
+    
     // Animate the toss
-    Animated.sequence([
-      Animated.timing(paperPosition, {
-        toValue: { x: targetX, y: targetY },
-        duration: 800,
-        useNativeDriver: false,
-      }),
-      Animated.timing(paperPosition, {
-        toValue: { x: targetX, y: height + 100 }, // Fall down
-        duration: 400,
-        useNativeDriver: false,
-      }),
-    ]).start(() => {
-      // Check if it hit the toilet
-      const distance = calculateDistance(
-        targetX + 25, // paper center
-        targetY + 25, // paper center
-        toiletPosition.x + 40, // toilet center
-        toiletPosition.y + 60 // toilet center
-      );
-
-      let points = 0;
-      let message = '';
-
-      if (distance < 50) {
-        points = 20;
-        message = 'PERFECT! 🎯';
-      } else if (distance < 80) {
-        points = 15;
-        message = 'Great! 👍';
-      } else if (distance < 120) {
-        points = 10;
-        message = 'Good! 👌';
-      } else if (distance < 160) {
-        points = 5;
-        message = 'Close! 😅';
-      } else {
-        message = 'Miss! 😭';
-      }
-
-      if (points > 0) {
-        setScore(prev => prev + points);
-      }
-
-      // Add toss result to display
-      const tossResult = {
-        id: nextTossId,
-        points,
-        message,
-        x: targetX,
-        y: targetY,
-      };
+    const animateToss = () => {
+      toss.time += 0.016; // 60fps
+      toss.x += toss.velocityX * 0.016;
+      toss.y += toss.velocityY * 0.016;
+      toss.velocityY += toss.gravity;
       
-      setTosses(prev => [...prev.slice(-2), tossResult]); // Keep only last 3
-      setNextTossId(prev => prev + 1);
-
-      // Reset paper position after a short delay
-      setTimeout(resetPaperPosition, 500);
-    });
+      // Check if hit toilet
+      const distanceFromCenter = Math.sqrt(
+        Math.pow(toss.x - (toiletPosition.x + 50), 2) + 
+        Math.pow(toss.y - (toiletPosition.y + 40), 2)
+      );
+      
+      if (distanceFromCenter < 60) {
+        const points = calculateScore(distanceFromCenter);
+        if (points > 0) {
+          setScore(prev => prev + points);
+        } else {
+          setMisses(prev => prev + 1);
+        }
+        setTosses(prev => prev.filter(t => t.id !== tossId));
+        return;
+      }
+      
+      // Check if out of bounds
+      if (toss.y > height || toss.x < 0 || toss.x > width) {
+        setMisses(prev => prev + 1);
+        setTosses(prev => prev.filter(t => t.id !== tossId));
+        return;
+      }
+      
+      requestAnimationFrame(animateToss);
+    };
+    
+    requestAnimationFrame(animateToss);
   };
 
   const panResponder = PanResponder.create({
-    onMoveShouldSetPanResponder: () => gameActive,
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
     onPanResponderGrant: () => {
-      paperPosition.setOffset({
-        x: paperPosition.x._value,
-        y: paperPosition.y._value,
-      });
+      paperScale.setValue(0.8);
     },
-    onPanResponderMove: Animated.event(
-      [null, { dx: paperPosition.x, dy: paperPosition.y }],
-      { useNativeDriver: false }
-    ),
+    onPanResponderMove: (evt, gestureState) => {
+      const newX = Math.max(0, Math.min(width - 60, gestureState.moveX - 30));
+      const newY = Math.max(height - 200, Math.min(height - 100, gestureState.moveY - 30));
+      paperPosition.setValue({ x: newX, y: newY });
+    },
     onPanResponderRelease: (evt, gestureState) => {
-      paperPosition.flattenOffset();
-      handleToss(gestureState);
+      if (!gameActive) return;
+      
+      paperScale.setValue(1);
+      
+      // Calculate velocity based on gesture
+      const velocityX = gestureState.vx * 1000;
+      const velocityY = gestureState.vy * 1000;
+      
+      // Create toss
+      createToss(
+        paperPosition.x._value + 30,
+        paperPosition.y._value + 30,
+        velocityX,
+        velocityY
+      );
+      
+      // Reset paper position
+      Animated.spring(paperPosition, {
+        toValue: { x: width / 2 - 30, y: height - 150 },
+        useNativeDriver: false,
+      }).start();
     },
   });
 
-  if (!gameActive && timeLeft === 30) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.instructionsContainer}>
-          <Text style={styles.title}>🧻 Toilet Paper Toss</Text>
-          <Text style={styles.instructions}>
-            Drag and release to toss toilet paper into the toilet!
-          </Text>
-          <Text style={styles.instructions}>
-            🎯 Closer to the center = More points!
-          </Text>
-          <Text style={styles.instructions}>
-            ⏰ You have 30 seconds!
-          </Text>
-          
-          <TouchableOpacity style={styles.startButton} onPress={startGame}>
-            <Text style={styles.startButtonText}>Start Game</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
     <View style={styles.container}>
       {/* Game UI */}
       <View style={styles.gameUI}>
         <View style={styles.scoreContainer}>
-          <Text style={styles.scoreLabel}>Score:</Text>
+          <Text style={styles.scoreLabel}>Score</Text>
           <Text style={styles.scoreValue}>{score}</Text>
         </View>
         
-        <View style={styles.timerContainer}>
-          <Text style={styles.timerLabel}>Time:</Text>
-          <Text style={[styles.timerValue, { color: timeLeft <= 10 ? '#E74C3C' : '#2ECC71' }]}>
-            {timeLeft}s
-          </Text>
-        </View>
+        {isQuickFlush && (
+          <View style={styles.timeContainer}>
+            <Text style={styles.timeLabel}>Time</Text>
+            <Text style={styles.timeValue}>{formatTime(timeLeft)}</Text>
+          </View>
+        )}
+        
+        {isEndlessPlunge && (
+          <View style={styles.missesContainer}>
+            <Text style={styles.missesLabel}>Misses</Text>
+            <Text style={styles.missesValue}>{misses}/{maxMisses}</Text>
+          </View>
+        )}
       </View>
 
       {/* Game Area */}
       <View style={styles.gameArea}>
-        {/* Toilet */}
-        <View style={[styles.toilet, { left: toiletPosition.x, top: toiletPosition.y }]}>
-          <Text style={styles.toiletText}>🚽</Text>
-          <View style={styles.toiletTarget}>
-            <View style={styles.targetRing} />
-            <View style={styles.targetCenter} />
+        {/* Background */}
+        <View style={styles.background}>
+          {/* Bathroom tiles */}
+          <View style={styles.tiles} />
+          
+          {/* Rubber duck */}
+          <View style={styles.rubberDuck}>
+            <Text style={styles.duckEmoji}>🦆</Text>
+          </View>
+          
+          {/* Plunger scoreboard */}
+          <View style={styles.plungerScoreboard}>
+            <Text style={styles.plungerEmoji}>🪠</Text>
           </View>
         </View>
 
-        {/* Toilet Paper */}
-        <Animated.View
-          style={[
-            styles.toiletPaper,
-            {
-              transform: paperPosition.getTranslateTransform(),
-            },
-          ]}
-          {...panResponder.panHandlers}
-        >
-          <Text style={styles.toiletPaperText}>🧻</Text>
-        </Animated.View>
+        {/* Toilet */}
+        <View style={[styles.toilet, { left: toiletPosition.x, top: toiletPosition.y }]}>
+          <View style={styles.toiletBody}>
+            <View style={styles.toiletSeat}>
+              <View style={styles.toiletSeatInner} />
+            </View>
+            <View style={styles.toiletBowl}>
+              <View style={styles.toiletWater} />
+            </View>
+            <View style={styles.toiletTank} />
+          </View>
+          
+          {/* Scoring rings */}
+          <View style={styles.scoringRings}>
+            <View style={styles.outerRing} />
+            <View style={styles.innerRing} />
+          </View>
+        </View>
 
-        {/* Toss Results */}
+        {/* Flying toilet paper */}
         {tosses.map((toss) => (
           <View
             key={toss.id}
             style={[
-              styles.tossResult,
-              { left: toss.x, top: toss.y - 30 }
+              styles.flyingPaper,
+              {
+                left: toss.x,
+                top: toss.y,
+              },
             ]}
           >
-            <Text style={styles.tossResultText}>
-              {toss.message} {toss.points > 0 ? `+${toss.points}` : ''}
-            </Text>
+            <Text style={styles.paperEmoji}>🧻</Text>
           </View>
         ))}
-      </View>
 
-      {/* Instructions */}
-      <View style={styles.instructionsBar}>
-        <Text style={styles.instructionText}>
-          🎯 Drag the toilet paper and release to toss!
-        </Text>
+        {/* Draggable toilet paper */}
+        <Animated.View
+          style={[
+            styles.paper,
+            {
+              transform: [
+                { translateX: paperPosition.x },
+                { translateY: paperPosition.y },
+                { scale: paperScale },
+              ],
+            },
+          ]}
+          {...panResponder.panHandlers}
+        >
+          <Text style={styles.paperEmoji}>🧻</Text>
+        </Animated.View>
       </View>
     </View>
   );
@@ -237,147 +269,197 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#E8F4FD',
   },
-  instructionsContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#2E86AB',
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  instructions: {
-    fontSize: 18,
-    color: '#5A6C7D',
-    textAlign: 'center',
-    marginBottom: 15,
-    lineHeight: 24,
-  },
-  startButton: {
-    backgroundColor: '#4ECDC4',
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 25,
-    marginTop: 30,
-  },
-  startButtonText: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
   gameUI: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    justifyContent: 'space-around',
     padding: 20,
-    backgroundColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
   },
   scoreContainer: {
     alignItems: 'center',
   },
   scoreLabel: {
-    fontSize: 16,
-    color: '#5A6C7D',
-    marginBottom: 5,
+    fontSize: 14,
+    color: '#6c757d',
+    fontWeight: '600',
   },
   scoreValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FF6B6B',
+    color: '#4ECDC4',
   },
-  timerContainer: {
+  timeContainer: {
     alignItems: 'center',
   },
-  timerLabel: {
-    fontSize: 16,
-    color: '#5A6C7D',
-    marginBottom: 5,
+  timeLabel: {
+    fontSize: 14,
+    color: '#6c757d',
+    fontWeight: '600',
   },
-  timerValue: {
+  timeValue: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: '#FF6B6B',
+  },
+  missesContainer: {
+    alignItems: 'center',
+  },
+  missesLabel: {
+    fontSize: 14,
+    color: '#6c757d',
+    fontWeight: '600',
+  },
+  missesValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FF6B6B',
   },
   gameArea: {
     flex: 1,
     position: 'relative',
   },
-  toilet: {
+  background: {
     position: 'absolute',
-    width: 80,
-    height: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
-  toiletText: {
-    fontSize: 60,
-  },
-  toiletTarget: {
+  tiles: {
     position: 'absolute',
-    top: 20,
-    left: 20,
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#F8F9FA',
+    opacity: 0.3,
   },
-  targetRing: {
+  rubberDuck: {
     position: 'absolute',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 107, 107, 0.5)',
+    top: 50,
+    right: 30,
   },
-  targetCenter: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FF6B6B',
-  },
-  toiletPaper: {
-    position: 'absolute',
-    width: 50,
-    height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  toiletPaperText: {
+  duckEmoji: {
     fontSize: 40,
   },
-  tossResult: {
+  plungerScoreboard: {
     position: 'absolute',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    padding: 8,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    top: 100,
+    right: 30,
   },
-  tossResultText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#2E86AB',
+  plungerEmoji: {
+    fontSize: 40,
   },
-  instructionsBar: {
-    backgroundColor: '#2E86AB',
-    padding: 15,
+  toilet: {
+    position: 'absolute',
+    width: 100,
+    height: 120,
+  },
+  toiletBody: {
+    position: 'relative',
+    width: 100,
+    height: 120,
+  },
+  toiletSeat: {
+    position: 'absolute',
+    top: 0,
+    left: 10,
+    width: 80,
+    height: 20,
+    backgroundColor: '#8B4513',
+    borderRadius: 10,
+    borderWidth: 3,
+    borderColor: '#654321',
+  },
+  toiletSeatInner: {
+    position: 'absolute',
+    top: 3,
+    left: 3,
+    right: 3,
+    bottom: 3,
+    backgroundColor: '#A0522D',
+    borderRadius: 7,
+  },
+  toiletBowl: {
+    position: 'absolute',
+    top: 20,
+    left: 15,
+    width: 70,
+    height: 60,
+    backgroundColor: '#fff',
+    borderRadius: 35,
+    borderWidth: 3,
+    borderColor: '#ddd',
+  },
+  toiletWater: {
+    position: 'absolute',
+    top: 5,
+    left: 5,
+    right: 5,
+    bottom: 5,
+    backgroundColor: '#87CEEB',
+    borderRadius: 30,
+    opacity: 0.7,
+  },
+  toiletTank: {
+    position: 'absolute',
+    top: 80,
+    left: 20,
+    width: 60,
+    height: 40,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderWidth: 3,
+    borderColor: '#ddd',
+  },
+  scoringRings: {
+    position: 'absolute',
+    top: 20,
+    left: 15,
+    width: 70,
+    height: 60,
+  },
+  outerRing: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderWidth: 2,
+    borderColor: '#FFD700',
+    borderRadius: 35,
+    opacity: 0.6,
+  },
+  innerRing: {
+    position: 'absolute',
+    top: 15,
+    left: 15,
+    right: 15,
+    bottom: 15,
+    borderWidth: 2,
+    borderColor: '#FF6B6B',
+    borderRadius: 20,
+    opacity: 0.8,
+  },
+  paper: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1000,
   },
-  instructionText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+  flyingPaper: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  paperEmoji: {
+    fontSize: 40,
   },
 });
