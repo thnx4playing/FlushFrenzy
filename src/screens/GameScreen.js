@@ -53,28 +53,27 @@ export default function GameScreen({ route, navigation }) {
   if (showTutorial) {
     return (
       <ImageBackground 
-        source={require('../../assets/background_.png')} 
+        source={require('../../assets/game_background.png')} 
         style={styles.container}
         resizeMode="stretch"
       >
-        <View style={styles.tutorialContainer}>
-          <View style={styles.tutorialCard}>
-            <Text style={styles.tutorialIcon}>🎯</Text>
-            <Text style={styles.tutorialTitle}>Ready to Toss?</Text>
-            
-            <View style={styles.tutorialContent}>
-              <Text style={styles.tutorialDescription}>
-                <Text style={styles.highlight}>👆 Drag & flick</Text> the toilet paper to throw it!
-              </Text>
-              
-              <Text style={styles.tutorialDescription}>
-                <Text style={styles.highlight}>🎯 Direct hit = 3 points</Text> • <Text style={styles.highlight}>Bounce = 1 point</Text>
-              </Text>
-              
-              <Text style={styles.tutorialDescription}>
-                <Text style={styles.highlight}>🚀 {gameMode === 'quick-flush' ? '60 seconds to score!' : '3 misses allowed!'}</Text>
-              </Text>
-            </View>
+                 <View style={styles.tutorialContainer}>
+           <View style={styles.tutorialCard}>
+             <Text style={styles.tutorialTitle}>Ready to Toss?</Text>
+             
+             <View style={styles.tutorialContent}>
+               <Text style={styles.tutorialDescription}>
+                 <Text style={styles.highlight}>👆 Drag & flick</Text>
+               </Text>
+               
+               <Text style={styles.tutorialDescription}>
+                 <Text style={styles.highlight}>🎯 Direct hit = 3 points</Text> • <Text style={styles.highlight}>Bounce = 1 point</Text>
+               </Text>
+               
+               <Text style={styles.tutorialDescription}>
+                 <Text style={styles.highlight}>🚀 {gameMode === 'quick-flush' ? '60 seconds to score!' : '3 misses allowed!'}</Text>
+               </Text>
+             </View>
             
             <TouchableOpacity
               style={styles.tutorialButton}
@@ -92,7 +91,7 @@ export default function GameScreen({ route, navigation }) {
   if (gameComplete) {
     return (
       <ImageBackground 
-        source={require('../../assets/background_.png')} 
+        source={require('../../assets/game_background.png')} 
         style={styles.container}
         resizeMode="stretch"
       >
@@ -147,30 +146,26 @@ const styles = StyleSheet.create({
   },
   tutorialCard: {
     backgroundColor: '#FF6B9D',
-    borderRadius: 25,
-    padding: 25,
+    borderRadius: 20,
+    padding: 20,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 8,
+      height: 6,
     },
     shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 12,
-    maxWidth: 320,
-    borderWidth: 4,
+    shadowRadius: 10,
+    elevation: 10,
+    maxWidth: 280,
+    borderWidth: 3,
     borderColor: '#FFD700',
   },
-  tutorialIcon: {
-    fontSize: 48,
-    marginBottom: 15,
-  },
   tutorialTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 20,
+    marginBottom: 15,
     textAlign: 'center',
     textShadowColor: '#000',
     textShadowOffset: { width: 2, height: 2 },
@@ -178,7 +173,7 @@ const styles = StyleSheet.create({
   },
   tutorialContent: {
     alignItems: 'center',
-    marginBottom: 25,
+    marginBottom: 20,
   },
   tutorialDescription: {
     fontSize: 18,

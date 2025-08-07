@@ -44,8 +44,17 @@ export default function HomeScreen({ navigation }) {
 
 
 
-      {/* Game Modes */}
       <View style={styles.content}>
+        {/* Header at top */}
+        <View style={styles.header}>
+          <Image 
+            source={require('../../assets/header.png')} 
+            style={styles.headerImage}
+            resizeMode="contain"
+          />
+        </View>
+
+        {/* Game Modes */}
         <View style={styles.gameModesContainer}>
           {GAME_MODES.map((mode, index) => (
             <TouchableOpacity
@@ -56,20 +65,11 @@ export default function HomeScreen({ navigation }) {
             >
               <Image 
                 source={mode.imageSource}
-                style={styles.gameModeImage}
+                style={mode.id === 'quick-flush' ? styles.quickFlushImage : styles.endlessPlungeImage}
                 resizeMode="contain"
               />
             </TouchableOpacity>
           ))}
-        </View>
-
-        {/* Header at bottom */}
-        <View style={styles.header}>
-          <Image 
-            source={require('../../assets/header.png')} 
-            style={styles.headerImage}
-            resizeMode="contain"
-          />
         </View>
       </View>
     </ImageBackground>
@@ -82,24 +82,24 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    height: 120,
+    height: height * 0.35,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: 20,
+    paddingTop: 60,
   },
   headerImage: {
-    width: width * 0.95,
-    height: 100,
+    width: width,
+    height: height * 0.3,
   },
   content: {
     flex: 1,
-    padding: 20,
-    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   gameModesContainer: {
-    gap: 25,
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   gameModeCard: {
     alignItems: 'center',
@@ -112,11 +112,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 8,
-    minHeight: 120,
+    width: width * 0.95,
+    height: 220,
+    marginVertical: 10,
   },
-  gameModeImage: {
+  quickFlushImage: {
     width: width * 0.95,
     height: 180,
+    alignSelf: 'center',
+  },
+  endlessPlungeImage: {
+    width: width * 0.95,
+    height: 220,
+    alignSelf: 'center',
   },
 
 

@@ -24,12 +24,12 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   // Animated values
   const paperPosition = useRef(new Animated.ValueXY({ 
     x: width / 2 - 30, 
-    y: height - 200
+    y: height - 120
   })).current;
   const paperScale = useRef(new Animated.Value(1)).current;
   
-  // Toilet position (center of back wall)
-  const toiletPosition = { x: width / 2 - 60, y: height * 0.3 };
+  // Toilet position (center of screen, on floor)
+  const toiletPosition = { x: width / 2 - 60, y: height - 170 };
 
   // Game mode specific logic
   const isQuickFlush = gameMode === 'quick-flush';
@@ -97,17 +97,44 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     // Animate the toss
     const animateToss = () => {
       toss.time += 0.016; // 60fps
-      toss.x += toss.velocityX * 0.016;
-      toss.y += toss.velocityY * 0.016;
+      
+      // Apply gravity
       toss.velocityY += toss.gravity;
       
+      // Update position with current velocity
+      const nextX = toss.x + toss.velocityX * 0.016;
+      const nextY = toss.y + toss.velocityY * 0.016;
+      
+      // Check wall collisions
+      if (nextX <= 0 || nextX >= width - 60) {
+        toss.velocityX = -toss.velocityX * 0.7; // Bounce off side walls
+        toss.bounces++;
+      }
+      
+      if (nextY <= 0) {
+        toss.velocityY = Math.abs(toss.velocityY * 0.7); // Bounce off ceiling
+        toss.bounces++;
+      }
+      
+      if (nextY >= height - 60) {
+        toss.velocityY = -Math.abs(toss.velocityY * 0.7); // Bounce off floor
+        toss.bounces++;
+      }
+      
+      // Apply position updates after bounce checks
+      toss.x = Math.max(0, Math.min(width - 60, nextX));
+      toss.y = Math.max(0, Math.min(height - 60, nextY));
+      
       // Check if hit toilet bowl (direct hit)
+      const toiletCenterX = width / 2;
+      const toiletCenterY = height * 0.55; // Matches the bottom: height * 0.45 position
+      
       const distanceFromToilet = Math.sqrt(
-        Math.pow(toss.x - (toiletPosition.x + 60), 2) + 
-        Math.pow(toss.y - (toiletPosition.y + 80), 2)
+        Math.pow(toss.x - toiletCenterX, 2) + 
+        Math.pow(toss.y - toiletCenterY, 2)
       );
       
-      if (distanceFromToilet < 50 && !toss.hasHitToilet) {
+      if (distanceFromToilet < 90 && !toss.hasHitToilet && toss.y > height * 0.45 && toss.y < height * 0.65) {
         const points = calculateScore('direct');
         if (points > 0) {
           setScore(prev => prev + points);
@@ -117,17 +144,17 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       }
       
       // Check if hit toilet back wall (bounce)
-      if (toss.y < toiletPosition.y + 100 && toss.y > toiletPosition.y + 60 && 
-          toss.x > toiletPosition.x + 20 && toss.x < toiletPosition.x + 100 && 
+      if (toss.y > height * 0.45 && toss.y < height * 0.55 && 
+          Math.abs(toss.x - toiletCenterX) < 90 && 
           !toss.hasHitWall && toss.bounces < toss.maxBounces) {
         toss.hasHitWall = true;
         toss.bounces++;
         toss.velocityX = -toss.velocityX * 0.8; // Bounce back
-        toss.velocityY = toss.velocityY * 0.6;
+        toss.velocityY = -Math.abs(toss.velocityY * 0.6); // Bounce upward
       }
       
       // Check if bounced into toilet
-      if (toss.hasHitWall && distanceFromToilet < 50 && !toss.hasHitToilet) {
+      if (toss.hasHitWall && distanceFromToilet < 90 && !toss.hasHitToilet && toss.y > height * 0.45 && toss.y < height * 0.65) {
         toss.hasHitToilet = true;
         const points = calculateScore('bounce');
         if (points > 0) {
@@ -181,8 +208,9 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       paperScale.setValue(0.8);
     },
     onPanResponderMove: (evt, gestureState) => {
+      // Allow movement anywhere on screen
       const newX = Math.max(0, Math.min(width - 60, gestureState.moveX - 30));
-      const newY = Math.max(height - 250, Math.min(height - 100, gestureState.moveY - 30));
+      const newY = Math.max(0, Math.min(height - 60, gestureState.moveY - 30));
       paperPosition.setValue({ x: newX, y: newY });
     },
     onPanResponderRelease: (evt, gestureState) => {
@@ -190,9 +218,9 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       
       paperScale.setValue(1);
       
-      // Calculate velocity based on gesture (increased for longer throws)
-      const velocityX = gestureState.vx * 1200;
-      const velocityY = gestureState.vy * 1200;
+      // Calculate velocity based on gesture (increased for better throwing)
+      const velocityX = gestureState.vx * 2500;
+      const velocityY = gestureState.vy * 2500;
       
       // Create toss
       createToss(
@@ -204,7 +232,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       
       // Reset paper position
       Animated.spring(paperPosition, {
-        toValue: { x: width / 2 - 30, y: height - 200 },
+        toValue: { x: width / 2 - 30, y: height - 120 },
         useNativeDriver: false,
       }).start();
     },
@@ -242,14 +270,14 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
 
       {/* Game Area - New Background */}
       <ImageBackground 
-        source={require('../../assets/background_.png')} 
+        source={require('../../assets/game_background.png')} 
         style={styles.gameArea}
         resizeMode="stretch"
       >
-        {/* Toilet at the back wall */}
-        <View style={[styles.toiletContainer, { left: toiletPosition.x, top: toiletPosition.y }]}>
+        {/* Toilet positioned further back in room */}
+        <View style={[styles.toiletContainer, { left: width / 2 - 90, bottom: height * 0.45 }]}>
           <Image 
-            source={require('../../assets/icon.png')} 
+            source={require('../../assets/toilet.png')} 
             style={styles.toiletImage}
             resizeMode="contain"
           />
@@ -257,28 +285,24 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
 
         {/* Flying toilet paper */}
         {tosses.map((toss) => (
-          <View
+          <Image
             key={toss.id}
+            source={require('../../assets/tp.png')}
             style={[
               styles.flyingPaper,
               {
                 left: toss.x,
                 top: toss.y,
+                transform: [{ rotate: `${toss.time * 360}deg` }],
               },
             ]}
-          >
-            <View style={styles.paperRoll}>
-              <View style={styles.paperBody} />
-              <View style={styles.paperCore} />
-              <View style={styles.paperShading} />
-              <View style={styles.paperHighlight} />
-              <View style={styles.paperFlap} />
-            </View>
-          </View>
+            resizeMode="contain"
+          />
         ))}
 
         {/* Draggable toilet paper */}
-        <Animated.View
+        <Animated.Image
+          source={require('../../assets/tp.png')}
           style={[
             styles.paper,
             {
@@ -286,19 +310,13 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
                 { translateX: paperPosition.x },
                 { translateY: paperPosition.y },
                 { scale: paperScale },
+                { rotate: '0deg' },
               ],
             },
           ]}
+          resizeMode="contain"
           {...panResponder.panHandlers}
-        >
-          <View style={styles.paperRoll}>
-            <View style={styles.paperBody} />
-            <View style={styles.paperCore} />
-            <View style={styles.paperShading} />
-            <View style={styles.paperHighlight} />
-            <View style={styles.paperFlap} />
-          </View>
-        </Animated.View>
+        />
       </ImageBackground>
     </View>
   );
@@ -313,6 +331,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     padding: 20,
+    paddingTop: 60,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
@@ -362,86 +381,30 @@ const styles = StyleSheet.create({
   },
   toiletContainer: {
     position: 'absolute',
-    width: 120,
-    height: 120,
+    width: 180,
+    height: 180,
     zIndex: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   toiletImage: {
-    width: 120,
-    height: 120,
+    width: 180,
+    height: 180,
   },
   paper: {
     position: 'absolute',
-    width: 60,
-    height: 60,
+    width: 80,
+    height: 80,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
   },
   flyingPaper: {
     position: 'absolute',
-    width: 60,
-    height: 60,
+    width: 80,
+    height: 80,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,
-  },
-  paperRoll: {
-    width: 60,
-    height: 60,
-    position: 'relative',
-  },
-  paperBody: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#fff',
-    borderRadius: 30,
-    borderWidth: 2,
-    borderColor: '#000',
-  },
-  paperCore: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    right: 10,
-    bottom: 10,
-    backgroundColor: '#8B4513',
-    borderRadius: 25,
-    borderWidth: 2,
-    borderColor: '#000',
-  },
-  paperShading: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: 10,
-    backgroundColor: '#888',
-    borderRadius: 5,
-  },
-  paperHighlight: {
-    position: 'absolute',
-    top: -5,
-    left: 20,
-    width: 20,
-    height: 10,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-  },
-  paperFlap: {
-    position: 'absolute',
-    top: 20,
-    left: 10,
-    width: 40,
-    height: 10,
-    backgroundColor: '#000',
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: '#fff',
   },
 });
