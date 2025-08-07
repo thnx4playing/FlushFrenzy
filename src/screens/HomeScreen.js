@@ -4,164 +4,264 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ImageBackground,
-  Animated,
   Dimensions,
+  SafeAreaView,
+  LinearGradient,
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
+const GAME_MODES = [
+  {
+    id: 'quick-flush',
+    title: 'Quick Flush',
+    description: '60 second challenge - Score as many points as you can!',
+    icon: '⏱️',
+    gradient: ['#FF6B6B', '#FF8E8E'],
+    shadowColor: '#FF6B6B',
+  },
+  {
+    id: 'endless-plunge',
+    title: 'Endless Plunge',
+    description: 'Flick toilet paper until you miss 3 times!',
+    icon: '♾️',
+    gradient: ['#4ECDC4', '#44A08D'],
+    shadowColor: '#4ECDC4',
+  },
+];
+
 export default function HomeScreen({ navigation }) {
-  const scaleAnim = new Animated.Value(1);
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.95,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const navigateToGameSelect = () => {
-    navigation.navigate('GameSelect');
+  const navigateToGame = (gameMode) => {
+    navigation.navigate('Game', { 
+      gameId: 'toilet-paper-toss',
+      gameMode: gameMode 
+    });
   };
 
   return (
-    <View style={styles.container}>
-      <ImageBackground
-        source={{ uri: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZGllbnQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjNDI4NUY0IiBzdG9wLW9wYWNpdHk9IjAuMSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMzQwNEZGIiBzdG9wLW9wYWNpdHk9IjAuMSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSJ1cmwoI2dyYWRpZW50KSIgLz4KICA8Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIzIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC4zIiAvPgogIDxjaXJjbGUgY3g9IjgwIiBjeT0iODAiIHI9IjIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjMiIC8+Cjwvc3ZnPg==' }}
-        style={styles.backgroundImage}
-        resizeMode="repeat"
-      >
-        <View style={styles.overlay}>
-          <View style={styles.header}>
-            <Text style={styles.title}>🚽 TOILET OLYMPICS 🏆</Text>
-            <Text style={styles.subtitle}>The Ultimate Bathroom Games!</Text>
-          </View>
+    <SafeAreaView style={styles.container}>
+      {/* Animated Background */}
+      <View style={styles.background}>
+        <View style={styles.bubble1} />
+        <View style={styles.bubble2} />
+        <View style={styles.bubble3} />
+        <View style={styles.bubble4} />
+      </View>
 
-          <View style={styles.content}>
-            <View style={styles.gameIcon}>
-              <Text style={styles.iconText}>🚽</Text>
-              <Text style={styles.iconText}>🏃‍♂️</Text>
-              <Text style={styles.iconText}>🎯</Text>
-            </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>🚽 Toilet Olympics 🚽</Text>
+        <Text style={styles.subtitle}>The Ultimate Bathroom Challenge!</Text>
+      </View>
 
-            <Animated.View style={[styles.playButton, { transform: [{ scale: scaleAnim }] }]}>
-              <TouchableOpacity
-                onPressIn={handlePressIn}
-                onPressOut={handlePressOut}
-                onPress={navigateToGameSelect}
-                style={styles.playButtonInner}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.playButtonText}>START GAMES</Text>
-                <Text style={styles.playButtonSubtext}>🎮 Ready to compete?</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Compete in hilarious toilet-themed challenges!</Text>
-          </View>
+      {/* Game Modes */}
+      <View style={styles.content}>
+        <View style={styles.gameModesContainer}>
+          {GAME_MODES.map((mode, index) => (
+            <TouchableOpacity
+              key={mode.id}
+              style={[
+                styles.gameModeCard,
+                { 
+                  backgroundColor: mode.gradient[0],
+                  shadowColor: mode.shadowColor,
+                  transform: [{ scale: 1 }],
+                }
+              ]}
+              onPress={() => navigateToGame(mode.id)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.gameModeContent}>
+                <View style={styles.iconContainer}>
+                  <Text style={styles.gameModeIcon}>{mode.icon}</Text>
+                </View>
+                <Text style={styles.gameModeTitle}>{mode.title}</Text>
+                <Text style={styles.gameModeDescription}>{mode.description}</Text>
+                <View style={styles.playButton}>
+                  <Text style={styles.playButtonText}>PLAY NOW!</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
         </View>
-      </ImageBackground>
-    </View>
+
+        {/* Fun Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>🎯 Aim for the toilet! 🎯</Text>
+          <Text style={styles.footerSubtext}>The more accurate, the higher the score!</Text>
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#E8F4FD',
   },
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
+  background: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    justifyContent: 'space-between',
-    paddingVertical: 60,
-    paddingHorizontal: 20,
+  bubble1: {
+    position: 'absolute',
+    top: 100,
+    left: 50,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  bubble2: {
+    position: 'absolute',
+    top: 200,
+    right: 30,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(78, 205, 196, 0.1)',
+  },
+  bubble3: {
+    position: 'absolute',
+    bottom: 150,
+    left: 20,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 142, 142, 0.1)',
+  },
+  bubble4: {
+    position: 'absolute',
+    bottom: 80,
+    right: 60,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(68, 160, 141, 0.1)',
   },
   header: {
     alignItems: 'center',
-    marginTop: 40,
+    paddingTop: 20,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#2E86AB',
+    color: '#2c3e50',
     textAlign: 'center',
     marginBottom: 10,
     textShadowColor: 'rgba(0, 0, 0, 0.1)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
   },
   subtitle: {
     fontSize: 18,
-    color: '#5A5A5A',
+    color: '#6c757d',
     textAlign: 'center',
-    fontStyle: 'italic',
+    fontWeight: '600',
   },
   content: {
     flex: 1,
+    padding: 20,
+    justifyContent: 'space-between',
+  },
+  gameModesContainer: {
+    gap: 25,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  gameModeCard: {
+    borderRadius: 25,
+    padding: 30,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 12,
+    minHeight: 200,
+    justifyContent: 'center',
+  },
+  gameModeContent: {
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 6,
   },
-  gameIcon: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    marginBottom: 50,
-    width: '60%',
+  gameModeIcon: {
+    fontSize: 48,
   },
-  iconText: {
-    fontSize: 40,
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+  gameModeTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 15,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
-  playButton: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+  gameModeDescription: {
+    fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
+    lineHeight: 22,
+    opacity: 0.95,
+    marginBottom: 20,
+    fontWeight: '500',
   },
-  playButtonInner: {
-    backgroundColor: '#FF6B6B',
-    paddingVertical: 20,
-    paddingHorizontal: 40,
-    borderRadius: 25,
-    alignItems: 'center',
-    minWidth: width * 0.6,
+  playButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   playButtonText: {
-    color: 'white',
-    fontSize: 24,
+    color: '#fff',
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  playButtonSubtext: {
-    color: 'white',
-    fontSize: 14,
-    opacity: 0.9,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 1,
   },
   footer: {
     alignItems: 'center',
-    marginBottom: 20,
+    paddingVertical: 20,
   },
   footerText: {
-    fontSize: 16,
-    color: '#7A7A7A',
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    textAlign: 'center',
+    marginBottom: 5,
+  },
+  footerSubtext: {
+    fontSize: 14,
+    color: '#6c757d',
     textAlign: 'center',
     fontStyle: 'italic',
   },

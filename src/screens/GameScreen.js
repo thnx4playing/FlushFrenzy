@@ -57,7 +57,7 @@ export default function GameScreen({ route, navigation }) {
   };
 
   const handleBackToMenu = () => {
-    navigation.navigate('GameSelect');
+    navigation.navigate('Home');
   };
 
   const handlePlayAgain = () => {
@@ -126,16 +126,6 @@ export default function GameScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{gameNames[gameMode]}</Text>
-      </View>
-      
       <ToiletPaperToss 
         onGameComplete={handleGameComplete}
         gameMode={gameMode}
@@ -148,31 +138,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-  },
-  backButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginRight: 15,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    flex: 1,
   },
   tutorialContainer: {
     flex: 1,
