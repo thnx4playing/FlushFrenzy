@@ -44,10 +44,11 @@ export default function HomeScreen({ navigation }) {
 
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>🚽 TOILET OLYMPICS 🚽</Text>
-        </View>
-        <Text style={styles.subtitle}>The Ultimate Bathroom Challenge!</Text>
+        <Image 
+          source={require('../../assets/header.png')} 
+          style={styles.headerImage}
+          resizeMode="stretch"
+        />
       </View>
 
       {/* Game Modes */}
@@ -84,45 +85,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    alignItems: 'center',
-    paddingTop: 20,
-    paddingBottom: 30,
-    paddingHorizontal: 20,
+    width: '100%',
+    height: 100,
+    marginTop: 0,
   },
-  titleContainer: {
-    backgroundColor: '#FF6B6B', // Vibrant red background
-    paddingVertical: 15,
-    paddingHorizontal: 25,
-    borderRadius: 20,
-    marginBottom: 15,
-    borderWidth: 3,
-    borderColor: '#8B0000', // Dark red border
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-    textShadowColor: '#1E3A8A', // Dark blue outline like buttons
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 1,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#2c3e50',
-    textAlign: 'center',
-    fontWeight: 'bold',
-    textShadowColor: 'rgba(255, 255, 255, 0.8)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 1,
+  headerImage: {
+    width: '100%',
+    height: '100%',
   },
   content: {
     flex: 1,
