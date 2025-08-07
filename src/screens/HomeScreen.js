@@ -14,19 +14,23 @@ const { width, height } = Dimensions.get('window');
 const GAME_MODES = [
   {
     id: 'quick-flush',
-    title: 'Quick Flush',
-    description: '60 second challenge - Score as many points as you can!',
+    title: 'QUICK FLUSH',
+    subtitle: '60 second challenge',
     icon: '⏱️',
-    gradient: ['#FF6B6B', '#FF8E8E'],
-    shadowColor: '#FF6B6B',
+    backgroundColor: '#FFB347', // Orange-yellow like the reference
+    borderColor: '#8B4513', // Dark brown border
+    textColor: '#fff',
+    textOutline: '#1E3A8A', // Dark blue outline
   },
   {
     id: 'endless-plunge',
-    title: 'Endless Plunge',
-    description: 'Flick toilet paper until you miss 3 times!',
+    title: 'ENDLESS PLUNGE',
+    subtitle: '3 misses allowed',
     icon: '♾️',
-    gradient: ['#4ECDC4', '#44A08D'],
-    shadowColor: '#4ECDC4',
+    backgroundColor: '#4ECDC4', // Teal for variety
+    borderColor: '#2E8B57', // Dark green border
+    textColor: '#fff',
+    textOutline: '#1E3A8A', // Dark blue outline
   },
 ];
 
@@ -50,7 +54,9 @@ export default function HomeScreen({ navigation }) {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>🚽 Toilet Olympics 🚽</Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>🚽 TOILET OLYMPICS 🚽</Text>
+        </View>
         <Text style={styles.subtitle}>The Ultimate Bathroom Challenge!</Text>
       </View>
 
@@ -63,9 +69,8 @@ export default function HomeScreen({ navigation }) {
               style={[
                 styles.gameModeCard,
                 { 
-                  backgroundColor: mode.gradient[0],
-                  shadowColor: mode.shadowColor,
-                  transform: [{ scale: 1 }],
+                  backgroundColor: mode.backgroundColor,
+                  borderColor: mode.borderColor,
                 }
               ]}
               onPress={() => navigateToGame(mode.id)}
@@ -75,8 +80,8 @@ export default function HomeScreen({ navigation }) {
                 <View style={styles.iconContainer}>
                   <Text style={styles.gameModeIcon}>{mode.icon}</Text>
                 </View>
-                <Text style={styles.gameModeTitle}>{mode.title}</Text>
-                <Text style={styles.gameModeDescription}>{mode.description}</Text>
+                <Text style={[styles.gameModeTitle, { color: mode.textColor, textShadowColor: mode.textOutline }]}>{mode.title}</Text>
+                <Text style={[styles.gameModeSubtitle, { color: mode.textColor, textShadowColor: mode.textOutline }]}>{mode.subtitle}</Text>
                 <View style={styles.playButton}>
                   <Text style={styles.playButtonText}>PLAY NOW!</Text>
                 </View>
@@ -149,21 +154,40 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     paddingHorizontal: 20,
   },
+  titleContainer: {
+    backgroundColor: '#FF6B6B', // Vibrant red background
+    paddingVertical: 15,
+    paddingHorizontal: 25,
+    borderRadius: 20,
+    marginBottom: 15,
+    borderWidth: 3,
+    borderColor: '#8B0000', // Dark red border
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 6,
+  },
   title: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#2c3e50',
+    color: '#fff',
     textAlign: 'center',
-    marginBottom: 10,
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowColor: '#1E3A8A', // Dark blue outline like buttons
     textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
+    textShadowRadius: 1,
   },
   subtitle: {
     fontSize: 18,
-    color: '#6c757d',
+    color: '#2c3e50',
     textAlign: 'center',
-    fontWeight: '600',
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(255, 255, 255, 0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 1,
   },
   content: {
     flex: 1,
@@ -176,60 +200,53 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   gameModeCard: {
-    borderRadius: 25,
-    padding: 30,
+    borderRadius: 20,
+    padding: 25,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 8,
+      height: 6,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 12,
-    minHeight: 200,
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+    minHeight: 180,
     justifyContent: 'center',
+    borderWidth: 3,
   },
   gameModeContent: {
     alignItems: 'center',
   },
   iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 6,
+    marginBottom: 15,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   gameModeIcon: {
     fontSize: 48,
   },
   gameModeTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 15,
+    marginBottom: 8,
     textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    textShadowColor: '#1E3A8A',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 1,
   },
-  gameModeDescription: {
-    fontSize: 16,
-    color: '#fff',
-    textAlign: 'center',
-    lineHeight: 22,
-    opacity: 0.95,
+  gameModeSubtitle: {
+    fontSize: 14,
     marginBottom: 20,
-    fontWeight: '500',
+    textAlign: 'center',
+    textShadowColor: '#1E3A8A',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 1,
   },
   playButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.25)',

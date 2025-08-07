@@ -7,6 +7,7 @@ import {
   Animated,
   Dimensions,
   PanResponder,
+  Image,
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -22,10 +23,10 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   // Animated values
   const paperPosition = useRef(new Animated.ValueXY({ 
     x: width / 2 - 30, 
-    y: height - 150 // Moved up to be more accessible
+    y: height - 150
   })).current;
   const paperScale = useRef(new Animated.Value(1)).current;
-  const toiletPosition = { x: width / 2 - 50, y: 120 };
+  const toiletPosition = { x: width / 2 - 60, y: height / 2 - 100 };
 
   // Game mode specific logic
   const isQuickFlush = gameMode === 'quick-flush';
@@ -66,8 +67,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
 
   const calculateScore = (distance) => {
     const centerDistance = Math.abs(distance);
-    if (centerDistance < 30) return 100; // Center hit
-    if (centerDistance < 60) return 50;  // Outer ring
+    if (centerDistance < 25) return 100; // Center hit
+    if (centerDistance < 50) return 50;  // Outer ring
     return 0; // Miss
   };
 
@@ -94,13 +95,13 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       toss.y += toss.velocityY * 0.016;
       toss.velocityY += toss.gravity;
       
-      // Check if hit toilet
+      // Check if hit toilet (adjusted for new toilet position)
       const distanceFromCenter = Math.sqrt(
-        Math.pow(toss.x - (toiletPosition.x + 50), 2) + 
-        Math.pow(toss.y - (toiletPosition.y + 40), 2)
+        Math.pow(toss.x - (toiletPosition.x + 60), 2) + 
+        Math.pow(toss.y - (toiletPosition.y + 80), 2)
       );
       
-      if (distanceFromCenter < 60) {
+      if (distanceFromCenter < 50) {
         const points = calculateScore(distanceFromCenter);
         if (points > 0) {
           setScore(prev => prev + points);
@@ -192,32 +193,69 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
 
       {/* Game Area */}
       <View style={styles.gameArea}>
-        {/* Background */}
+        {/* Tiled Background */}
         <View style={styles.background}>
-          {/* Bathroom tiles */}
-          <View style={styles.tiles} />
+          {/* Wall tiles */}
+          <View style={styles.wallTiles} />
           
-          {/* Rubber duck */}
-          <View style={styles.rubberDuck}>
-            <Text style={styles.duckEmoji}>🦆</Text>
-          </View>
-          
-          {/* Plunger scoreboard */}
-          <View style={styles.plungerScoreboard}>
-            <Text style={styles.plungerEmoji}>🪠</Text>
+          {/* Floor tiles */}
+          <View style={styles.floorTiles} />
+        </View>
+
+        {/* Rubber Duck - positioned on floor by toilet */}
+        <View style={styles.rubberDuck}>
+          <View style={styles.duckBody}>
+            <View style={styles.duckBeak} />
+            <View style={styles.duckEye} />
+            <View style={styles.duckWing} />
           </View>
         </View>
 
-        {/* Toilet */}
+        {/* Plunger - positioned on floor by toilet */}
+        <View style={styles.plunger}>
+          <View style={styles.plungerHandle} />
+          <View style={styles.plungerCup} />
+        </View>
+
+        {/* Expressive Toilet */}
         <View style={[styles.toilet, { left: toiletPosition.x, top: toiletPosition.y }]}>
-          <View style={styles.toiletBody}>
-            <View style={styles.toiletSeat}>
-              <View style={styles.toiletSeatInner} />
+          {/* Toilet Tank */}
+          <View style={styles.toiletTank}>
+            {/* Flush Handle */}
+            <View style={styles.flushHandle} />
+            
+            {/* Face on the lid */}
+            <View style={styles.toiletFace}>
+              {/* Eyes */}
+              <View style={styles.eyeContainer}>
+                <View style={styles.eye}>
+                  <View style={styles.pupil} />
+                </View>
+                <View style={styles.eye}>
+                  <View style={styles.pupil} />
+                </View>
+              </View>
+              
+              {/* Eyebrows */}
+              <View style={styles.eyebrowContainer}>
+                <View style={styles.eyebrow} />
+                <View style={styles.eyebrow} />
+              </View>
+              
+              {/* Smile */}
+              <View style={styles.smile} />
+              
+              {/* Lid bolts */}
+              <View style={styles.boltContainer}>
+                <View style={styles.bolt} />
+                <View style={styles.bolt} />
+              </View>
             </View>
-            <View style={styles.toiletBowl}>
-              <View style={styles.toiletWater} />
-            </View>
-            <View style={styles.toiletTank} />
+          </View>
+          
+          {/* Toilet Bowl */}
+          <View style={styles.toiletBowl}>
+            <View style={styles.bowlInterior} />
           </View>
           
           {/* Scoring rings */}
@@ -239,7 +277,18 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
               },
             ]}
           >
-            <Text style={styles.paperEmoji}>🧻</Text>
+            <View style={styles.paperRoll}>
+              {/* Main white body */}
+              <View style={styles.paperBody} />
+              {/* Brown cardboard core */}
+              <View style={styles.paperCore} />
+              {/* Shading on right side */}
+              <View style={styles.paperShading} />
+              {/* Highlight on top */}
+              <View style={styles.paperHighlight} />
+              {/* Peeled flap */}
+              <View style={styles.paperFlap} />
+            </View>
           </View>
         ))}
 
@@ -257,7 +306,18 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
           ]}
           {...panResponder.panHandlers}
         >
-          <Text style={styles.paperEmoji}>🧻</Text>
+          <View style={styles.paperRoll}>
+            {/* Main white body */}
+            <View style={styles.paperBody} />
+            {/* Brown cardboard core */}
+            <View style={styles.paperCore} />
+            {/* Shading on right side */}
+            <View style={styles.paperShading} />
+            {/* Highlight on top */}
+            <View style={styles.paperHighlight} />
+            {/* Peeled flap */}
+            <View style={styles.paperFlap} />
+          </View>
         </Animated.View>
       </View>
     </View>
@@ -327,99 +387,163 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  tiles: {
+  wallTiles: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
+    height: height * 0.6,
+    backgroundColor: '#87CEEB', // Light blue tiles
+    opacity: 0.8,
+  },
+  floorTiles: {
+    position: 'absolute',
     bottom: 0,
-    backgroundColor: '#F8F9FA',
-    opacity: 0.3,
+    left: 0,
+    right: 0,
+    height: height * 0.4,
+    backgroundColor: '#FFB347', // Orange-yellow tiles
+    opacity: 0.8,
   },
   rubberDuck: {
     position: 'absolute',
-    top: 50,
-    right: 30,
+    bottom: 60,
+    left: 40,
+    zIndex: 10,
   },
-  duckEmoji: {
-    fontSize: 40,
-  },
-  plungerScoreboard: {
+  plunger: {
     position: 'absolute',
-    top: 100,
-    right: 30,
-  },
-  plungerEmoji: {
-    fontSize: 40,
+    bottom: 50,
+    right: 50,
+    zIndex: 10,
   },
   toilet: {
     position: 'absolute',
-    width: 100,
-    height: 120,
+    width: 120,
+    height: 160,
+    zIndex: 5,
   },
-  toiletBody: {
-    position: 'relative',
-    width: 100,
-    height: 120,
-  },
-  toiletSeat: {
+  toiletTank: {
     position: 'absolute',
     top: 0,
-    left: 10,
+    left: 20,
     width: 80,
-    height: 20,
-    backgroundColor: '#8B4513',
-    borderRadius: 10,
-    borderWidth: 3,
-    borderColor: '#654321',
-  },
-  toiletSeatInner: {
-    position: 'absolute',
-    top: 3,
-    left: 3,
-    right: 3,
-    bottom: 3,
-    backgroundColor: '#A0522D',
-    borderRadius: 7,
-  },
-  toiletBowl: {
-    position: 'absolute',
-    top: 20,
-    left: 15,
-    width: 70,
     height: 60,
     backgroundColor: '#fff',
-    borderRadius: 35,
+    borderRadius: 15,
     borderWidth: 3,
     borderColor: '#ddd',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  toiletWater: {
+  flushHandle: {
+    position: 'absolute',
+    left: -8,
+    top: 15,
+    width: 16,
+    height: 30,
+    backgroundColor: '#888',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#666',
+  },
+  toiletFace: {
     position: 'absolute',
     top: 5,
     left: 5,
     right: 5,
     bottom: 5,
-    backgroundColor: '#87CEEB',
-    borderRadius: 30,
-    opacity: 0.7,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  toiletTank: {
-    position: 'absolute',
-    top: 80,
-    left: 20,
-    width: 60,
-    height: 40,
+  eyeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginBottom: 5,
+  },
+  eye: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pupil: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#fff',
-    borderRadius: 10,
+  },
+  eyebrowContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginBottom: 3,
+  },
+  eyebrow: {
+    width: 12,
+    height: 3,
+    backgroundColor: '#000',
+    borderRadius: 2,
+  },
+  smile: {
+    width: 20,
+    height: 10,
+    borderBottomWidth: 3,
+    borderBottomColor: '#000',
+    borderRadius: 20,
+  },
+  boltContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    position: 'absolute',
+    top: -5,
+  },
+  bolt: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#87CEEB',
+    borderWidth: 1,
+    borderColor: '#fff',
+  },
+  toiletBowl: {
+    position: 'absolute',
+    top: 60,
+    left: 15,
+    width: 90,
+    height: 80,
+    backgroundColor: '#fff',
+    borderRadius: 45,
     borderWidth: 3,
     borderColor: '#ddd',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  bowlInterior: {
+    position: 'absolute',
+    top: 5,
+    left: 5,
+    right: 5,
+    bottom: 5,
+    backgroundColor: '#1E3A8A', // Dark blue interior
+    borderRadius: 40,
   },
   scoringRings: {
     position: 'absolute',
-    top: 20,
+    top: 60,
     left: 15,
-    width: 70,
-    height: 60,
+    width: 90,
+    height: 80,
   },
   outerRing: {
     position: 'absolute',
@@ -427,9 +551,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: '#FFD700',
-    borderRadius: 35,
+    borderRadius: 45,
     opacity: 0.6,
   },
   innerRing: {
@@ -438,9 +562,9 @@ const styles = StyleSheet.create({
     left: 15,
     right: 15,
     bottom: 15,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: '#FF6B6B',
-    borderRadius: 20,
+    borderRadius: 30,
     opacity: 0.8,
   },
   paper: {
@@ -453,13 +577,139 @@ const styles = StyleSheet.create({
   },
   flyingPaper: {
     position: 'absolute',
-    width: 40,
-    height: 40,
+    width: 60,
+    height: 60,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,
   },
   paperEmoji: {
     fontSize: 40,
+  },
+  paperRoll: {
+    width: 60,
+    height: 60,
+    position: 'relative',
+  },
+  paperBody: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#fff',
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: '#000',
+  },
+  paperCore: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    bottom: 10,
+    backgroundColor: '#8B4513', // Brown cardboard core
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#000',
+  },
+  paperShading: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 10,
+    backgroundColor: '#888', // Shading
+    borderRadius: 5,
+  },
+  paperHighlight: {
+    position: 'absolute',
+    top: -5,
+    left: 20,
+    width: 20,
+    height: 10,
+    backgroundColor: '#fff', // Highlight
+    borderRadius: 10,
+  },
+  paperFlap: {
+    position: 'absolute',
+    top: 20,
+    left: 10,
+    width: 40,
+    height: 10,
+    backgroundColor: '#000', // Black outline
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  duckBody: {
+    width: 50,
+    height: 45,
+    backgroundColor: '#FFD700', // Bright yellow
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#000',
+    position: 'relative',
+  },
+  duckBeak: {
+    position: 'absolute',
+    top: 8,
+    left: 20,
+    width: 12,
+    height: 8,
+    backgroundColor: '#FF8C00', // Orange beak
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#000',
+  },
+  duckEye: {
+    position: 'absolute',
+    top: 12,
+    left: 15,
+    width: 10,
+    height: 10,
+    backgroundColor: '#000',
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#fff',
+  },
+  duckWing: {
+    position: 'absolute',
+    top: 18,
+    right: 5,
+    width: 18,
+    height: 15,
+    backgroundColor: '#FFD700',
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: '#000',
+    transform: [{ rotate: '-20deg' }],
+  },
+  plungerHandle: {
+    position: 'absolute',
+    top: 0,
+    left: 15,
+    width: 12,
+    height: 35,
+    backgroundColor: '#8B4513', // Wooden brown
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#654321',
+  },
+  plungerCup: {
+    position: 'absolute',
+    top: 35,
+    left: 8,
+    width: 26,
+    height: 15,
+    backgroundColor: '#FF0000', // Vibrant red
+    borderRadius: 13,
+    borderWidth: 2,
+    borderColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
 });
