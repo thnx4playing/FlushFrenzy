@@ -16,44 +16,27 @@ export default function GameScreen({ route, navigation }) {
   const [gameComplete, setGameComplete] = useState(false);
   const [score, setScore] = useState(0);
   const [showTutorial, setShowTutorial] = useState(true);
-  const [tutorialStep, setTutorialStep] = useState(0);
 
   const gameNames = {
     'quick-flush': 'Quick Flush',
     'endless-plunge': 'Endless Plunge',
   };
 
-  const tutorialSteps = [
-    {
-      title: 'How to Play',
-      description: 'Drag and flick the toilet paper to toss it into the toilet!',
-      icon: '👆',
-    },
-    {
-      title: 'Scoring',
-      description: 'Hit the center for 100 points, outer ring for 50 points!',
-      icon: '🎯',
-    },
-    {
-      title: 'Ready to Start!',
-      description: gameMode === 'quick-flush' 
-        ? 'You have 60 seconds to score as many points as possible!'
-        : 'Keep tossing until you miss 3 times!',
-      icon: '🚀',
-    },
-  ];
+  const getGameModeDescription = () => {
+    if (gameMode === 'quick-flush') {
+      return 'You have 60 seconds to score as many points as possible!';
+    } else {
+      return 'Keep tossing until you miss 3 times!';
+    }
+  };
 
   const handleGameComplete = (finalScore) => {
     setScore(finalScore);
     setGameComplete(true);
   };
 
-  const handleTutorialNext = () => {
-    if (tutorialStep < tutorialSteps.length - 1) {
-      setTutorialStep(tutorialStep + 1);
-    } else {
-      setShowTutorial(false);
-    }
+  const handleTutorialStart = () => {
+    setShowTutorial(false);
   };
 
   const handleBackToMenu = () => {
@@ -64,7 +47,6 @@ export default function GameScreen({ route, navigation }) {
     setGameComplete(false);
     setScore(0);
     setShowTutorial(true);
-    setTutorialStep(0);
   };
 
   if (showTutorial) {
@@ -72,19 +54,36 @@ export default function GameScreen({ route, navigation }) {
       <SafeAreaView style={styles.container}>
         <View style={styles.tutorialContainer}>
           <View style={styles.tutorialCard}>
-            <Text style={styles.tutorialIcon}>{tutorialSteps[tutorialStep].icon}</Text>
-            <Text style={styles.tutorialTitle}>{tutorialSteps[tutorialStep].title}</Text>
-            <Text style={styles.tutorialDescription}>
-              {tutorialSteps[tutorialStep].description}
-            </Text>
+            <Text style={styles.tutorialIcon}>🚽</Text>
+            <Text style={styles.tutorialTitle}>How to Play</Text>
+            
+            <View style={styles.tutorialSection}>
+              <Text style={styles.tutorialSubtitle}>👆 Controls</Text>
+              <Text style={styles.tutorialDescription}>
+                Drag and flick the toilet paper to toss it into the toilet!
+              </Text>
+            </View>
+            
+            <View style={styles.tutorialSection}>
+              <Text style={styles.tutorialSubtitle}>🎯 Scoring</Text>
+              <Text style={styles.tutorialDescription}>
+                Hit the center for 100 points, outer ring for 50 points!
+              </Text>
+            </View>
+            
+            <View style={styles.tutorialSection}>
+              <Text style={styles.tutorialSubtitle}>🚀 Game Mode</Text>
+              <Text style={styles.tutorialDescription}>
+                {getGameModeDescription()}
+              </Text>
+            </View>
+            
             <TouchableOpacity
               style={styles.tutorialButton}
-              onPress={handleTutorialNext}
+              onPress={handleTutorialStart}
               activeOpacity={0.8}
             >
-              <Text style={styles.tutorialButtonText}>
-                {tutorialStep < tutorialSteps.length - 1 ? 'Next' : 'Start Game!'}
-              </Text>
+              <Text style={styles.tutorialButtonText}>Start Game!</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -176,7 +175,18 @@ const styles = StyleSheet.create({
     color: '#6c757d',
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 30,
+    marginBottom: 15,
+  },
+  tutorialSection: {
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  tutorialSubtitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   tutorialButton: {
     backgroundColor: '#4ECDC4',
