@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
   SafeAreaView,
+  ImageBackground,
 } from 'react-native';
 
 // Import individual game components
@@ -51,7 +52,11 @@ export default function GameScreen({ route, navigation }) {
 
   if (showTutorial) {
     return (
-      <SafeAreaView style={styles.container}>
+      <ImageBackground 
+        source={require('../../assets/background_.png')} 
+        style={styles.container}
+        resizeMode="stretch"
+      >
         <View style={styles.tutorialContainer}>
           <View style={styles.tutorialCard}>
             <Text style={styles.tutorialIcon}>🚽</Text>
@@ -87,13 +92,17 @@ export default function GameScreen({ route, navigation }) {
             </TouchableOpacity>
           </View>
         </View>
-      </SafeAreaView>
+      </ImageBackground>
     );
   }
 
   if (gameComplete) {
     return (
-      <SafeAreaView style={styles.container}>
+      <ImageBackground 
+        source={require('../../assets/background_.png')} 
+        style={styles.container}
+        resizeMode="stretch"
+      >
         <View style={styles.resultsContainer}>
           <View style={styles.resultsCard}>
             <Text style={styles.resultsTitle}>Game Complete!</Text>
@@ -119,24 +128,23 @@ export default function GameScreen({ route, navigation }) {
             </View>
           </View>
         </View>
-      </SafeAreaView>
+      </ImageBackground>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ToiletPaperToss 
         onGameComplete={handleGameComplete}
         gameMode={gameMode}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
   },
   tutorialContainer: {
     flex: 1,

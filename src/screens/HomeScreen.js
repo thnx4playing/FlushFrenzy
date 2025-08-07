@@ -42,14 +42,7 @@ export default function HomeScreen({ navigation }) {
       resizeMode="stretch"
     >
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Image 
-          source={require('../../assets/header.png')} 
-          style={styles.headerImage}
-          resizeMode="stretch"
-        />
-      </View>
+
 
       {/* Game Modes */}
       <View style={styles.content}>
@@ -70,10 +63,13 @@ export default function HomeScreen({ navigation }) {
           ))}
         </View>
 
-        {/* Fun Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>🎯 Aim for the toilet! 🎯</Text>
-          <Text style={styles.footerSubtext}>The more accurate, the higher the score!</Text>
+        {/* Header at bottom */}
+        <View style={styles.header}>
+          <Image 
+            source={require('../../assets/header.png')} 
+            style={styles.headerImage}
+            resizeMode="contain"
+          />
         </View>
       </View>
     </ImageBackground>
@@ -86,17 +82,19 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    height: 100,
-    marginTop: 0,
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 20,
   },
   headerImage: {
-    width: '100%',
-    height: '100%',
+    width: width * 0.8,
+    height: 60,
   },
   content: {
     flex: 1,
     padding: 20,
-    justifyContent: 'space-between',
+    justifyContent: 'center',
   },
   gameModesContainer: {
     gap: 25,
@@ -117,25 +115,9 @@ const styles = StyleSheet.create({
     minHeight: 120,
   },
   gameModeImage: {
-    width: width * 0.8,
-    height: 120,
+    width: width * 0.9,
+    height: 150,
   },
 
-  footer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  footerText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    textAlign: 'center',
-    marginBottom: 5,
-  },
-  footerSubtext: {
-    fontSize: 14,
-    color: '#6c757d',
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
+
 });

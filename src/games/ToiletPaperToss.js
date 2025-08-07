@@ -24,10 +24,13 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   // Animated values
   const paperPosition = useRef(new Animated.ValueXY({ 
     x: width / 2 - 30, 
-    y: height - 250
+    y: height - 200
   })).current;
   const paperScale = useRef(new Animated.Value(1)).current;
-  const toiletPosition = { x: width / 2 - 80, y: height / 2 - 120 };
+  
+  // Toilet position (at the top of the screen)
+  const toiletPosition = { x: width / 2 - 60, y: 100 };
+  const toiletHolePosition = { x: width / 2 - 40, y: 140 };
 
   // Game mode specific logic
   const isQuickFlush = gameMode === 'quick-flush';
@@ -66,11 +69,10 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     onGameComplete(score);
   };
 
-  const calculateScore = (distance) => {
-    const centerDistance = Math.abs(distance);
-    if (centerDistance < 25) return 100; // Center hit
-    if (centerDistance < 50) return 50;  // Outer ring
-    return 0; // Miss
+  const calculateScore = (hitType) => {
+    if (hitType === 'direct') return 3;
+    if (hitType === 'bounce') return 1;
+    return 0;
   };
 
   const createToss = (startX, startY, velocityX, velocityY) => {
@@ -83,8 +85,10 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       y: startY,
       velocityX,
       velocityY,
-      gravity: 0.8,
+      gravity: 0.5,
       time: 0,
+      hasHitWall: false,
+      hasHitToilet: false,
     };
     
     setTosses(prev => [...prev, toss]);
@@ -96,25 +100,43 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       toss.y += toss.velocityY * 0.016;
       toss.velocityY += toss.gravity;
       
-      // Check if hit toilet (adjusted for new toilet position and size)
-      const distanceFromCenter = Math.sqrt(
-        Math.pow(toss.x - (toiletPosition.x + 80), 2) + 
-        Math.pow(toss.y - (toiletPosition.y + 140), 2)
+      // Check if hit toilet hole (direct hit)
+      const distanceFromHole = Math.sqrt(
+        Math.pow(toss.x - toiletHolePosition.x, 2) + 
+        Math.pow(toss.y - toiletHolePosition.y, 2)
       );
       
-      if (distanceFromCenter < 50) {
-        const points = calculateScore(distanceFromCenter);
+      if (distanceFromHole < 30 && !toss.hasHitToilet) {
+        const points = calculateScore('direct');
         if (points > 0) {
           setScore(prev => prev + points);
-        } else {
-          setMisses(prev => prev + 1);
         }
         setTosses(prev => prev.filter(t => t.id !== tossId));
         return;
       }
       
-      // Check if out of bounds
-      if (toss.y > height || toss.x < 0 || toss.x > width) {
+      // Check if hit toilet back wall (bounce)
+      if (toss.y < toiletPosition.y + 80 && toss.y > toiletPosition.y + 40 && 
+          toss.x > toiletPosition.x + 20 && toss.x < toiletPosition.x + 100 && 
+          !toss.hasHitWall) {
+        toss.hasHitWall = true;
+        toss.velocityX = -toss.velocityX * 0.7; // Bounce back
+        toss.velocityY = toss.velocityY * 0.5;
+      }
+      
+      // Check if bounced into hole
+      if (toss.hasHitWall && distanceFromHole < 30 && !toss.hasHitToilet) {
+        toss.hasHitToilet = true;
+        const points = calculateScore('bounce');
+        if (points > 0) {
+          setScore(prev => prev + points);
+        }
+        setTosses(prev => prev.filter(t => t.id !== tossId));
+        return;
+      }
+      
+      // Check if out of bounds or hit floor
+      if (toss.y > height - 50 || toss.x < 0 || toss.x > width) {
         setMisses(prev => prev + 1);
         setTosses(prev => prev.filter(t => t.id !== tossId));
         return;
@@ -134,7 +156,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     },
     onPanResponderMove: (evt, gestureState) => {
       const newX = Math.max(0, Math.min(width - 60, gestureState.moveX - 30));
-      const newY = Math.max(height - 300, Math.min(height - 150, gestureState.moveY - 30));
+      const newY = Math.max(height - 250, Math.min(height - 100, gestureState.moveY - 30));
       paperPosition.setValue({ x: newX, y: newY });
     },
     onPanResponderRelease: (evt, gestureState) => {
@@ -143,8 +165,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       paperScale.setValue(1);
       
       // Calculate velocity based on gesture
-      const velocityX = gestureState.vx * 1000;
-      const velocityY = gestureState.vy * 1000;
+      const velocityX = gestureState.vx * 800;
+      const velocityY = gestureState.vy * 800;
       
       // Create toss
       createToss(
@@ -156,7 +178,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       
       // Reset paper position
       Animated.spring(paperPosition, {
-        toValue: { x: width / 2 - 30, y: height - 250 },
+        toValue: { x: width / 2 - 30, y: height - 200 },
         useNativeDriver: false,
       }).start();
     },
@@ -192,42 +214,41 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         )}
       </View>
 
-      {/* Game Area */}
-      <ImageBackground 
-        source={require('../../assets/wall.png')} 
-        style={styles.gameArea}
-        resizeMode="stretch"
-      >
-
-        {/* Rubber Duck Asset */}
-        <View style={styles.rubberDuck}>
-          <Image 
-            source={require('../../assets/duck.png')} 
-            style={styles.duckImage}
-            resizeMode="contain"
-          />
+      {/* Game Area - Vertical Bathroom */}
+      <View style={styles.gameArea}>
+        {/* Wall Tiles Background */}
+        <View style={styles.wallTiles}>
+          {Array.from({ length: 8 }, (_, row) => (
+            <View key={row} style={styles.tileRow}>
+              {Array.from({ length: 6 }, (_, col) => (
+                <View key={col} style={[styles.tile, { backgroundColor: (row + col) % 2 === 0 ? '#87CEEB' : '#4682B4' }]} />
+              ))}
+            </View>
+          ))}
         </View>
 
-        {/* Plunger Asset */}
-        <View style={styles.plunger}>
-          <Image 
-            source={require('../../assets/plunger.png')} 
-            style={styles.plungerImage}
-            resizeMode="contain"
-          />
+        {/* Floor Tiles */}
+        <View style={styles.floorTiles}>
+          {Array.from({ length: 3 }, (_, col) => (
+            <View key={col} style={[styles.floorTile, { backgroundColor: '#DAA520' }]} />
+          ))}
         </View>
 
-        {/* Toilet Asset */}
+        {/* Toilet at the top */}
         <View style={[styles.toiletContainer, { left: toiletPosition.x, top: toiletPosition.y }]}>
-          <Image 
-            source={require('../../assets/icon.png')} 
-            style={styles.toiletImage}
-            resizeMode="contain"
-          />
-          {/* Scoring rings overlay */}
-          <View style={styles.scoringRings}>
-            <View style={styles.outerRing} />
-            <View style={styles.innerRing} />
+          {/* Toilet tank */}
+          <View style={styles.toiletTank}>
+            <View style={styles.tankTop} />
+            <View style={styles.tankBody} />
+          </View>
+          
+          {/* Toilet bowl */}
+          <View style={styles.toiletBowl}>
+            <View style={styles.bowlTop} />
+            <View style={styles.bowlInterior}>
+              {/* Toilet hole */}
+              <View style={styles.toiletHole} />
+            </View>
           </View>
         </View>
 
@@ -244,15 +265,10 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
             ]}
           >
             <View style={styles.paperRoll}>
-              {/* Main white body */}
               <View style={styles.paperBody} />
-              {/* Brown cardboard core */}
               <View style={styles.paperCore} />
-              {/* Shading on right side */}
               <View style={styles.paperShading} />
-              {/* Highlight on top */}
               <View style={styles.paperHighlight} />
-              {/* Peeled flap */}
               <View style={styles.paperFlap} />
             </View>
           </View>
@@ -273,19 +289,14 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
           {...panResponder.panHandlers}
         >
           <View style={styles.paperRoll}>
-            {/* Main white body */}
             <View style={styles.paperBody} />
-            {/* Brown cardboard core */}
             <View style={styles.paperCore} />
-            {/* Shading on right side */}
             <View style={styles.paperShading} />
-            {/* Highlight on top */}
             <View style={styles.paperHighlight} />
-            {/* Peeled flap */}
             <View style={styles.paperFlap} />
           </View>
         </Animated.View>
-      </ImageBackground>
+      </View>
     </View>
   );
 }
@@ -346,71 +357,95 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
-
-  rubberDuck: {
-    position: 'absolute',
-    bottom: 80,
-    left: 30,
-    zIndex: 10,
-    width: 80,
-    height: 80,
-  },
-  plunger: {
-    position: 'absolute',
-    bottom: 70,
-    right: 40,
-    zIndex: 10,
-    width: 60,
-    height: 100,
-  },
-  duckImage: {
-    width: 80,
-    height: 80,
-  },
-  plungerImage: {
-    width: 60,
-    height: 100,
-  },
-  toiletContainer: {
-    position: 'absolute',
-    width: 160,
-    height: 200,
-    zIndex: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toiletImage: {
-    width: 160,
-    height: 200,
-  },
-  scoringRings: {
-    position: 'absolute',
-    top: 80,
-    left: 20,
-    width: 120,
-    height: 100,
-  },
-  outerRing: {
+  wallTiles: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-    borderWidth: 3,
-    borderColor: '#FFD700',
-    borderRadius: 45,
-    opacity: 0.6,
+    bottom: 100,
   },
-  innerRing: {
+  tileRow: {
+    flexDirection: 'row',
+    height: 60,
+  },
+  tile: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#fff',
+  },
+  floorTiles: {
     position: 'absolute',
-    top: 15,
-    left: 15,
-    right: 15,
-    bottom: 15,
-    borderWidth: 3,
-    borderColor: '#FF6B6B',
-    borderRadius: 30,
-    opacity: 0.8,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+    flexDirection: 'row',
+  },
+  floorTile: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#B8860B',
+  },
+  toiletContainer: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    zIndex: 10,
+  },
+  toiletTank: {
+    position: 'absolute',
+    top: 0,
+    left: 20,
+    width: 80,
+    height: 60,
+  },
+  tankTop: {
+    width: 80,
+    height: 10,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 5,
+  },
+  tankBody: {
+    width: 80,
+    height: 50,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#000',
+    borderTopWidth: 0,
+  },
+  toiletBowl: {
+    position: 'absolute',
+    top: 50,
+    left: 10,
+    width: 100,
+    height: 70,
+  },
+  bowlTop: {
+    width: 100,
+    height: 20,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 50,
+  },
+  bowlInterior: {
+    width: 100,
+    height: 50,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 2,
+    borderColor: '#000',
+    borderTopWidth: 0,
+    borderRadius: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toiletHole: {
+    width: 60,
+    height: 30,
+    backgroundColor: '#000',
+    borderRadius: 15,
   },
   paper: {
     position: 'absolute',
@@ -427,9 +462,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,
-  },
-  paperEmoji: {
-    fontSize: 40,
   },
   paperRoll: {
     width: 60,
@@ -453,7 +485,7 @@ const styles = StyleSheet.create({
     left: 10,
     right: 10,
     bottom: 10,
-    backgroundColor: '#8B4513', // Brown cardboard core
+    backgroundColor: '#8B4513',
     borderRadius: 25,
     borderWidth: 2,
     borderColor: '#000',
@@ -464,7 +496,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     width: 10,
-    backgroundColor: '#888', // Shading
+    backgroundColor: '#888',
     borderRadius: 5,
   },
   paperHighlight: {
@@ -473,7 +505,7 @@ const styles = StyleSheet.create({
     left: 20,
     width: 20,
     height: 10,
-    backgroundColor: '#fff', // Highlight
+    backgroundColor: '#fff',
     borderRadius: 10,
   },
   paperFlap: {
@@ -482,7 +514,7 @@ const styles = StyleSheet.create({
     left: 10,
     width: 40,
     height: 10,
-    backgroundColor: '#000', // Black outline
+    backgroundColor: '#000',
     borderRadius: 5,
     borderWidth: 2,
     borderColor: '#fff',
