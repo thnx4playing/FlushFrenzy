@@ -28,9 +28,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   })).current;
   const paperScale = useRef(new Animated.Value(1)).current;
   
-  // Toilet position (at the top of the screen)
-  const toiletPosition = { x: width / 2 - 60, y: 100 };
-  const toiletHolePosition = { x: width / 2 - 40, y: 140 };
+  // Toilet position (center of back wall)
+  const toiletPosition = { x: width / 2 - 60, y: height * 0.3 };
 
   // Game mode specific logic
   const isQuickFlush = gameMode === 'quick-flush';
@@ -85,10 +84,12 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       y: startY,
       velocityX,
       velocityY,
-      gravity: 0.5,
+      gravity: 0.3,
       time: 0,
       hasHitWall: false,
       hasHitToilet: false,
+      bounces: 0,
+      maxBounces: 3,
     };
     
     setTosses(prev => [...prev, toss]);
@@ -100,13 +101,13 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       toss.y += toss.velocityY * 0.016;
       toss.velocityY += toss.gravity;
       
-      // Check if hit toilet hole (direct hit)
-      const distanceFromHole = Math.sqrt(
-        Math.pow(toss.x - toiletHolePosition.x, 2) + 
-        Math.pow(toss.y - toiletHolePosition.y, 2)
+      // Check if hit toilet bowl (direct hit)
+      const distanceFromToilet = Math.sqrt(
+        Math.pow(toss.x - (toiletPosition.x + 60), 2) + 
+        Math.pow(toss.y - (toiletPosition.y + 80), 2)
       );
       
-      if (distanceFromHole < 30 && !toss.hasHitToilet) {
+      if (distanceFromToilet < 50 && !toss.hasHitToilet) {
         const points = calculateScore('direct');
         if (points > 0) {
           setScore(prev => prev + points);
@@ -116,16 +117,17 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       }
       
       // Check if hit toilet back wall (bounce)
-      if (toss.y < toiletPosition.y + 80 && toss.y > toiletPosition.y + 40 && 
+      if (toss.y < toiletPosition.y + 100 && toss.y > toiletPosition.y + 60 && 
           toss.x > toiletPosition.x + 20 && toss.x < toiletPosition.x + 100 && 
-          !toss.hasHitWall) {
+          !toss.hasHitWall && toss.bounces < toss.maxBounces) {
         toss.hasHitWall = true;
-        toss.velocityX = -toss.velocityX * 0.7; // Bounce back
-        toss.velocityY = toss.velocityY * 0.5;
+        toss.bounces++;
+        toss.velocityX = -toss.velocityX * 0.8; // Bounce back
+        toss.velocityY = toss.velocityY * 0.6;
       }
       
-      // Check if bounced into hole
-      if (toss.hasHitWall && distanceFromHole < 30 && !toss.hasHitToilet) {
+      // Check if bounced into toilet
+      if (toss.hasHitWall && distanceFromToilet < 50 && !toss.hasHitToilet) {
         toss.hasHitToilet = true;
         const points = calculateScore('bounce');
         if (points > 0) {
@@ -135,8 +137,32 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         return;
       }
       
+      // Check wall bounces (left and right walls)
+      if (toss.x <= 0 || toss.x >= width - 60) {
+        if (toss.bounces < toss.maxBounces) {
+          toss.bounces++;
+          toss.velocityX = -toss.velocityX * 0.8;
+        } else {
+          setMisses(prev => prev + 1);
+          setTosses(prev => prev.filter(t => t.id !== tossId));
+          return;
+        }
+      }
+      
+      // Check ceiling bounce
+      if (toss.y <= 0) {
+        if (toss.bounces < toss.maxBounces) {
+          toss.bounces++;
+          toss.velocityY = -toss.velocityY * 0.8;
+        } else {
+          setMisses(prev => prev + 1);
+          setTosses(prev => prev.filter(t => t.id !== tossId));
+          return;
+        }
+      }
+      
       // Check if out of bounds or hit floor
-      if (toss.y > height - 50 || toss.x < 0 || toss.x > width) {
+      if (toss.y > height - 50 || toss.x < -60 || toss.x > width) {
         setMisses(prev => prev + 1);
         setTosses(prev => prev.filter(t => t.id !== tossId));
         return;
@@ -164,9 +190,9 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       
       paperScale.setValue(1);
       
-      // Calculate velocity based on gesture
-      const velocityX = gestureState.vx * 800;
-      const velocityY = gestureState.vy * 800;
+      // Calculate velocity based on gesture (increased for longer throws)
+      const velocityX = gestureState.vx * 1200;
+      const velocityY = gestureState.vy * 1200;
       
       // Create toss
       createToss(
@@ -214,42 +240,19 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         )}
       </View>
 
-      {/* Game Area - Vertical Bathroom */}
-      <View style={styles.gameArea}>
-        {/* Wall Tiles Background */}
-        <View style={styles.wallTiles}>
-          {Array.from({ length: 8 }, (_, row) => (
-            <View key={row} style={styles.tileRow}>
-              {Array.from({ length: 6 }, (_, col) => (
-                <View key={col} style={[styles.tile, { backgroundColor: (row + col) % 2 === 0 ? '#87CEEB' : '#4682B4' }]} />
-              ))}
-            </View>
-          ))}
-        </View>
-
-        {/* Floor Tiles */}
-        <View style={styles.floorTiles}>
-          {Array.from({ length: 3 }, (_, col) => (
-            <View key={col} style={[styles.floorTile, { backgroundColor: '#DAA520' }]} />
-          ))}
-        </View>
-
-        {/* Toilet at the top */}
+      {/* Game Area - New Background */}
+      <ImageBackground 
+        source={require('../../assets/background_.png')} 
+        style={styles.gameArea}
+        resizeMode="stretch"
+      >
+        {/* Toilet at the back wall */}
         <View style={[styles.toiletContainer, { left: toiletPosition.x, top: toiletPosition.y }]}>
-          {/* Toilet tank */}
-          <View style={styles.toiletTank}>
-            <View style={styles.tankTop} />
-            <View style={styles.tankBody} />
-          </View>
-          
-          {/* Toilet bowl */}
-          <View style={styles.toiletBowl}>
-            <View style={styles.bowlTop} />
-            <View style={styles.bowlInterior}>
-              {/* Toilet hole */}
-              <View style={styles.toiletHole} />
-            </View>
-          </View>
+          <Image 
+            source={require('../../assets/icon.png')} 
+            style={styles.toiletImage}
+            resizeMode="contain"
+          />
         </View>
 
         {/* Flying toilet paper */}
@@ -296,7 +299,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
             <View style={styles.paperFlap} />
           </View>
         </Animated.View>
-      </View>
+      </ImageBackground>
     </View>
   );
 }
@@ -357,95 +360,17 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
-  wallTiles: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 100,
-  },
-  tileRow: {
-    flexDirection: 'row',
-    height: 60,
-  },
-  tile: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#fff',
-  },
-  floorTiles: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-    flexDirection: 'row',
-  },
-  floorTile: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#B8860B',
-  },
   toiletContainer: {
     position: 'absolute',
     width: 120,
     height: 120,
     zIndex: 10,
-  },
-  toiletTank: {
-    position: 'absolute',
-    top: 0,
-    left: 20,
-    width: 80,
-    height: 60,
-  },
-  tankTop: {
-    width: 80,
-    height: 10,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#000',
-    borderRadius: 5,
-  },
-  tankBody: {
-    width: 80,
-    height: 50,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#000',
-    borderTopWidth: 0,
-  },
-  toiletBowl: {
-    position: 'absolute',
-    top: 50,
-    left: 10,
-    width: 100,
-    height: 70,
-  },
-  bowlTop: {
-    width: 100,
-    height: 20,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#000',
-    borderRadius: 50,
-  },
-  bowlInterior: {
-    width: 100,
-    height: 50,
-    backgroundColor: '#f0f0f0',
-    borderWidth: 2,
-    borderColor: '#000',
-    borderTopWidth: 0,
-    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  toiletHole: {
-    width: 60,
-    height: 30,
-    backgroundColor: '#000',
-    borderRadius: 15,
+  toiletImage: {
+    width: 120,
+    height: 120,
   },
   paper: {
     position: 'absolute',

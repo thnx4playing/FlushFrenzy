@@ -82,14 +82,14 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    height: 80,
+    height: 120,
     alignItems: 'center',
     justifyContent: 'center',
     paddingBottom: 20,
   },
   headerImage: {
-    width: width * 0.8,
-    height: 60,
+    width: width * 0.95,
+    height: 100,
   },
   content: {
     flex: 1,
@@ -115,8 +115,8 @@ const styles = StyleSheet.create({
     minHeight: 120,
   },
   gameModeImage: {
-    width: width * 0.9,
-    height: 150,
+    width: width * 0.95,
+    height: 180,
   },
 
 

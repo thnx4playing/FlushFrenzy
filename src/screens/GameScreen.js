@@ -59,27 +59,20 @@ export default function GameScreen({ route, navigation }) {
       >
         <View style={styles.tutorialContainer}>
           <View style={styles.tutorialCard}>
-            <Text style={styles.tutorialIcon}>🚽</Text>
-            <Text style={styles.tutorialTitle}>How to Play</Text>
+            <Text style={styles.tutorialIcon}>🎯</Text>
+            <Text style={styles.tutorialTitle}>Ready to Toss?</Text>
             
-            <View style={styles.tutorialSection}>
-              <Text style={styles.tutorialSubtitle}>👆 Controls</Text>
+            <View style={styles.tutorialContent}>
               <Text style={styles.tutorialDescription}>
-                Drag and flick the toilet paper to toss it into the toilet!
+                <Text style={styles.highlight}>👆 Drag & flick</Text> the toilet paper to throw it!
               </Text>
-            </View>
-            
-            <View style={styles.tutorialSection}>
-              <Text style={styles.tutorialSubtitle}>🎯 Scoring</Text>
+              
               <Text style={styles.tutorialDescription}>
-                Hit the center for 100 points, outer ring for 50 points!
+                <Text style={styles.highlight}>🎯 Direct hit = 3 points</Text> • <Text style={styles.highlight}>Bounce = 1 point</Text>
               </Text>
-            </View>
-            
-            <View style={styles.tutorialSection}>
-              <Text style={styles.tutorialSubtitle}>🚀 Game Mode</Text>
+              
               <Text style={styles.tutorialDescription}>
-                {getGameModeDescription()}
+                <Text style={styles.highlight}>🚀 {gameMode === 'quick-flush' ? '60 seconds to score!' : '3 misses allowed!'}</Text>
               </Text>
             </View>
             
@@ -88,7 +81,7 @@ export default function GameScreen({ route, navigation }) {
               onPress={handleTutorialStart}
               activeOpacity={0.8}
             >
-              <Text style={styles.tutorialButtonText}>Start Game!</Text>
+              <Text style={styles.tutorialButtonText}>Let's Play! 🚽</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -153,61 +146,79 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   tutorialCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 30,
+    backgroundColor: '#FF6B9D',
+    borderRadius: 25,
+    padding: 25,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 12,
+    maxWidth: 320,
+    borderWidth: 4,
+    borderColor: '#FFD700',
+  },
+  tutorialIcon: {
+    fontSize: 48,
+    marginBottom: 15,
+  },
+  tutorialTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 20,
+    textAlign: 'center',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 2,
+  },
+  tutorialContent: {
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+  tutorialDescription: {
+    fontSize: 18,
+    color: '#fff',
+    textAlign: 'center',
+    lineHeight: 26,
+    marginBottom: 12,
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 1,
+  },
+  highlight: {
+    fontWeight: 'bold',
+    color: '#FFD700',
+  },
+  tutorialButton: {
+    backgroundColor: '#4ECDC4',
+    paddingVertical: 18,
+    paddingHorizontal: 35,
+    borderRadius: 30,
+    minWidth: 180,
+    borderWidth: 3,
+    borderColor: '#fff',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
-    maxWidth: 350,
-  },
-  tutorialIcon: {
-    fontSize: 64,
-    marginBottom: 20,
-  },
-  tutorialTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  tutorialDescription: {
-    fontSize: 16,
-    color: '#6c757d',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 15,
-  },
-  tutorialSection: {
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  tutorialSubtitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  tutorialButton: {
-    backgroundColor: '#4ECDC4',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-    minWidth: 150,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
   },
   tutorialButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 1,
   },
   resultsContainer: {
     flex: 1,
