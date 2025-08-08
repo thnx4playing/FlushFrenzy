@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     elevation: 8,
     width: width * 0.95,
     height: 220,
-    marginVertical: 0,
+    marginVertical: -10,
   },
   quickFlushImage: {
     width: width * 0.765, // 10% smaller (was 0.85)
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    height: height * 0.15,
+    height: height * 0.1,
     alignItems: 'center',
     justifyContent: 'flex-end',
     paddingBottom: 0,

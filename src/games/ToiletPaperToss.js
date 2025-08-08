@@ -100,7 +100,7 @@ const Box = ({ body, color = '#888' }) => {
 const CONSTANTS = {
   TP_RADIUS: 18,
   START_X: WIDTH * 0.18,
-  START_Y: HEIGHT * 0.72,
+  START_Y: HEIGHT * 0.6,
   MAX_AIM_LEN: 160, // px drag clamp
   MAX_IMPULSE: 0.12, // scale for Matter.applyForce (tune 0.04..0.14)
   CHARGE_SPEED: 170, // percent per second
@@ -130,8 +130,8 @@ const setupWorld = () => {
   // Ground (static, ends turn)
   const ground = Matter.Bodies.rectangle(WIDTH/2, HEIGHT + thickness/2 - 2, WIDTH, thickness, { isStatic: true, restitution: 0.0, label: 'ground' });
 
-  // Toilet (static block to bounce off). Adjust size/pos as needed to match your UI.
-  const toilet = Matter.Bodies.rectangle(WIDTH * 0.78, HEIGHT * 0.74, 90, 80, { isStatic: true, restitution: 0.6, label: 'toilet' });
+  // Toilet (static block to bounce off). Position matches the visual toilet image.
+  const toilet = Matter.Bodies.rectangle(WIDTH * 0.5, HEIGHT * 0.65, 90, 80, { isStatic: true, restitution: 0.6, label: 'toilet' });
 
   Matter.World.add(world, [tp, wallLeft, wallRight, ceiling, ground, toilet]);
 
@@ -321,11 +321,11 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
               body: bodies.tp, 
               renderer: (p) => <Circle {...p} color="#fff" radius={CONSTANTS.TP_RADIUS} imageSource={require('../../assets/tp.png')} /> 
             },
-            left: { body: bodies.wallLeft, renderer: (p) => <Box {...p} color="#2d2d2d" /> },
-            right: { body: bodies.wallRight, renderer: (p) => <Box {...p} color="#2d2d2d" /> },
-            ceiling: { body: bodies.ceiling, renderer: (p) => <Box {...p} color="#2d2d2d" /> },
-            ground: { body: bodies.ground, renderer: (p) => <Box {...p} color="#3b3b3b" /> },
-            toilet: { body: bodies.toilet, renderer: (p) => <Box {...p} color="#7aa6ff" /> },
+            left: { body: bodies.wallLeft, renderer: null },
+            right: { body: bodies.wallRight, renderer: null },
+            ceiling: { body: bodies.ceiling, renderer: null },
+            ground: { body: bodies.ground, renderer: null },
+            toilet: { body: bodies.toilet, renderer: null },
           }}
         >
           {/* HUD */}
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     padding: 20,
-    paddingTop: 60,
+    paddingTop: 80,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
