@@ -14,7 +14,7 @@ import Matter from 'matter-js';
 import { Audio } from 'expo-av';
 import Input from '../../systems/Input';
 import ChargeSystem from '../../systems/ChargeSystem';
-import AimIndicator from '../../components/AimIndicator';
+import TrajectoryIndicator from '../../components/TrajectoryIndicator';
 import ChargeBar from '../../components/ChargeBar';
 
 const { width: WIDTH, height: HEIGHT } = Dimensions.get('window');
@@ -99,8 +99,8 @@ const Box = ({ body, color = '#888' }) => {
 /******************** Constants ********************/
 const CONSTANTS = {
   TP_RADIUS: 18,
-  START_X: WIDTH * 0.18,
-  START_Y: HEIGHT * 0.6,
+  START_X: WIDTH * 0.5, // Center horizontally
+  START_Y: HEIGHT * 0.75, // Lower position, still visible
   MAX_AIM_LEN: 160, // px drag clamp
   MAX_IMPULSE: 0.12, // scale for Matter.applyForce (tune 0.04..0.14)
   CHARGE_SPEED: 170, // percent per second
@@ -261,8 +261,6 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   }, []);
 
   const state = stateRef.current;
-  const aimOrigin = { x: bodies.tp.position.x, y: bodies.tp.position.y };
-  const aimTarget = state.dragCurrent;
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -330,7 +328,20 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         >
           {/* HUD */}
           <ChargeBar value={state.charge} visible={state.isCharging} />
-          <AimIndicator origin={aimOrigin} target={aimTarget} visible={state.aiming} />
+          <TrajectoryIndicator
+            visible={state.aiming}
+            origin={{ x: bodies.tp.position.x, y: bodies.tp.position.y }}
+            aim={{
+              dx: (state.dragStart?.x ?? bodies.tp.position.x) - (state.dragCurrent?.x ?? bodies.tp.position.x),
+              dy: (state.dragStart?.y ?? bodies.tp.position.y) - (state.dragCurrent?.y ?? bodies.tp.position.y),
+            }}
+            chargePct={state.charge || 0}
+            maxAimLen={160}
+            gravityY={1.4}
+            velScale={60}
+            steps={32}
+            dt={1}
+          />
         </GameEngine>
       </ImageBackground>
     </View>
