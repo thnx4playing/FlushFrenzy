@@ -12,6 +12,7 @@ import { StyleSheet, View, Dimensions, Text, Image, ImageBackground } from 'reac
 import { GameEngine } from 'react-native-game-engine';
 import Matter from 'matter-js';
 import { Audio } from 'expo-av';
+import Input from '../../systems/Input';
 
 const { width: WIDTH, height: HEIGHT } = Dimensions.get('window');
 
@@ -293,50 +294,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     return () => cancelAnimationFrame(raf);
   }, [bodies.tp]);
 
-  // Touch input via GameEngine onEvents
-  const onEvent = (e) => {
-    if (e.type === 'touch-start') {
-      // Begin aiming & charging
-      stateRef.current.aiming = true;
-      stateRef.current.isCharging = true;
-      stateRef.current.charge = 0;
-      stateRef.current.chargeDir = 1;
-      const t = e.touch;
-      stateRef.current.dragStart = { x: bodies.tp.position.x, y: bodies.tp.position.y };
-      stateRef.current.dragCurrent = { x: t.pageX, y: t.pageY };
-      // Keep the paper still while aiming
-      Matter.Body.setVelocity(bodies.tp, { x: 0, y: 0 });
-      Matter.Body.setAngularVelocity(bodies.tp, 0);
-    }
-    if (e.type === 'touch-move') {
-      const t = e.touch;
-      stateRef.current.dragCurrent = { x: t.pageX, y: t.pageY };
-    }
-    if (e.type === 'touch-end' || e.type === 'touch-cancel') {
-      // Launch: compute direction from slingshot (start - current)
-      const start = stateRef.current.dragStart;
-      const cur = stateRef.current.dragCurrent;
-      const aimDx = start.x - cur.x;
-      const aimDy = start.y - cur.y;
-      const len = Math.min(Math.hypot(aimDx, aimDy), CONSTANTS.MAX_AIM_LEN);
-      if (len > 4) {
-        const nx = aimDx / (len || 1);
-        const ny = aimDy / (len || 1);
-        const strength = len / CONSTANTS.MAX_AIM_LEN; // 0..1
-        const power = strength * (stateRef.current.charge / 100) * CONSTANTS.MAX_IMPULSE;
-        // Matter forces are tiny units; applyForce expects force per step
-        Matter.Body.setVelocity(bodies.tp, { x: 0, y: 0 });
-        Matter.Body.applyForce(bodies.tp, bodies.tp.position, { x: nx * power, y: ny * power });
-        // add small spin for fun
-        Matter.Body.setAngularVelocity(bodies.tp, 0.2 * power / (CONSTANTS.TP_RADIUS / 16));
-      }
-      stateRef.current.isCharging = false;
-      stateRef.current.aiming = false;
-    }
-  };
-
-  // Map touches from GameEngine to our onEvent
-  const systems = [Physics, ChargeSystem, CollisionSystem];
+  // Input system now handles all touch events
+  const systems = [Input, ChargeSystem, Physics, CollisionSystem];
 
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -413,11 +372,6 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
             ground: { body: bodies.ground, renderer: (p) => <Box {...p} color="#3b3b3b" /> },
             toilet: { body: bodies.toilet, renderer: (p) => <Box {...p} color="#7aa6ff" /> },
           }}
-          onEvent={onEvent}
-          // Map raw touches from R-N-G-E into our simplified events
-          onTouchStart={(touches) => touches[0] && onEvent({ type: 'touch-start', touch: touches[0] })}
-          onTouchMove={(touches) => touches[0] && onEvent({ type: 'touch-move', touch: touches[0] })}
-          onTouchEnd={(touches) => onEvent({ type: 'touch-end' })}
         >
           {/* HUD */}
           <ChargeBar value={state.charge} visible={state.isCharging} />
