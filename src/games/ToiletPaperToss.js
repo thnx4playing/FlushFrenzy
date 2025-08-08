@@ -99,8 +99,8 @@ const Box = ({ body, color = '#888' }) => {
 /******************** Constants ********************/
 const CONSTANTS = {
   TP_RADIUS: 18,
-  START_X: WIDTH * 0.5, // Center horizontally
-  START_Y: HEIGHT * 0.75, // Lower position, still visible
+  START_X: WIDTH * 0.20, // Start on the left side
+  START_Y: HEIGHT * 0.70, // Slightly higher to avoid ground flicker
   MAX_AIM_LEN: 160, // px drag clamp
   MAX_IMPULSE: 0.12, // scale for Matter.applyForce (tune 0.04..0.14)
   CHARGE_SPEED: 170, // percent per second
@@ -130,8 +130,8 @@ const setupWorld = () => {
   // Ground (static, ends turn)
   const ground = Matter.Bodies.rectangle(WIDTH/2, HEIGHT + thickness/2 - 2, WIDTH, thickness, { isStatic: true, restitution: 0.0, label: 'ground' });
 
-  // Toilet (static block to bounce off). Position matches the visual toilet image.
-  const toilet = Matter.Bodies.rectangle(WIDTH * 0.5, HEIGHT * 0.65, 90, 80, { isStatic: true, restitution: 0.6, label: 'toilet' });
+  // Toilet (static block to bounce off). Position matches the visual toilet image (on the right).
+  const toilet = Matter.Bodies.rectangle(WIDTH * 0.80, HEIGHT * 0.65, 90, 80, { isStatic: true, restitution: 0.6, label: 'toilet' });
 
   Matter.World.add(world, [tp, wallLeft, wallRight, ceiling, ground, toilet]);
 
@@ -298,8 +298,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         style={styles.gameArea}
         resizeMode="stretch"
       >
-        {/* Toilet Image */}
-        <View style={[styles.toiletContainer, { left: WIDTH * 0.5 - 135, bottom: HEIGHT * 0.35 }]}>
+        {/* Toilet Image (on the right) */}
+        <View style={[styles.toiletContainer, { left: WIDTH * 0.80 - 135, bottom: HEIGHT * 0.35 }]}>
           <Image 
             source={require('../../assets/toilet.png')} 
             style={styles.toiletImage}

@@ -1,14 +1,12 @@
 import Matter from 'matter-js';
 
-// Self-contained constants so this file works without other imports
 const MAX_AIM_LEN = 160;    // px clamp for slingshot pull
-const MAX_IMPULSE = 0.10;   // tune 0.06–0.14 if throws feel weak/strong
+const MAX_LAUNCH_V = 18;    // pixels per frame (try 14–22 to taste)
 
 export default function Input(entities, { touches }) {
-  const state = entities.state;         // your HUD/charge state object
-  const tpEnt = entities.tp;            // toilet paper entity key (renderer uses entities.tp)
-  if (!tpEnt?.body) return entities;    // safety
-
+  const state = entities.state;
+  const tpEnt = entities.tp;
+  if (!tpEnt?.body) return entities;
   const tp = tpEnt.body;
 
   // START: begin aiming + charging, freeze current velocity
@@ -18,8 +16,7 @@ export default function Input(entities, { touches }) {
     state.charge = 0;
     state.chargeDir = 1;
 
-    // "Anchor" at current toilet paper position; drag from finger
-    state.dragStart = { x: tp.position.x, y: tp.position.y };
+    state.dragStart   = { x: tp.position.x, y: tp.position.y };
     state.dragCurrent = { x: t.event.pageX, y: t.event.pageY };
 
     Matter.Body.setVelocity(tp, { x: 0, y: 0 });
@@ -31,7 +28,7 @@ export default function Input(entities, { touches }) {
     state.dragCurrent = { x: t.event.pageX, y: t.event.pageY };
   });
 
-  // END: compute slingshot vector and launch
+  // END: compute slingshot vector and launch with initial velocity
   touches.filter(t => t.type === 'end').forEach(() => {
     const start = state.dragStart || { x: tp.position.x, y: tp.position.y };
     const cur   = state.dragCurrent || start;
@@ -44,14 +41,15 @@ export default function Input(entities, { touches }) {
       const nx = dx / (len || 1);
       const ny = dy / (len || 1);
       const strength = len / MAX_AIM_LEN; // 0..1
-      const power = strength * (Math.max(0, Math.min(100, state.charge || 0)) / 100) * MAX_IMPULSE;
+      const power = strength * (Math.max(0, Math.min(100, state.charge || 0)) / 100);
 
-      // Matter forces are tiny-units; set velocity to zero then push
-      Matter.Body.setVelocity(tp, { x: 0, y: 0 });
-      Matter.Body.applyForce(tp, tp.position, { x: nx * power, y: ny * power });
+      // Set an immediate launch velocity instead of applyForce
+      const vx = nx * (power * MAX_LAUNCH_V);
+      const vy = ny * (power * MAX_LAUNCH_V);
+      Matter.Body.setVelocity(tp, { x: vx, y: vy });
 
-      // tiny spin for fun (optional)
-      Matter.Body.setAngularVelocity(tp, 0.2 * power);
+      // A little spin for flair
+      Matter.Body.setAngularVelocity(tp, 0.15 * power);
     }
 
     state.isCharging = false;
