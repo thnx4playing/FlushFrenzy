@@ -13,6 +13,9 @@ import { GameEngine } from 'react-native-game-engine';
 import Matter from 'matter-js';
 import { Audio } from 'expo-av';
 import Input from '../../systems/Input';
+import ChargeSystem from '../../systems/ChargeSystem';
+import AimIndicator from '../../components/AimIndicator';
+import ChargeBar from '../../components/ChargeBar';
 
 const { width: WIDTH, height: HEIGHT } = Dimensions.get('window');
 
@@ -91,46 +94,7 @@ const Box = ({ body, color = '#888' }) => {
   );
 };
 
-// Simple arrow/line indicator using a View rotated to the angle with clamped length
-const AimIndicator = ({ origin, target, visible }) => {
-  if (!visible) return null;
-  const dx = target.x - origin.x;
-  const dy = target.y - origin.y;
-  const length = Math.min(Math.hypot(dx, dy), CONSTANTS.MAX_AIM_LEN);
-  const angleRad = Math.atan2(dy, dx);
-
-  return (
-    <View style={styles.aimLayer} pointerEvents="none">
-      <View style={[styles.aimLine, {
-        width: length,
-        left: origin.x,
-        top: origin.y,
-        transform: [
-          { translateY: -2 },
-          { rotateZ: `${angleRad}rad` }
-        ]
-      }]} />
-      <View style={[styles.aimTip, {
-        left: origin.x + Math.cos(angleRad) * length - 6,
-        top: origin.y + Math.sin(angleRad) * length - 6,
-        transform: [{ rotateZ: `${angleRad}rad` }]
-      }]} />
-    </View>
-  );
-};
-
-const ChargeBar = ({ value, visible }) => {
-  if (!visible) return null;
-  return (
-    <View style={styles.chargeWrap} pointerEvents="none">
-      <Text style={styles.chargeLabel}>CHARGE</Text>
-      <View style={styles.chargeBar}>
-        <View style={[styles.chargeFill, { width: `${Math.max(0, Math.min(100, value)).toFixed(0)}%` }]} />
-      </View>
-      <Text style={styles.chargePct}>{`${value.toFixed(0)}%`}</Text>
-    </View>
-  );
-};
+// AimIndicator and ChargeBar now imported from components/
 
 /******************** Constants ********************/
 const CONSTANTS = {
@@ -138,9 +102,9 @@ const CONSTANTS = {
   START_X: WIDTH * 0.18,
   START_Y: HEIGHT * 0.72,
   MAX_AIM_LEN: 160, // px drag clamp
-  MAX_IMPULSE: 0.08, // scale for Matter.applyForce (tune 0.04..0.14)
+  MAX_IMPULSE: 0.12, // scale for Matter.applyForce (tune 0.04..0.14)
   CHARGE_SPEED: 170, // percent per second
-  GRAVITY_Y: 1.2,
+  GRAVITY_Y: 1.4,
 };
 
 /******************** World Factory ********************/
@@ -182,16 +146,7 @@ const Physics = (entities, { time }) => {
   return entities;
 };
 
-// Charge ping-pong 0..100 while holding
-const ChargeSystem = (entities, { time }) => {
-  const state = entities.state;
-  if (!state.isCharging) return entities;
-  const dt = (time?.delta || 16.6) / 1000;
-  state.charge += state.chargeDir * CONSTANTS.CHARGE_SPEED * dt;
-  if (state.charge >= 100) { state.charge = 100; state.chargeDir = -1; }
-  if (state.charge <= 0)   { state.charge = 0;   state.chargeDir =  1; }
-  return entities;
-};
+// ChargeSystem now imported from systems/ChargeSystem.js
 
 // Handle end-turn when touching ground
 const CollisionSystem = (entities, { events }) => {
@@ -472,56 +427,5 @@ const styles = StyleSheet.create({
     fontSize: 12, 
     marginTop: 4 
   },
-  aimLayer: { 
-    position: 'absolute', 
-    left: 0, 
-    top: 0, 
-    right: 0, 
-    bottom: 0 
-  },
-  aimLine: { 
-    position: 'absolute', 
-    height: 4, 
-    backgroundColor: '#ffe680', 
-    borderRadius: 2 
-  },
-  aimTip: { 
-    position: 'absolute', 
-    width: 12, 
-    height: 12, 
-    borderLeftWidth: 2, 
-    borderTopWidth: 2, 
-    borderColor: '#ffe680', 
-    transform: [{ rotateZ: '45deg' }] 
-  },
-  chargeWrap: { 
-    position: 'absolute', 
-    left: 16, 
-    right: 16, 
-    bottom: 28, 
-    alignItems: 'center' 
-  },
-  chargeLabel: { 
-    color: '#fff', 
-    fontSize: 12, 
-    marginBottom: 6 
-  },
-  chargeBar: { 
-    width: '100%', 
-    height: 12, 
-    borderRadius: 6, 
-    backgroundColor: '#1f2430', 
-    overflow: 'hidden', 
-    borderWidth: 1, 
-    borderColor: '#333' 
-  },
-  chargeFill: { 
-    height: '100%', 
-    backgroundColor: '#5bff89' 
-  },
-  chargePct: { 
-    color: '#cdd6f4', 
-    marginTop: 6, 
-    fontVariant: ['tabular-nums'] 
-  },
+  // Old aim and charge styles removed - now using imported components
 });
