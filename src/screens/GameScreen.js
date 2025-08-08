@@ -16,7 +16,7 @@ export default function GameScreen({ route, navigation }) {
   const { gameId, gameMode } = route.params;
   const [gameComplete, setGameComplete] = useState(false);
   const [score, setScore] = useState(0);
-  const [showTutorial, setShowTutorial] = useState(true);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   const gameNames = {
     'quick-flush': 'Quick Flush',

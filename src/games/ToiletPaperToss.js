@@ -387,7 +387,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         resizeMode="stretch"
       >
         {/* Toilet Image */}
-        <View style={[styles.toiletContainer, { left: WIDTH * 0.78 - 135, bottom: HEIGHT * 0.35 }]}>
+        <View style={[styles.toiletContainer, { left: WIDTH * 0.5 - 135, bottom: HEIGHT * 0.35 }]}>
           <Image 
             source={require('../../assets/toilet.png')} 
             style={styles.toiletImage}
