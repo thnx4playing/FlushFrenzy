@@ -41,20 +41,8 @@ export default function HomeScreen({ navigation }) {
       style={styles.container}
       resizeMode="stretch"
     >
-
-
-
       <View style={styles.content}>
-        {/* Header at top */}
-        <View style={styles.header}>
-          <Image 
-            source={require('../../assets/header.png')} 
-            style={styles.headerImage}
-            resizeMode="contain"
-          />
-        </View>
-
-        {/* Game Modes */}
+        {/* Game Modes - moved to top */}
         <View style={styles.gameModesContainer}>
           {GAME_MODES.map((mode, index) => (
             <TouchableOpacity
@@ -71,6 +59,15 @@ export default function HomeScreen({ navigation }) {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* Header moved to bottom */}
+        <View style={styles.header}>
+          <Image 
+            source={require('../../assets/header.png')} 
+            style={styles.headerImage}
+            resizeMode="contain"
+          />
+        </View>
       </View>
     </ImageBackground>
   );
@@ -80,17 +77,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    width: '100%',
-    height: height * 0.35,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 60,
-  },
-  headerImage: {
-    width: width,
-    height: height * 0.3,
-  },
   content: {
     flex: 1,
     paddingHorizontal: 20,
@@ -98,8 +84,9 @@ const styles = StyleSheet.create({
   },
   gameModesContainer: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    paddingTop: 80,
   },
   gameModeCard: {
     alignItems: 'center',
@@ -114,11 +101,11 @@ const styles = StyleSheet.create({
     elevation: 8,
     width: width * 0.95,
     height: 220,
-    marginVertical: 10,
+    marginVertical: 5,
   },
   quickFlushImage: {
-    width: width * 0.95,
-    height: 360,
+    width: width * 0.765, // 10% smaller (was 0.85)
+    height: 291.6, // 10% smaller (was 324)
     alignSelf: 'center',
   },
   endlessPlungeImage: {
@@ -126,6 +113,16 @@ const styles = StyleSheet.create({
     height: 220,
     alignSelf: 'center',
   },
-
-
+  header: {
+    width: '100%',
+    height: height * 0.25,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 10,
+    marginBottom: 0,
+  },
+  headerImage: {
+    width: width,
+    height: height * 0.3,
+  },
 });
