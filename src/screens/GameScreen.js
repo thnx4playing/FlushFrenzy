@@ -47,7 +47,7 @@ export default function GameScreen({ route, navigation }) {
   const handlePlayAgain = () => {
     setGameComplete(false);
     setScore(0);
-    setShowTutorial(true);
+    setShowTutorial(false);
   };
 
   if (showTutorial) {
