@@ -9,7 +9,7 @@ module.exports = {
     icon: path.resolve(__dirname, 'assets/icon.png'),
     userInterfaceStyle: "light",
     splash: {
-      image: "./assets/splash-icon.png",
+      image: path.resolve(__dirname, 'assets/splash-icon.png'),
       resizeMode: "contain",
       backgroundColor: "#ffffff"
     },
@@ -23,12 +23,12 @@ module.exports = {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/adaptive-icon.png",
+        foregroundImage: path.resolve(__dirname, 'assets/adaptive-icon.png'),
         backgroundColor: "#ffffff"
       }
     },
     web: {
-      favicon: "./assets/favicon.png"
+      favicon: path.resolve(__dirname, 'assets/favicon.png')
     },
     extra: {
       eas: {
