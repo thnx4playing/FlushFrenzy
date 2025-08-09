@@ -1,10 +1,12 @@
+const path = require('path');
+
 module.exports = {
   expo: {
     name: "ToiletOlympicsGameV2",
     slug: "ToiletOlympicsGameV2",
     version: "1.7.0",
     orientation: "portrait",
-    icon: "./assets/icon.png",
+    icon: path.resolve(__dirname, 'assets/icon.png'),
     userInterfaceStyle: "light",
     splash: {
       image: "./assets/splash-icon.png",
