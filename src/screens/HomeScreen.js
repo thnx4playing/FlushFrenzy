@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   ImageBackground,
   Image,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
 
 const { width, height } = Dimensions.get('window');
 
@@ -28,6 +30,16 @@ const GAME_MODES = [
 ];
 
 export default function HomeScreen({ navigation }) {
+  const [isMuted, setIsMuted] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        await Audio.setIsEnabledAsync(!isMuted);
+      } catch {}
+    })();
+  }, [isMuted]);
   const navigateToGame = (gameMode) => {
     navigation.navigate('Game', { 
       gameId: 'toilet-paper-toss',
@@ -68,6 +80,32 @@ export default function HomeScreen({ navigation }) {
             resizeMode="contain"
           />
         </View>
+
+        {/* Bottom corner actions */}
+        <View style={styles.bottomBar} pointerEvents="box-none">
+          <TouchableOpacity style={styles.bottomLeft} onPress={() => setSettingsVisible(true)}>
+            <Ionicons name="settings-sharp" size={26} color="#343a40" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.bottomRight} onPress={() => setIsMuted(m => !m)}>
+            <Ionicons name={isMuted ? 'volume-mute' : 'volume-high'} size={26} color="#343a40" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Settings Modal */}
+        <View>
+          <></>
+        </View>
+        {settingsVisible && (
+          <View pointerEvents="auto" style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Settings</Text>
+              <Text style={styles.modalText}>Coming soon.</Text>
+              <TouchableOpacity onPress={() => setSettingsVisible(false)} style={styles.modalButton}>
+                <Text style={styles.modalButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
     </ImageBackground>
   );
@@ -124,5 +162,60 @@ const styles = StyleSheet.create({
   headerImage: {
     width: width,
     height: height * 0.3,
+  },
+  bottomBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 20,
+    height: 40,
+  },
+  bottomLeft: {
+    position: 'absolute',
+    left: 20,
+    bottom: 0,
+  },
+  bottomRight: {
+    position: 'absolute',
+    right: 20,
+    bottom: 0,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCard: {
+    width: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+    color: '#212529',
+  },
+  modalText: {
+    fontSize: 14,
+    color: '#495057',
+    marginBottom: 16,
+  },
+  modalButton: {
+    backgroundColor: '#4ECDC4',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

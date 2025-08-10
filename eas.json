@@ -11,10 +11,14 @@
       "distribution": "store"
     },
     "production": {
-      "autoIncrement": true
+      
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6749656491"
+      }
+    }
   }
 }

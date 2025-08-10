@@ -66,7 +66,7 @@ export default function TrajectoryIndicator({
     return points.join(' ');
   }, [origin, aim, chargePct, visible, maxAimLen, gravityY, velScale, steps, dt]);
 
-  if (!visible || !pathD) return null;
+  if (!pathD) return null;
 
   return (
     <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
