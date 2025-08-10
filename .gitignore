@@ -35,3 +35,21 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# iOS
+ios/
+*.xcworkspace
+*.xcodeproj
+Pods/
+*.xcuserstate
+*.xcuserdata
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Android
+android/
+*.apk
+*.aab
+*.keystore

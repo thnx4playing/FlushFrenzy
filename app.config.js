@@ -34,6 +34,10 @@ module.exports = {
       eas: {
         projectId: "1ecbd8c5-1539-4fa1-b58e-0591783b6203"
       }
+    },
+    // Enable native development
+    experiments: {
+      tsconfigPaths: true
     }
   }
 };
