@@ -194,10 +194,10 @@ const setupWorld = () => {
     { isStatic: true, restitution: 0.0, label: 'ground' }
   );
 
-  // Toilet (static block to bounce off). Moved higher to allow TP to go above it
+  // Toilet (static block to bounce off). Back to original position
   const toilet = Matter.Bodies.rectangle(
     WIDTH * 0.5,
-    HEIGHT * 0.20, // Moved from 0.30 to 0.20 (20% of screen height)
+    HEIGHT * 0.30, // Back to 30% of screen height
     320,
     320,
     { isStatic: true, restitution: 0.6, label: 'toilet' }
@@ -299,7 +299,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       const charged = (stateRef.current?.charge ?? 0) / 100;
       const rawP = charged || a.power || 0;
       const p = Math.max(0.25, Math.min(1, rawP));
-      const SPEED = 20;  // Reduced back down to investigate blocking issue
+      const SPEED = 35;  // Increased back up with reduced gravity
       const vx = (a.dir?.x || 0) * SPEED * p;
       const vy = -(Math.abs(a.dir?.y || 0)) * SPEED * p;
       
@@ -317,7 +317,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     const charged = (stateRef.current?.charge ?? 0) / 100;
     const rawP = charged || a.power || 0;
     const p = Math.max(0.25, Math.min(1, rawP));     // TEMP min power 25%
-    const SPEED = 20;  // Reduced back down to investigate blocking issue
+    const SPEED = 35;  // Increased back up with reduced gravity
 
     // portrait: up is negative Y
     const vx = (a.dir?.x || 0) * SPEED * p;
@@ -467,6 +467,11 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       // Only update tpPos if the body has moved from its initial off-screen position
       if (p.x > -9000 && p.y > -9000) {
         setTpPos({ x: p.x, y: p.y });
+        
+        // Debug: Log when TP hits something
+        if (tpVisible && p.y > 800) {
+          console.log('TP position:', p.x, p.y, 'Screen height:', HEIGHT);
+        }
       }
       
       // Hide TP when it falls off screen or stops moving
