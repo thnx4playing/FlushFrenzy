@@ -569,8 +569,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         console.log('TP position update:', p.x.toFixed(1), p.y.toFixed(1));
       }
       
-      // Only update tpPos if the body has moved from its initial off-screen position
-      if (p.x > -9000 && p.y > -9000) {
+      // Always update tpPos if TP is visible and position is valid
+      if (tpVisible && Number.isFinite(p.x) && Number.isFinite(p.y)) {
         setTpPos({ x: p.x, y: p.y });
       }
       
@@ -724,8 +724,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
           />
         )}
         
-        {/* Debug: Log TP rendering state */}
-        {console.log('TP RENDER DEBUG:', { tpVisible, tpPos: { x: tpPos.x, y: tpPos.y }, isFinite: Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) })}
+        {/* Debug: Log TP rendering state (only when visible) */}
+        {tpVisible && console.log('TP RENDER DEBUG:', { tpVisible, tpPos: { x: tpPos.x, y: tpPos.y }, isFinite: Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) })}
         
         {/* Debug: Show TP position as a simple colored circle if image fails */}
         {tpVisible && Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) && (
