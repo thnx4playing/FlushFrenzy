@@ -404,7 +404,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       const charged = (stateRef.current?.charge ?? 0) / 100;
       const rawP = charged || a.power || 0;
       const p = Math.max(0.25, Math.min(1, rawP));
-      const SPEED = 18;  // Balanced acceleration (10% reduction) for good distance and control
+      const SPEED = 16.2;  // Reduced acceleration (10% less) for smoother launch
       const vx = (a.dir?.x || 0) * SPEED * p;
       const vy = -(Math.abs(a.dir?.y || 0)) * SPEED * p;
       
@@ -422,7 +422,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     const charged = (stateRef.current?.charge ?? 0) / 100;
     const rawP = charged || a.power || 0;
     const p = Math.max(0.25, Math.min(1, rawP));     // TEMP min power 25%
-    const SPEED = 18;  // Balanced acceleration (10% reduction) for good distance and control
+    const SPEED = 16.2;  // Reduced acceleration (10% less) for smoother launch
 
     // portrait: up is negative Y
     const vx = (a.dir?.x || 0) * SPEED * p;
