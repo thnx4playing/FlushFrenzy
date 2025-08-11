@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { View, Dimensions, InteractionManager } from "react-native";
 
-export default function AimPad({ radius = 90, onAim, onRelease }) {
+export default function AimPad({ radius = 67.5, onAim, onRelease }) {
   const ref = useRef(null);
   const [center, setCenter] = useState(null); // {x,y} in screen coords
   const [stick, setStick] = useState({ x: 0, y: 0 });
