@@ -806,8 +806,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         {/* Debug: Visualize static bodies (temporarily disabled) */}
         {/* <StaticBodiesOverlay engine={engine} /> */}
         
-        {/* Debug: Show bowl hitbox */}
-        <BowlHitboxOverlay engine={engine} />
+        {/* Debug: Show bowl hitbox (temporarily disabled) */}
+        {/* <BowlHitboxOverlay engine={engine} /> */}
 
         {/* Toilet sprite (visual only, no physics) */}
         <View style={{
