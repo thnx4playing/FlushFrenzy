@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { GameEngine } from 'react-native-game-engine';
 import Matter from 'matter-js';
 import { Audio } from 'expo-av';
-import Svg, { Polygon, Circle, Rect } from 'react-native-svg';
+import Svg, { Polygon, Circle as SvgCircle, Rect } from 'react-native-svg';
 import AimPad from '../../components/AimPad';
 import TrajectoryOverlay from '../../components/TrajectoryOverlay';
 import PowerBar from '../../components/PowerBar';
@@ -168,7 +168,7 @@ const BowlHitboxOverlay = ({ engine }) => {
           if (body.label === "BOWL_MAIN") {
             // Circle for main bowl
             return (
-              <Circle
+              <SvgCircle
                 key={index}
                 cx={body.position.x}
                 cy={body.position.y}
