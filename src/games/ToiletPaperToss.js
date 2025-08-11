@@ -350,7 +350,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   const doLaunch = () => {
     const a = lastAimRef.current;
     const tp = bodies?.tp;                           // stick to ONE body reference
-    if (!a || !tp) { console.log('No aim/body'); return; }
+    if (!a || !tp) { return; }
 
     // spawn at pad center (with fallback)
     const spawn = { 
@@ -358,32 +358,23 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       y: a.origin?.y || HEIGHT - 24 - 90 
     };
 
-    console.log('DEBUG LAUNCH:', {
-      aimData: a,
-      origin: a.origin,
-      spawn: spawn,
-      tpBody: tp.position
-    });
+
 
     // Ensure spawn coordinates are valid numbers
     if (!Number.isFinite(spawn.x) || !Number.isFinite(spawn.y)) {
-      console.log('Invalid spawn coordinates:', spawn);
       return;
     }
 
     // wake + place
-    console.log('Before launch - TP static:', tp.isStatic, 'position:', tp.position.x.toFixed(1), tp.position.y.toFixed(1));
     Matter.Body.setStatic(tp, false);
     Matter.Sleeping.set(tp, false);
     Matter.Body.setPosition(tp, spawn);
     Matter.Body.setVelocity(tp, { x: 0, y: 0 });
     Matter.Body.setAngularVelocity(tp, 0);
-    console.log('After launch setup - TP static:', tp.isStatic, 'position:', tp.position.x.toFixed(1), tp.position.y.toFixed(1));
 
     // Verify the body position was set correctly
     const newPos = tp.position;
     if (!Number.isFinite(newPos.x) || !Number.isFinite(newPos.y)) {
-      console.log('Failed to set body position, creating new body');
       // Create a new body if the current one is corrupted
       const newTp = Matter.Bodies.circle(spawn.x, spawn.y, CONSTANTS.TP_RADIUS, {
         restitution: 0.45,
@@ -413,7 +404,6 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       setTpPos(spawn);
       setTpVisible(true);
       
-      console.log('LAUNCH with new body', { spawn, vx, vy, p });
       return;
     }
 
@@ -429,21 +419,12 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     Matter.Body.setVelocity(tp, { x: vx, y: vy });
     Matter.Body.setAngularVelocity(tp, 0.2 * p);
 
-    // Verify TP is in the world and has velocity
-    const allBodies = Matter.Composite.allBodies(world);
-    const tpInWorld = allBodies.find(b => b.label === 'TP');
-    console.log('TP in world after launch:', !!tpInWorld, 'Total bodies:', allBodies.length);
-    if (tpInWorld) {
-      console.log('TP world velocity:', tpInWorld.velocity.x.toFixed(1), tpInWorld.velocity.y.toFixed(1));
-    }
+
 
     // FIRST-FRAME SYNC + show sprite in the SAME component that renders it
     // Force immediate sync to prevent afterUpdate from overwriting
     setTpPos(spawn);
     setTpVisible(true);
-
-    console.log('LAUNCH', { spawn, vx, vy, p });
-    console.log('TP visibility set to true, tpPos set to:', spawn);
   };
 
   const stateRef = useRef({
@@ -565,7 +546,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   // Physics runner and position mirroring
   useEffect(() => {
     const engine = enginePkg.engine;
-    console.log('Setting up physics runner...');
+
     
     const runner = Matter.Runner.create();
     Matter.Runner.run(runner, engine);
@@ -573,34 +554,15 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     engine.world.gravity.x = 0;
     engine.world.gravity.y = CONSTANTS.GRAVITY_Y;
     
-    console.log('Physics engine setup complete. Gravity Y:', CONSTANTS.GRAVITY_Y);
-
     let updateCount = 0;
     Matter.Events.on(engine, "afterUpdate", () => {
       updateCount++;
-      if (updateCount % 60 === 0) { // Log every 60 updates (about once per second)
-        console.log('Physics engine running - update count:', updateCount);
-        
-        // Check if TP body is in the world
-        const allBodies = Matter.Composite.allBodies(engine.world);
-        const tpInWorld = allBodies.find(b => b.label === 'TP');
-        console.log('TP in world:', !!tpInWorld, 'Total bodies:', allBodies.length);
-        if (tpInWorld) {
-          console.log('TP world position:', tpInWorld.position.x.toFixed(1), tpInWorld.position.y.toFixed(1), 'static:', tpInWorld.isStatic);
-        }
-      }
       
       const tp = bodies?.tp;
       if (!tp) {
-        console.log('No TP body found in afterUpdate');
         return;
       }
       const p = tp.position;
-      
-      // Debug: Log TP position updates (only when visible to reduce spam)
-      if (tpVisible) {
-        console.log('TP position update:', p.x.toFixed(1), p.y.toFixed(1), 'static:', tp.isStatic);
-      }
       
       // Always update tpPos if TP is visible and position is valid
       if (tpVisible && Number.isFinite(p.x) && Number.isFinite(p.y)) {
@@ -612,11 +574,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         setTpVisible(false);
       }
     });
-    
-    console.log('afterUpdate event listener attached');
 
     return () => {
-      console.log('Cleaning up physics runner...');
       Matter.Events.off(engine, "afterUpdate");
       Matter.Engine.clear(engine);
     };
@@ -630,11 +589,6 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     // Force a slow UI refresh for HUD ~30fps without spamming state
     const id = setInterval(() => setTick((t) => t + 1), 33);
     setReady(true);
-    
-    // Debug: Dump static bodies to find invisible walls
-    setTimeout(() => {
-      dumpStatics(engine);
-    }, 1000);
     
     return () => clearInterval(id);
   }, []);
