@@ -38,9 +38,10 @@ export default function AimPad({ radius = 90, onAim, onRelease }) {
     const { x, y, len } = clampCircle(dx, dy);
     setStick({ x, y });
 
+    const mag = (len || 0) / (radius || 1);
     const L = Math.hypot(x, y) || 1;
     const dir = { x: x / L, y: -(y / L) }; // portrait: up = -Y
-    onAim?.({ dir, active, origin: center });
+    onAim?.({ dir, power: mag, active, origin: center });
   };
 
   const grant = (e) => {
@@ -63,7 +64,7 @@ export default function AimPad({ radius = 90, onAim, onRelease }) {
   const release = () => {
     setDragging(false);
     setStick({ x: 0, y: 0 });
-    if (center) onRelease?.({ dir: { x: 0, y: 0 }, origin: center });
+    if (center) onRelease?.({ dir: { x: 0, y: 0 }, power: 0, origin: center });
   };
 
   const { width: W } = Dimensions.get("window");
