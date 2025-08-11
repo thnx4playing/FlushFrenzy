@@ -13,10 +13,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { GameEngine } from 'react-native-game-engine';
 import Matter from 'matter-js';
 import { Audio } from 'expo-av';
-import Svg, { Polygon } from 'react-native-svg';
+import Svg, { Polygon, Circle, Rect } from 'react-native-svg';
 import AimPad from '../../components/AimPad';
 import TrajectoryOverlay from '../../components/TrajectoryOverlay';
 import PowerBar from '../../components/PowerBar';
+
+// Set up poly-decomp for Matter.js concave shapes
+import decomp from 'poly-decomp';
+Matter.Common.setDecomp(decomp);
 
 const { width: WIDTH, height: HEIGHT } = Dimensions.get('window');
 
@@ -143,12 +147,12 @@ const StaticBodiesOverlay = ({ engine }) => {
 const BowlHitboxOverlay = ({ engine }) => {
   if (!engine) return null;
   
-  const bowlBody = Matter.Composite.allBodies(engine.world).find(b => b.label === "BOWL_SENSOR");
-  if (!bowlBody || !bowlBody.vertices) return null;
-
-  // Convert Matter.js vertices to React Native polygon points
-  const points = bowlBody.vertices.map(vertex => `${vertex.x},${vertex.y}`).join(' ');
+  const bowlBodies = Matter.Composite.allBodies(engine.world).filter(b => 
+    b.label === "BOWL_MAIN" || b.label === "BOWL_LEFT" || b.label === "BOWL_RIGHT" || b.label === "BOWL_TOP"
+  );
   
+  if (bowlBodies.length === 0) return null;
+
   return (
     <View style={{
       position: "absolute",
@@ -160,12 +164,39 @@ const BowlHitboxOverlay = ({ engine }) => {
       pointerEvents: "none", // Allow touch events to pass through
     }}>
       <Svg width={WIDTH} height={HEIGHT}>
-        <Polygon
-          points={points}
-          fill="rgba(255,0,0,0.2)"
-          stroke="rgba(255,0,0,1)"
-          strokeWidth="3"
-        />
+        {bowlBodies.map((body, index) => {
+          if (body.label === "BOWL_MAIN") {
+            // Circle for main bowl
+            return (
+              <Circle
+                key={index}
+                cx={body.position.x}
+                cy={body.position.y}
+                r={body.circleRadius}
+                fill="rgba(255,0,0,0.2)"
+                stroke="rgba(255,0,0,1)"
+                strokeWidth="3"
+              />
+            );
+          } else {
+            // Rectangle for walls and top
+            const bounds = body.bounds;
+            const width = bounds.max.x - bounds.min.x;
+            const height = bounds.max.y - bounds.min.y;
+            return (
+              <Rect
+                key={index}
+                x={bounds.min.x}
+                y={bounds.min.y}
+                width={width}
+                height={height}
+                fill="rgba(255,0,0,0.2)"
+                stroke="rgba(255,0,0,1)"
+                strokeWidth="3"
+              />
+            );
+          }
+        })}
       </Svg>
     </View>
   );
@@ -253,38 +284,44 @@ const addBowl = (engine, W, H) => {
   const bowlY = H * 0.35;   // moved up from 0.52 to 0.35 (35% of screen height)
   const bowlR = 42;         // adjust to hole size in px
 
-  // Create a bowl-shaped sensor using a polygon
-  // This creates a proper bowl shape with curved top opening
-  const bowlShape = [
-    { x: bowlX - bowlR, y: bowlY - bowlR * 0.1 },      // top left edge
-    { x: bowlX - bowlR * 0.7, y: bowlY },              // top left curve start
-    { x: bowlX - bowlR * 0.5, y: bowlY + bowlR * 0.3 }, // top left curve down
-    { x: bowlX - bowlR * 0.3, y: bowlY + bowlR * 0.5 }, // top left curve deeper
-    { x: bowlX - bowlR * 0.1, y: bowlY + bowlR * 0.7 }, // top left curve bottom
-    { x: bowlX, y: bowlY + bowlR * 0.8 },               // center top (deep dip)
-    { x: bowlX + bowlR * 0.1, y: bowlY + bowlR * 0.7 }, // top right curve bottom
-    { x: bowlX + bowlR * 0.3, y: bowlY + bowlR * 0.5 }, // top right curve deeper
-    { x: bowlX + bowlR * 0.5, y: bowlY + bowlR * 0.3 }, // top right curve down
-    { x: bowlX + bowlR * 0.7, y: bowlY },               // top right curve start
-    { x: bowlX + bowlR, y: bowlY - bowlR * 0.1 },       // top right edge
-    { x: bowlX + bowlR * 0.8, y: bowlY },               // right side
-    { x: bowlX + bowlR * 0.6, y: bowlY + bowlR * 0.5 }, // right curve
-    { x: bowlX + bowlR * 0.4, y: bowlY + bowlR * 0.8 }, // right bottom
-    { x: bowlX + bowlR * 0.2, y: bowlY + bowlR },       // right deep
-    { x: bowlX - bowlR * 0.2, y: bowlY + bowlR },       // left deep
-    { x: bowlX - bowlR * 0.4, y: bowlY + bowlR * 0.8 }, // left bottom
-    { x: bowlX - bowlR * 0.6, y: bowlY + bowlR * 0.5 }, // left curve
-    { x: bowlX - bowlR * 0.8, y: bowlY },               // left side
-  ];
-
-  const bowlSensor = Matter.Bodies.fromVertices(bowlX, bowlY, [bowlShape], {
+  // Create bowl using multiple simple shapes instead of one complex concave shape
+  // This should work better with Matter.js and be more reliable
+  
+  // Main bowl body (deep circle)
+  const mainBowl = Matter.Bodies.circle(bowlX, bowlY + bowlR * 0.3, bowlR * 0.6, {
     isStatic: true,
     isSensor: true,
-    label: "BOWL_SENSOR",
+    label: "BOWL_MAIN",
   });
 
-  // Debug: Log the bowl shape vertices
-  console.log("BOWL SHAPE VERTICES:", bowlShape.map((v, i) => `Point ${i}: (${v.x.toFixed(1)}, ${v.y.toFixed(1)})`));
+  // Left side wall (curved)
+  const leftWall = Matter.Bodies.rectangle(bowlX - bowlR * 0.7, bowlY + bowlR * 0.2, bowlR * 0.4, bowlR * 0.8, {
+    isStatic: true,
+    isSensor: true,
+    label: "BOWL_LEFT",
+  });
+
+  // Right side wall (curved)
+  const rightWall = Matter.Bodies.rectangle(bowlX + bowlR * 0.7, bowlY + bowlR * 0.2, bowlR * 0.4, bowlR * 0.8, {
+    isStatic: true,
+    isSensor: true,
+    label: "BOWL_RIGHT",
+  });
+
+  // Top opening (narrow rectangle that creates the dip)
+  const topOpening = Matter.Bodies.rectangle(bowlX, bowlY + bowlR * 0.1, bowlR * 0.6, bowlR * 0.2, {
+    isStatic: true,
+    isSensor: true,
+    label: "BOWL_TOP",
+  });
+
+  // Debug: Log the bowl components
+  console.log("BOWL COMPONENTS CREATED:", [
+    { label: "BOWL_MAIN", x: mainBowl.position.x.toFixed(1), y: mainBowl.position.y.toFixed(1) },
+    { label: "BOWL_LEFT", x: leftWall.position.x.toFixed(1), y: leftWall.position.y.toFixed(1) },
+    { label: "BOWL_RIGHT", x: rightWall.position.x.toFixed(1), y: rightWall.position.y.toFixed(1) },
+    { label: "BOWL_TOP", x: topOpening.position.x.toFixed(1), y: topOpening.position.y.toFixed(1) },
+  ]);
 
   // Keep the rim as a circle for visual reference
   const rim = Matter.Bodies.circle(bowlX, bowlY, bowlR + 4, {
@@ -292,12 +329,12 @@ const addBowl = (engine, W, H) => {
     label: "BOWL_RIM",
   });
 
-  Matter.World.add(world, [bowlSensor, rim]);
+  Matter.World.add(world, [mainBowl, leftWall, rightWall, topOpening, rim]);
 
   Matter.Events.on(engine, "collisionStart", (e) => {
     e.pairs.forEach(({ bodyA, bodyB }) => {
       const names = new Set([bodyA.label, bodyB.label]);
-      if (names.has("BOWL_SENSOR") && names.has("TP")) {
+      if ((names.has("BOWL_MAIN") || names.has("BOWL_LEFT") || names.has("BOWL_RIGHT") || names.has("BOWL_TOP")) && names.has("TP")) {
         console.log("SCORE! TP hit the bowl!");
         // score point here
       }
