@@ -895,22 +895,22 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
             <Ionicons name="settings-sharp" size={22} color="#343a40" />
           </TouchableOpacity>
           <View style={styles.actionsCenter}>
-            <View style={styles.scoreContainer}>
-              <Text style={styles.scoreLabel}>Score</Text>
-              <Text style={styles.scoreValue}>{score}</Text>
-            </View>
-            {gameMode === 'quick-flush' && (
-              <View style={styles.timeContainer}>
-                <Text style={styles.timeLabel}>Time</Text>
-                <Text style={styles.timeValue}>{formatTime(timeLeft)}</Text>
-              </View>
-            )}
-            {gameMode === 'endless-plunge' && (
-              <View style={styles.missesContainer}>
-                <Text style={styles.missesLabel}>Misses</Text>
-                <Text style={styles.missesValue}>{misses}/3</Text>
-              </View>
-            )}
+                         <View style={styles.scoreContainer}>
+               <Text style={styles.scoreLabel}>Score</Text>
+               <Text style={styles.scoreValue}>{score}</Text>
+             </View>
+                         {gameMode === 'quick-flush' && (
+               <View style={styles.timeContainer}>
+                 <Text style={styles.timeLabel}>Time</Text>
+                 <Text style={styles.timeValue}>{formatTime(timeLeft)}</Text>
+               </View>
+             )}
+                         {gameMode === 'endless-plunge' && (
+               <View style={styles.missesContainer}>
+                 <Text style={styles.missesLabel}>Misses</Text>
+                 <Text style={styles.missesValue}>{misses}/3</Text>
+               </View>
+             )}
           </View>
           <TouchableOpacity accessibilityLabel="Toggle sound" onPress={() => setIsMuted(m => !m)} style={styles.iconButton}>
             <Ionicons name={isMuted ? 'volume-mute' : 'volume-high'} size={22} color={isMuted ? '#adb5bd' : '#343a40'} />
@@ -1081,39 +1081,66 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#0e0f12' 
+    backgroundColor: '#f8fafc' 
   },
   gameUI: {
     flexDirection: 'column',
     justifyContent: 'flex-start',
-    padding: 20,
+    padding: 16,
     paddingTop: 80,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    backgroundColor: '#ADD8E6',
+    borderBottomWidth: 3,
+    borderBottomColor: '#4a5568',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 6,
   },
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 8,
   },
   actionsCenter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
-    gap: 24,
+    gap: 16,
   },
   scoreContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 80,
+    minWidth: 90,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 2,
+    borderColor: '#A8E6CF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   timeContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 100,
+    minWidth: 90,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 2,
+    borderColor: '#FFB3BA',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   actionsContainer: {
     flexDirection: 'row',
@@ -1121,42 +1148,79 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   iconButton: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#4a5568',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   scoreLabel: {
     fontSize: 14,
-    color: '#6c757d',
-    fontWeight: '600',
+    color: '#2d3748',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   scoreValue: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#4ECDC4',
+    fontWeight: '900',
+    color: '#4A90E2',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
 
   timeLabel: {
     fontSize: 14,
-    color: '#6c757d',
-    fontWeight: '600',
+    color: '#2d3748',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   timeValue: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FF6B6B',
+    fontWeight: '900',
+    color: '#E91E63',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   missesContainer: {
     alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 90,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 2,
+    borderColor: '#FFB3BA',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   missesLabel: {
     fontSize: 14,
-    color: '#6c757d',
-    fontWeight: '600',
+    color: '#2d3748',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   missesValue: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FF6B6B',
+    fontWeight: '900',
+    color: '#E91E63',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   gameArea: {
     flex: 1,

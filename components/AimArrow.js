@@ -75,7 +75,7 @@ export default function AimArrow({
             top: oy - shaftThickness / 2,
             width: shaftLen,
             height: shaftThickness,
-            backgroundColor: 'rgba(255,0,0,0.8)',
+            backgroundColor: 'rgba(0,255,0,0.5)',
             borderRadius: shaftThickness / 2,
             transformOrigin: 'left center',
             transform: [{ rotate: `${-angleDeg + 180}deg` }],
