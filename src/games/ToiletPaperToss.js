@@ -254,11 +254,20 @@ const addBowl = (engine, W, H) => {
   const bowlR = 42;         // adjust to hole size in px
 
   // Create a bowl-shaped sensor using a polygon
-  // This creates a more realistic toilet bowl shape
+  // This creates a proper bowl shape with curved top opening
   const bowlShape = [
-    { x: bowlX - bowlR, y: bowlY - bowlR * 0.3 },      // top left
-    { x: bowlX + bowlR, y: bowlY - bowlR * 0.3 },      // top right
-    { x: bowlX + bowlR * 0.8, y: bowlY },              // right side
+    { x: bowlX - bowlR, y: bowlY - bowlR * 0.2 },      // top left edge
+    { x: bowlX - bowlR * 0.8, y: bowlY - bowlR * 0.1 }, // top left curve start
+    { x: bowlX - bowlR * 0.6, y: bowlY + bowlR * 0.1 }, // top left curve down
+    { x: bowlX - bowlR * 0.4, y: bowlY + bowlR * 0.2 }, // top left curve deeper
+    { x: bowlX - bowlR * 0.2, y: bowlY + bowlR * 0.3 }, // top left curve bottom
+    { x: bowlX, y: bowlY + bowlR * 0.4 },               // center top (dips down)
+    { x: bowlX + bowlR * 0.2, y: bowlY + bowlR * 0.3 }, // top right curve bottom
+    { x: bowlX + bowlR * 0.4, y: bowlY + bowlR * 0.2 }, // top right curve deeper
+    { x: bowlX + bowlR * 0.6, y: bowlY + bowlR * 0.1 }, // top right curve down
+    { x: bowlX + bowlR * 0.8, y: bowlY - bowlR * 0.1 }, // top right curve start
+    { x: bowlX + bowlR, y: bowlY - bowlR * 0.2 },       // top right edge
+    { x: bowlX + bowlR * 0.8, y: bowlY },               // right side
     { x: bowlX + bowlR * 0.6, y: bowlY + bowlR * 0.5 }, // right curve
     { x: bowlX + bowlR * 0.4, y: bowlY + bowlR * 0.8 }, // right bottom
     { x: bowlX + bowlR * 0.2, y: bowlY + bowlR },       // right deep
