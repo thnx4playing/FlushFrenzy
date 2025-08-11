@@ -187,7 +187,7 @@ const CONSTANTS = {
   MAX_AIM_LEN: 160, // px drag clamp
   MAX_IMPULSE: 0.12, // scale for Matter.applyForce (tune 0.04..0.14)
   CHARGE_SPEED: 170, // percent per second
-  GRAVITY_Y: 0.3, // Perfect balance - good hang time with natural feel
+  GRAVITY_Y: 0.2, // Ultra-low gravity for maximum hang time and distance
 };
 
 /******************** World Factory ********************/
