@@ -475,11 +475,26 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   // Use ref to store scoring callback
   const addScoreRef = useRef(null);
 
-  const [enginePkg] = useState(() => setupWorld(() => {
-    if (addScoreRef.current) {
-      addScoreRef.current();
+  const [enginePkg] = useState(() => {
+    const worldSetup = setupWorld(() => {
+      if (addScoreRef.current) {
+        addScoreRef.current();
+      }
+    });
+    
+    // Temporary fix: Trigger a fake attempt when starting a new game
+    if (worldSetup.bodies?.tp) {
+      const spawn = { x: 195, y: 745 }; // adjust to AimPad center if needed
+
+      Matter.Body.setStatic(worldSetup.bodies.tp, false);
+      Matter.Sleeping.set(worldSetup.bodies.tp, false);
+      Matter.Body.setPosition(worldSetup.bodies.tp, spawn);
+      Matter.Body.setVelocity(worldSetup.bodies.tp, { x: 0.1, y: -0.1 }); // tiny nudge
+      Matter.Body.setAngularVelocity(worldSetup.bodies.tp, 0);
     }
-  }));
+    
+    return worldSetup;
+  });
   const { engine, world, bodies } = enginePkg;
 
   // Simple scoring functions (no persistent storage for now)
