@@ -321,7 +321,7 @@ const addOpenBowl = (engine, bx, by, r = 42) => {
 
   // Curved bottom (a circle placed below the hole)
   // This gives a smooth slide; top is OPEN because we don't add any top collider.
-  const bottom = Matter.Bodies.circle(bx, by + r * 0.6, r * 0.95, {
+  const bottom = Matter.Bodies.circle(bx, by + r * 0.6, r * 0.475, { // Reduced radius by 50% (0.95 -> 0.475)
     ...mat, 
     label: "BOWL_BOTTOM"
   });
