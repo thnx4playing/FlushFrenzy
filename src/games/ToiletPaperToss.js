@@ -384,7 +384,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         friction: 0.05,
         frictionAir: 0.012,
         density: 0.0016,
-        label: 'toiletPaper'
+        label: 'TP'
       });
       
       // Remove old body and add new one
@@ -431,6 +431,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     setTpVisible(true);
 
     console.log('LAUNCH', { spawn, vx, vy, p });
+    console.log('TP visibility set to true, tpPos set to:', spawn);
   };
 
   const stateRef = useRef({
@@ -562,6 +563,11 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       const tp = bodies?.tp;
       if (!tp) return;
       const p = tp.position;
+      
+      // Debug: Log TP position updates
+      if (tpVisible) {
+        console.log('TP position update:', p.x.toFixed(1), p.y.toFixed(1));
+      }
       
       // Only update tpPos if the body has moved from its initial off-screen position
       if (p.x > -9000 && p.y > -9000) {
@@ -717,6 +723,9 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
             onError={(error) => console.error('TP image failed to load:', error)}
           />
         )}
+        
+        {/* Debug: Log TP rendering state */}
+        {console.log('TP RENDER DEBUG:', { tpVisible, tpPos: { x: tpPos.x, y: tpPos.y }, isFinite: Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) })}
         
         {/* Debug: Show TP position as a simple colored circle if image fails */}
         {tpVisible && Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) && (
