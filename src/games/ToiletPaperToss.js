@@ -185,10 +185,10 @@ const setupWorld = () => {
   const wallRight = Matter.Bodies.rectangle(WIDTH + thickness/2, HEIGHT/2, thickness, HEIGHT, { isStatic: true, restitution: 0.9, label: 'wall' });
   const ceiling = Matter.Bodies.rectangle(WIDTH/2, -thickness/2, WIDTH, thickness, { isStatic: true, restitution: 0.9, label: 'ceiling' });
 
-  // Ground (static, ends turn)
+  // Ground (static, ends turn) - Moved much lower to allow TP to go higher
   const ground = Matter.Bodies.rectangle(
     WIDTH / 2,
-    HEIGHT + thickness / 2 - 2,
+    HEIGHT + thickness / 2 + 50, // Moved 50px lower
     WIDTH,
     thickness,
     { isStatic: true, restitution: 0.0, label: 'ground' }
@@ -467,11 +467,6 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       // Only update tpPos if the body has moved from its initial off-screen position
       if (p.x > -9000 && p.y > -9000) {
         setTpPos({ x: p.x, y: p.y });
-        
-        // Debug: Log when TP hits something
-        if (tpVisible && p.y > 800) {
-          console.log('TP position:', p.x, p.y, 'Screen height:', HEIGHT);
-        }
       }
       
       // Hide TP when it falls off screen or stops moving
