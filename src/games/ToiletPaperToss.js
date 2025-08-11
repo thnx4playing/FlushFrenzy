@@ -351,7 +351,12 @@ const wireScoring = (engine) => {
       const a = bodyA.label, b = bodyB.label;
       if ((a === "BOWL_SENSOR" && b === "TP") || (b === "BOWL_SENSOR" && a === "TP")) {
         console.log("SCORE! TP entered the bowl!");
-        // ✅ add point, play sound, hide TP, etc.
+        
+        // Hide the TP sprite by setting it to off-screen
+        const tpBody = a === "TP" ? bodyA : bodyB;
+        Matter.Body.setPosition(tpBody, { x: -9999, y: -9999 });
+        
+        // ✅ add point, play sound, etc.
       }
     });
   });
