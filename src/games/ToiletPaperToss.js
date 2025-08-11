@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { GameEngine } from 'react-native-game-engine';
 import Matter from 'matter-js';
 import { Audio } from 'expo-av';
+import Svg, { Polygon } from 'react-native-svg';
 import AimPad from '../../components/AimPad';
 import TrajectoryOverlay from '../../components/TrajectoryOverlay';
 import PowerBar from '../../components/PowerBar';
@@ -135,6 +136,37 @@ const StaticBodiesOverlay = ({ engine }) => {
         );
       })}
     </>
+  );
+};
+
+// Bowl hitbox debug overlay
+const BowlHitboxOverlay = ({ engine }) => {
+  if (!engine) return null;
+  
+  const bowlBody = Matter.Composite.allBodies(engine.world).find(b => b.label === "BOWL_SENSOR");
+  if (!bowlBody || !bowlBody.vertices) return null;
+
+  // Convert Matter.js vertices to React Native polygon points
+  const points = bowlBody.vertices.map(vertex => `${vertex.x},${vertex.y}`).join(' ');
+  
+  return (
+    <View style={{
+      position: "absolute",
+      left: 0,
+      top: 0,
+      width: WIDTH,
+      height: HEIGHT,
+      zIndex: 998,
+    }}>
+      <Svg width={WIDTH} height={HEIGHT}>
+        <Polygon
+          points={points}
+          fill="rgba(255,0,0,0.2)"
+          stroke="rgba(255,0,0,1)"
+          strokeWidth="3"
+        />
+      </Svg>
+    </View>
   );
 };
 
@@ -702,6 +734,9 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
 
         {/* Debug: Visualize static bodies (temporarily disabled) */}
         {/* <StaticBodiesOverlay engine={engine} /> */}
+        
+        {/* Debug: Show bowl hitbox */}
+        <BowlHitboxOverlay engine={engine} />
 
         {/* Toilet sprite (visual only, no physics) */}
         <View style={{
