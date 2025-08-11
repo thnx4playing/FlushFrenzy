@@ -160,7 +160,7 @@ const CONSTANTS = {
   MAX_AIM_LEN: 160, // px drag clamp
   MAX_IMPULSE: 0.12, // scale for Matter.applyForce (tune 0.04..0.14)
   CHARGE_SPEED: 170, // percent per second
-  GRAVITY_Y: 1.4,
+  GRAVITY_Y: 0.8, // Reduced from 1.4 to 0.8 for higher arcs
 };
 
 /******************** World Factory ********************/
@@ -194,10 +194,10 @@ const setupWorld = () => {
     { isStatic: true, restitution: 0.0, label: 'ground' }
   );
 
-  // Toilet (static block to bounce off). Larger and closer to the back wall
+  // Toilet (static block to bounce off). Moved higher to allow TP to go above it
   const toilet = Matter.Bodies.rectangle(
     WIDTH * 0.5,
-    HEIGHT * 0.30,
+    HEIGHT * 0.20, // Moved from 0.30 to 0.20 (20% of screen height)
     320,
     320,
     { isStatic: true, restitution: 0.6, label: 'toilet' }
@@ -299,7 +299,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       const charged = (stateRef.current?.charge ?? 0) / 100;
       const rawP = charged || a.power || 0;
       const p = Math.max(0.25, Math.min(1, rawP));
-      const SPEED = 45;  // Increased from 18 to 45 for much more power
+      const SPEED = 20;  // Reduced back down to investigate blocking issue
       const vx = (a.dir?.x || 0) * SPEED * p;
       const vy = -(Math.abs(a.dir?.y || 0)) * SPEED * p;
       
@@ -317,7 +317,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     const charged = (stateRef.current?.charge ?? 0) / 100;
     const rawP = charged || a.power || 0;
     const p = Math.max(0.25, Math.min(1, rawP));     // TEMP min power 25%
-    const SPEED = 45;  // Increased from 18 to 45 for much more power
+    const SPEED = 20;  // Reduced back down to investigate blocking issue
 
     // portrait: up is negative Y
     const vx = (a.dir?.x || 0) * SPEED * p;
