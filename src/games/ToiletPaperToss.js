@@ -590,11 +590,6 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     const id = setInterval(() => setTick((t) => t + 1), 33);
     setReady(true);
     
-    // Debug: Verify walls are created (run once)
-    setTimeout(() => {
-      dumpStatics(engine);
-    }, 500);
-    
     return () => clearInterval(id);
   }, []);
 
