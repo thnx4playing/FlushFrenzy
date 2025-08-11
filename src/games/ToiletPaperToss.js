@@ -262,12 +262,56 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       tpBody: tp.position
     });
 
+    // Ensure spawn coordinates are valid numbers
+    if (!Number.isFinite(spawn.x) || !Number.isFinite(spawn.y)) {
+      console.log('Invalid spawn coordinates:', spawn);
+      return;
+    }
+
     // wake + place
     Matter.Body.setStatic(tp, false);
     Matter.Sleeping.set(tp, false);
     Matter.Body.setPosition(tp, spawn);
     Matter.Body.setVelocity(tp, { x: 0, y: 0 });
     Matter.Body.setAngularVelocity(tp, 0);
+
+    // Verify the body position was set correctly
+    const newPos = tp.position;
+    if (!Number.isFinite(newPos.x) || !Number.isFinite(newPos.y)) {
+      console.log('Failed to set body position, creating new body');
+      // Create a new body if the current one is corrupted
+      const newTp = Matter.Bodies.circle(spawn.x, spawn.y, CONSTANTS.TP_RADIUS, {
+        restitution: 0.45,
+        friction: 0.05,
+        frictionAir: 0.012,
+        density: 0.0016,
+        label: 'toiletPaper'
+      });
+      
+      // Remove old body and add new one
+      Matter.World.remove(world, tp);
+      Matter.World.add(world, newTp);
+      
+      // Update the reference
+      bodies.tp = newTp;
+      
+      // Set velocity on the new body
+      const charged = (stateRef.current?.charge ?? 0) / 100;
+      const rawP = charged || a.power || 0;
+      const p = Math.max(0.25, Math.min(1, rawP));
+      const SPEED = 18;
+      const vx = (a.dir?.x || 0) * SPEED * p;
+      const vy = -(Math.abs(a.dir?.y || 0)) * SPEED * p;
+      
+      Matter.Body.setVelocity(newTp, { x: vx, y: vy });
+      Matter.Body.setAngularVelocity(newTp, 0.2 * p);
+      
+      setTpPos(spawn);
+      setTpVisible(true);
+      
+      console.log('LAUNCH with new body', { spawn, vx, vy, p });
+      return;
+    }
 
     // power (use charge if available, else stick distance); add a safe minimum
     const charged = (stateRef.current?.charge ?? 0) / 100;
@@ -553,6 +597,24 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
             resizeMode="contain"
             onLoad={() => console.log('TP image loaded successfully')}
             onError={(error) => console.error('TP image failed to load:', error)}
+          />
+        )}
+        
+        {/* Debug: Show TP position as a simple colored circle if image fails */}
+        {tpVisible && Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) && (
+          <View
+            style={{
+              position: 'absolute',
+              left: tpPos.x - 28,
+              top: tpPos.y - 28,
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: '#FF6B6B',
+              borderWidth: 2,
+              borderColor: '#fff',
+              zIndex: 19
+            }}
           />
         )}
 
