@@ -217,7 +217,7 @@ const addBowl = (engine, W, H) => {
   const world = engine.world;
   
   const bowlX = W / 2;
-  const bowlY = H * 0.52;   // adjust to match art
+  const bowlY = H * 0.35;   // moved up from 0.52 to 0.35 (35% of screen height)
   const bowlR = 42;         // adjust to hole size in px
 
   const bowlSensor = Matter.Bodies.circle(bowlX, bowlY, bowlR, {
@@ -688,14 +688,14 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
 
         <PowerBar value={(state.charge || 0) / 100} />
 
-        {/* Debug: Visualize static bodies */}
-        <StaticBodiesOverlay engine={engine} />
+        {/* Debug: Visualize static bodies (temporarily disabled) */}
+        {/* <StaticBodiesOverlay engine={engine} /> */}
 
         {/* Toilet sprite (visual only, no physics) */}
         <View style={{
           position: 'absolute',
           left: WIDTH * 0.5 - 160,
-          top: HEIGHT * 0.52 - 160,
+          top: HEIGHT * 0.35 - 160,
           width: 320,
           height: 320,
           zIndex: 10,
