@@ -148,8 +148,7 @@ const BowlHitboxOverlay = ({ engine }) => {
   if (!engine) return null;
   
   const bowlBodies = Matter.Composite.allBodies(engine.world).filter(b => 
-    b.label === "BOWL_MAIN" || b.label === "BOWL_LEFT" || b.label === "BOWL_RIGHT" || 
-    b.label === "BOWL_TOP_LEFT" || b.label === "BOWL_TOP_RIGHT" || b.label === "BOWL_TOP_CENTER"
+    b.label === "BOWL_SIDE_L" || b.label === "BOWL_SIDE_R" || b.label === "BOWL_BOTTOM" || b.label === "BOWL_SENSOR"
   );
   
   // Debug: Log bowl bodies found (only once)
@@ -282,86 +281,77 @@ const buildArena = (engine, W, H, tpBody) => {
   Matter.World.add(world, walls);
 };
 
-// Add toilet bowl as scoring sensor
-const addBowl = (engine, W, H) => {
+// Remove any old rim that blocks the opening
+const removeOldRims = (engine) => {
   const world = engine.world;
-  
-  const bowlX = W / 2;
-  const bowlY = H * 0.35;   // moved up from 0.52 to 0.35 (35% of screen height)
-  const bowlR = 42;         // adjust to hole size in px
+  Matter.Composite.allBodies(world).forEach(b => {
+    if (["BOWL_RIM", "BOWL", "BOWL_RING"].includes(b.label)) {
+      Matter.World.remove(world, b);
+    }
+  });
+};
 
-  // Create a proper bowl shape using multiple curved segments
-  // This creates a realistic toilet bowl with curved sides and open top
-  
-  // Main bowl bottom (deep circle)
-  const mainBowl = Matter.Bodies.circle(bowlX, bowlY + bowlR * 0.4, bowlR * 0.5, {
-    isStatic: true,
-    isSensor: true,
-    label: "BOWL_MAIN",
+// Add an open-top bowl (left + right + curved bottom + sensor)
+const addOpenBowl = (engine, bx, by, r = 42) => {
+  const world = engine.world;
+  const thickness = 16;               // wall thickness (px)
+  const tilt = 0.35;                  // wall inward tilt (radians ~20°)
+
+  // Material tuned to "slide in", not bounce out
+  const mat = { 
+    isStatic: true, 
+    restitution: 0.05, 
+    friction: 0.25, 
+    frictionStatic: 0.9 
+  };
+
+  // Left inner wall (tilted inward)
+  const left = Matter.Bodies.rectangle(bx - r * 0.9, by + r * 0.1, thickness, r * 1.6, {
+    ...mat, 
+    angle: -tilt, 
+    label: "BOWL_SIDE_L"
   });
 
-  // Left curved wall (angled rectangle)
-  const leftWall = Matter.Bodies.rectangle(bowlX - bowlR * 0.6, bowlY + bowlR * 0.1, bowlR * 0.3, bowlR * 0.6, {
-    isStatic: true,
-    isSensor: true,
-    label: "BOWL_LEFT",
-    angle: -0.3, // slight outward angle
+  // Right inner wall (tilted inward)
+  const right = Matter.Bodies.rectangle(bx + r * 0.9, by + r * 0.1, thickness, r * 1.6, {
+    ...mat, 
+    angle: tilt, 
+    label: "BOWL_SIDE_R"
   });
 
-  // Right curved wall (angled rectangle)
-  const rightWall = Matter.Bodies.rectangle(bowlX + bowlR * 0.6, bowlY + bowlR * 0.1, bowlR * 0.3, bowlR * 0.6, {
-    isStatic: true,
-    isSensor: true,
-    label: "BOWL_RIGHT",
-    angle: 0.3, // slight outward angle
+  // Curved bottom (a circle placed below the hole)
+  // This gives a smooth slide; top is OPEN because we don't add any top collider.
+  const bottom = Matter.Bodies.circle(bx, by + r * 0.6, r * 0.95, {
+    ...mat, 
+    label: "BOWL_BOTTOM"
   });
 
-  // Top left curve (small circle segment)
-  const topLeft = Matter.Bodies.circle(bowlX - bowlR * 0.4, bowlY - bowlR * 0.1, bowlR * 0.2, {
-    isStatic: true,
-    isSensor: true,
-    label: "BOWL_TOP_LEFT",
+  // Scoring sensor (no physical push) — smaller than the visual hole
+  const sensor = Matter.Bodies.circle(bx, by + r * 0.2, r * 0.55, {
+    isStatic: true, 
+    isSensor: true, 
+    label: "BOWL_SENSOR"
   });
 
-  // Top right curve (small circle segment)
-  const topRight = Matter.Bodies.circle(bowlX + bowlR * 0.4, bowlY - bowlR * 0.1, bowlR * 0.2, {
-    isStatic: true,
-    isSensor: true,
-    label: "BOWL_TOP_RIGHT",
-  });
-
-  // Center top opening (narrow rectangle creating the dip)
-  const topCenter = Matter.Bodies.rectangle(bowlX, bowlY + bowlR * 0.2, bowlR * 0.4, bowlR * 0.3, {
-    isStatic: true,
-    isSensor: true,
-    label: "BOWL_TOP_CENTER",
-  });
+  Matter.World.add(world, [left, right, bottom, sensor]);
 
   // Debug: Log the bowl components
-  console.log("BOWL COMPONENTS CREATED:", [
-    { label: "BOWL_MAIN", x: mainBowl.position.x.toFixed(1), y: mainBowl.position.y.toFixed(1) },
-    { label: "BOWL_LEFT", x: leftWall.position.x.toFixed(1), y: leftWall.position.y.toFixed(1) },
-    { label: "BOWL_RIGHT", x: rightWall.position.x.toFixed(1), y: rightWall.position.y.toFixed(1) },
-    { label: "BOWL_TOP_LEFT", x: topLeft.position.x.toFixed(1), y: topLeft.position.y.toFixed(1) },
-    { label: "BOWL_TOP_RIGHT", x: topRight.position.x.toFixed(1), y: topRight.position.y.toFixed(1) },
-    { label: "BOWL_TOP_CENTER", x: topCenter.position.x.toFixed(1), y: topCenter.position.y.toFixed(1) },
+  console.log("OPEN BOWL COMPONENTS CREATED:", [
+    { label: "BOWL_SIDE_L", x: left.position.x.toFixed(1), y: left.position.y.toFixed(1) },
+    { label: "BOWL_SIDE_R", x: right.position.x.toFixed(1), y: right.position.y.toFixed(1) },
+    { label: "BOWL_BOTTOM", x: bottom.position.x.toFixed(1), y: bottom.position.y.toFixed(1) },
+    { label: "BOWL_SENSOR", x: sensor.position.x.toFixed(1), y: sensor.position.y.toFixed(1) },
   ]);
+};
 
-  // Keep the rim as a circle for visual reference
-  const rim = Matter.Bodies.circle(bowlX, bowlY, bowlR + 4, {
-    isStatic: true,
-    label: "BOWL_RIM",
-  });
-
-  Matter.World.add(world, [mainBowl, leftWall, rightWall, topLeft, topRight, topCenter, rim]);
-
+// Wire up scoring when the roll enters the bowl
+const wireScoring = (engine) => {
   Matter.Events.on(engine, "collisionStart", (e) => {
     e.pairs.forEach(({ bodyA, bodyB }) => {
-      const names = new Set([bodyA.label, bodyB.label]);
-      if ((names.has("BOWL_MAIN") || names.has("BOWL_LEFT") || names.has("BOWL_RIGHT") || 
-           names.has("BOWL_TOP_LEFT") || names.has("BOWL_TOP_RIGHT") || names.has("BOWL_TOP_CENTER")) && names.has("TP")) {
-        console.log("SCORE! TP hit the bowl!");
-        // score point here
+      const a = bodyA.label, b = bodyB.label;
+      if ((a === "BOWL_SENSOR" && b === "TP") || (b === "BOWL_SENSOR" && a === "TP")) {
+        console.log("SCORE! TP entered the bowl!");
+        // ✅ add point, play sound, hide TP, etc.
       }
     });
   });
@@ -390,8 +380,14 @@ const setupWorld = () => {
   // Build clean arena
   buildArena(engine, WIDTH, HEIGHT, tp);
   
-  // Add toilet bowl
-  addBowl(engine, WIDTH, HEIGHT);
+  // Remove any old rim that blocks the opening
+  removeOldRims(engine);
+  
+  // Add open-top toilet bowl
+  addOpenBowl(engine, WIDTH / 2, HEIGHT * 0.35, 42);
+  
+  // Wire up scoring
+  wireScoring(engine);
 
   // Add TP body to the world
   Matter.World.add(world, tp);
@@ -399,7 +395,7 @@ const setupWorld = () => {
 
   // Remove any old debug colliders
   Matter.Composite.allBodies(engine.world).forEach(b => {
-    if (!["BOUNDARY", "BOWL_MAIN", "BOWL_LEFT", "BOWL_RIGHT", "BOWL_TOP_LEFT", "BOWL_TOP_RIGHT", "BOWL_TOP_CENTER", "BOWL_RIM", "TP"].includes(b.label)) {
+    if (!["BOUNDARY", "BOWL_SIDE_L", "BOWL_SIDE_R", "BOWL_BOTTOM", "BOWL_SENSOR", "TP"].includes(b.label)) {
       Matter.World.remove(engine.world, b);
     }
   });
