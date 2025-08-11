@@ -157,6 +157,7 @@ const BowlHitboxOverlay = ({ engine }) => {
       width: WIDTH,
       height: HEIGHT,
       zIndex: 998,
+      pointerEvents: "none", // Allow touch events to pass through
     }}>
       <Svg width={WIDTH} height={HEIGHT}>
         <Polygon
