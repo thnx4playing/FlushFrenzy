@@ -220,12 +220,28 @@ const addBowl = (engine, W, H) => {
   const bowlY = H * 0.35;   // moved up from 0.52 to 0.35 (35% of screen height)
   const bowlR = 42;         // adjust to hole size in px
 
-  const bowlSensor = Matter.Bodies.circle(bowlX, bowlY, bowlR, {
+  // Create a bowl-shaped sensor using a polygon
+  // This creates a more realistic toilet bowl shape
+  const bowlShape = [
+    { x: bowlX - bowlR, y: bowlY - bowlR * 0.3 },      // top left
+    { x: bowlX + bowlR, y: bowlY - bowlR * 0.3 },      // top right
+    { x: bowlX + bowlR * 0.8, y: bowlY },              // right side
+    { x: bowlX + bowlR * 0.6, y: bowlY + bowlR * 0.5 }, // right curve
+    { x: bowlX + bowlR * 0.4, y: bowlY + bowlR * 0.8 }, // right bottom
+    { x: bowlX + bowlR * 0.2, y: bowlY + bowlR },       // right deep
+    { x: bowlX - bowlR * 0.2, y: bowlY + bowlR },       // left deep
+    { x: bowlX - bowlR * 0.4, y: bowlY + bowlR * 0.8 }, // left bottom
+    { x: bowlX - bowlR * 0.6, y: bowlY + bowlR * 0.5 }, // left curve
+    { x: bowlX - bowlR * 0.8, y: bowlY },               // left side
+  ];
+
+  const bowlSensor = Matter.Bodies.fromVertices(bowlX, bowlY, [bowlShape], {
     isStatic: true,
     isSensor: true,
     label: "BOWL_SENSOR",
   });
 
+  // Keep the rim as a circle for visual reference
   const rim = Matter.Bodies.circle(bowlX, bowlY, bowlR + 4, {
     isStatic: true,
     label: "BOWL_RIM",
