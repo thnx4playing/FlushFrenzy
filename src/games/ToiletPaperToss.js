@@ -26,13 +26,19 @@ const { width: WIDTH, height: HEIGHT } = Dimensions.get('window');
 
 // Sound effects
 let dingSound = null;
+let waterDropSound = null;
 
 const loadSounds = async () => {
   try {
-    const { sound } = await Audio.Sound.createAsync(
+    const { sound: ding } = await Audio.Sound.createAsync(
       require('../../assets/ding.mp3')
     );
-    dingSound = sound;
+    dingSound = ding;
+    
+    const { sound: water } = await Audio.Sound.createAsync(
+      require('../../assets/water_drop.mp3')
+    );
+    waterDropSound = water;
   } catch (error) {
     console.log('Could not load sound effect:', error);
   }
@@ -44,6 +50,16 @@ const playDingSound = async () => {
       await dingSound.replayAsync();
     } catch (error) {
       console.log('Could not play sound:', error);
+    }
+  }
+};
+
+const playWaterDropSound = async () => {
+  if (waterDropSound) {
+    try {
+      await waterDropSound.replayAsync();
+    } catch (error) {
+      console.log('Could not play water drop sound:', error);
     }
   }
 };
@@ -356,7 +372,10 @@ const wireScoring = (engine) => {
         const tpBody = a === "TP" ? bodyA : bodyB;
         Matter.Body.setPosition(tpBody, { x: -9999, y: -9999 });
         
-        // ✅ add point, play sound, etc.
+        // Play water drop sound effect
+        playWaterDropSound();
+        
+        // ✅ add point, etc.
       }
     });
   });
