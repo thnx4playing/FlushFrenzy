@@ -13,7 +13,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { GameEngine } from 'react-native-game-engine';
 import Matter from 'matter-js';
 import { Audio } from 'expo-av';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Polygon, Circle as SvgCircle, Rect } from 'react-native-svg';
 import AimPad from '../../components/AimPad';
 import TrajectoryOverlay from '../../components/TrajectoryOverlay';
@@ -476,39 +475,14 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   const [enginePkg] = useState(() => setupWorld(addScore));
   const { engine, world, bodies } = enginePkg;
 
-  // Load high score on component mount
-  useEffect(() => {
-    loadHighScore();
-  }, []);
-
-  // High score functions
-  const loadHighScore = async () => {
-    try {
-      const savedHighScore = await AsyncStorage.getItem('toiletOlympicsHighScore');
-      if (savedHighScore) {
-        setHighScore(parseInt(savedHighScore));
-      }
-    } catch (error) {
-      console.log('Could not load high score:', error);
-    }
-  };
-
-  const saveHighScore = async (newScore) => {
-    try {
-      await AsyncStorage.setItem('toiletOlympicsHighScore', newScore.toString());
-      setHighScore(newScore);
-    } catch (error) {
-      console.log('Could not save high score:', error);
-    }
-  };
-
+  // Simple scoring functions (no persistent storage for now)
   const addScore = () => {
     const newScore = score + 1;
     setScore(newScore);
     
-    // Check if this is a new high score
+    // Update high score if needed (session only)
     if (newScore > highScore) {
-      saveHighScore(newScore);
+      setHighScore(newScore);
     }
   };
 
