@@ -187,7 +187,7 @@ const CONSTANTS = {
   MAX_AIM_LEN: 160, // px drag clamp
   MAX_IMPULSE: 0.12, // scale for Matter.applyForce (tune 0.04..0.14)
   CHARGE_SPEED: 170, // percent per second
-  GRAVITY_Y: 0.6, // Further reduced for 25% more travel distance
+  GRAVITY_Y: 0.4, // Much lower gravity for 50% more travel time and distance
 };
 
 /******************** World Factory ********************/
