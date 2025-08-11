@@ -427,6 +427,14 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     Matter.Body.setVelocity(tp, { x: vx, y: vy });
     Matter.Body.setAngularVelocity(tp, 0.2 * p);
 
+    // Verify TP is in the world and has velocity
+    const allBodies = Matter.Composite.allBodies(world);
+    const tpInWorld = allBodies.find(b => b.label === 'TP');
+    console.log('TP in world after launch:', !!tpInWorld, 'Total bodies:', allBodies.length);
+    if (tpInWorld) {
+      console.log('TP world velocity:', tpInWorld.velocity.x.toFixed(1), tpInWorld.velocity.y.toFixed(1));
+    }
+
     // FIRST-FRAME SYNC + show sprite in the SAME component that renders it
     // Force immediate sync to prevent afterUpdate from overwriting
     setTpPos(spawn);
@@ -570,6 +578,14 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       updateCount++;
       if (updateCount % 60 === 0) { // Log every 60 updates (about once per second)
         console.log('Physics engine running - update count:', updateCount);
+        
+        // Check if TP body is in the world
+        const allBodies = Matter.Composite.allBodies(engine.world);
+        const tpInWorld = allBodies.find(b => b.label === 'TP');
+        console.log('TP in world:', !!tpInWorld, 'Total bodies:', allBodies.length);
+        if (tpInWorld) {
+          console.log('TP world position:', tpInWorld.position.x.toFixed(1), tpInWorld.position.y.toFixed(1), 'static:', tpInWorld.isStatic);
+        }
       }
       
       const tp = bodies?.tp;
