@@ -191,48 +191,106 @@ const CONSTANTS = {
 };
 
 /******************** World Factory ********************/
-const setupWorld = () => {
-  const engine = Matter.Engine.create({ enableSleeping: false });
-  const world = engine.world;
-  world.gravity.y = CONSTANTS.GRAVITY_Y;
 
-  // Bodies
-  const tp = Matter.Bodies.circle(-9999, -9999, CONSTANTS.TP_RADIUS, {
+// Clean arena builder
+const buildArena = (engine, W, H, tpBody) => {
+  const world = engine.world;
+
+  // Remove all bodies except TP
+  Matter.Composite.allBodies(world).forEach(b => {
+    if (b !== tpBody) Matter.World.remove(world, b);
+  });
+
+  // Add floor, ceiling, left wall, right wall
+  const wall = { isStatic: true, label: "BOUNDARY" };
+  const walls = [
+    Matter.Bodies.rectangle(W / 2, H + 40, W, 80, wall),   // floor
+    Matter.Bodies.rectangle(W / 2, -40, W, 80, wall),      // ceiling
+    Matter.Bodies.rectangle(-40, H / 2, 80, H, wall),      // left
+    Matter.Bodies.rectangle(W + 40, H / 2, 80, H, wall),   // right
+  ];
+  Matter.World.add(world, walls);
+};
+
+// Add toilet bowl as scoring sensor
+const addBowl = (engine, W, H) => {
+  const world = engine.world;
+  
+  const bowlX = W / 2;
+  const bowlY = H * 0.52;   // adjust to match art
+  const bowlR = 42;         // adjust to hole size in px
+
+  const bowlSensor = Matter.Bodies.circle(bowlX, bowlY, bowlR, {
+    isStatic: true,
+    isSensor: true,
+    label: "BOWL_SENSOR",
+  });
+
+  const rim = Matter.Bodies.circle(bowlX, bowlY, bowlR + 4, {
+    isStatic: true,
+    label: "BOWL_RIM",
+  });
+
+  Matter.World.add(world, [bowlSensor, rim]);
+
+  Matter.Events.on(engine, "collisionStart", (e) => {
+    e.pairs.forEach(({ bodyA, bodyB }) => {
+      const names = new Set([bodyA.label, bodyB.label]);
+      if (names.has("BOWL_SENSOR") && names.has("TP")) {
+        console.log("SCORE! TP hit the bowl!");
+        // score point here
+      }
+    });
+  });
+};
+
+// Create TP body
+const createTP = () => {
+  return Matter.Bodies.circle(-9999, -9999, CONSTANTS.TP_RADIUS, {
+    label: "TP",
     restitution: 0.45,
     friction: 0.05,
     frictionAir: 0.012,
     density: 0.0016,
     isStatic: true, // keep the roll fixed until launch
-    label: 'toiletPaper'
+  });
+};
+
+const setupWorld = () => {
+  const engine = Matter.Engine.create({ enableSleeping: false });
+  const world = engine.world;
+  world.gravity.y = CONSTANTS.GRAVITY_Y;
+
+  // Create TP first
+  const tp = createTP();
+
+  // Build clean arena
+  buildArena(engine, WIDTH, HEIGHT, tp);
+  
+  // Add toilet bowl
+  addBowl(engine, WIDTH, HEIGHT);
+
+  // Remove any old debug colliders
+  Matter.Composite.allBodies(engine.world).forEach(b => {
+    if (!["BOUNDARY", "BOWL_SENSOR", "BOWL_RIM", "TP"].includes(b.label)) {
+      Matter.World.remove(engine.world, b);
+    }
   });
 
-  // Walls & ceiling (static, bouncy)
-  const thickness = 30;
-  const wallLeft = Matter.Bodies.rectangle(-thickness/2, HEIGHT/2, thickness, HEIGHT, { isStatic: true, restitution: 0.9, label: 'wall' });
-  const wallRight = Matter.Bodies.rectangle(WIDTH + thickness/2, HEIGHT/2, thickness, HEIGHT, { isStatic: true, restitution: 0.9, label: 'wall' });
-  const ceiling = Matter.Bodies.rectangle(WIDTH/2, -thickness/2, WIDTH, thickness, { isStatic: true, restitution: 0.9, label: 'ceiling' });
+  // Verify the arena
+  const logStatics = (engine) => {
+    const statics = Matter.Composite.allBodies(engine.world).filter(b => b.isStatic);
+    console.log("CLEAN STATIC BODIES:", statics.map(b => ({
+      label: b.label,
+      x: b.position.x.toFixed(1),
+      y: b.position.y.toFixed(1),
+      w: (b.bounds.max.x - b.bounds.min.x).toFixed(1),
+      h: (b.bounds.max.y - b.bounds.min.y).toFixed(1),
+    })));
+  };
+  logStatics(engine);
 
-  // Ground (static, ends turn) - Moved much lower to allow TP to go higher
-  const ground = Matter.Bodies.rectangle(
-    WIDTH / 2,
-    HEIGHT + thickness / 2 + 50, // Moved 50px lower
-    WIDTH,
-    thickness,
-    { isStatic: true, restitution: 0.0, label: 'ground' }
-  );
-
-  // Toilet (static block to bounce off). Back to original position
-  const toilet = Matter.Bodies.rectangle(
-    WIDTH * 0.5,
-    HEIGHT * 0.30, // Back to 30% of screen height
-    320,
-    320,
-    { isStatic: true, restitution: 0.6, label: 'toilet' }
-  );
-
-  Matter.World.add(world, [tp, wallLeft, wallRight, ceiling, ground, toilet]);
-
-  return { engine, world, bodies: { tp, wallLeft, wallRight, ceiling, ground, toilet } };
+  return { engine, world, bodies: { tp } };
 };
 
 /******************** Systems ********************/
@@ -592,13 +650,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
           entities={{
             physics: { engine, world },
             state,
-
             tp: { body: bodies.tp, renderer: null }, // TP now rendered separately
-            left: { body: bodies.wallLeft, renderer: null },
-            right: { body: bodies.wallRight, renderer: null },
-            ceiling: { body: bodies.ceiling, renderer: null },
-            ground: { body: bodies.ground, renderer: null },
-            toilet: { body: bodies.toilet, renderer: (p) => <ToiletSprite {...p} /> },
           }}
         >
           {/* HUD removed: old charge bar + trajectory indicator */}
@@ -638,6 +690,22 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
 
         {/* Debug: Visualize static bodies */}
         <StaticBodiesOverlay engine={engine} />
+
+        {/* Toilet sprite (visual only, no physics) */}
+        <View style={{
+          position: 'absolute',
+          left: WIDTH * 0.5 - 160,
+          top: HEIGHT * 0.52 - 160,
+          width: 320,
+          height: 320,
+          zIndex: 10,
+        }}>
+          <Image
+            source={require('../../assets/toilet.png')}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="contain"
+          />
+        </View>
 
         {/* TP sprite — bulletproof rendering */}
         {tpVisible && Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) && (
