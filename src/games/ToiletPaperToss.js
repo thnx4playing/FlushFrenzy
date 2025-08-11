@@ -111,6 +111,33 @@ const ToiletSprite = ({ body }) => {
   );
 };
 
+// Debug: Visualize static bodies to find invisible walls
+const StaticBodiesOverlay = ({ engine }) => {
+  if (!engine) return null;
+  const bodies = Matter.Composite.allBodies(engine.world).filter(b => b.isStatic);
+  return (
+    <>
+      {bodies.map((b, i) => {
+        const bb = b.bounds;
+        const left = bb.min.x, top = bb.min.y;
+        const width = bb.max.x - bb.min.x, height = bb.max.y - bb.min.y;
+        // Skip huge offscreen parking rects if you have any
+        if (!isFinite(left) || !isFinite(top) || width <= 0 || height <= 0) return null;
+        return (
+          <View key={i} style={{
+            position: "absolute",
+            left, top, width, height,
+            borderWidth: 2,
+            borderColor: "rgba(255,0,0,0.8)",
+            backgroundColor: "rgba(255,0,0,0.15)",
+            zIndex: 999,
+          }} />
+        );
+      })}
+    </>
+  );
+};
+
 // Bottom-center Press button used to start charging/aiming
 const ShootButton = ({ held, onLayoutRect, onPressIn, onDrag, onRelease }) => {
   const size = 96;
@@ -239,6 +266,20 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
 
   const [enginePkg] = useState(() => setupWorld());
   const { engine, world, bodies } = enginePkg;
+
+  // Debug: Dump static bodies to find invisible walls
+  const dumpStatics = (engine) => {
+    const bodies = Matter.Composite.allBodies(engine.world);
+    const statics = bodies.filter(b => b.isStatic);
+    console.log("STATIC BODIES:", statics.length);
+    statics.forEach((b, i) => {
+      const bb = b.bounds;
+      console.log(
+        `#${i} label=${b.label || "(none)"} x=${b.position.x.toFixed(1)} y=${b.position.y.toFixed(1)} ` +
+        `w=${(bb.max.x - bb.min.x).toFixed(1)} h=${(bb.max.y - bb.min.y).toFixed(1)}`
+      );
+    });
+  };
 
   // Keep last aim from AimPad
   const lastAimRef = useRef(null);
@@ -489,6 +530,12 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     // Force a slow UI refresh for HUD ~30fps without spamming state
     const id = setInterval(() => setTick((t) => t + 1), 33);
     setReady(true);
+    
+    // Debug: Dump static bodies to find invisible walls
+    setTimeout(() => {
+      dumpStatics(engine);
+    }, 1000);
+    
     return () => clearInterval(id);
   }, []);
 
@@ -588,6 +635,9 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         />
 
         <PowerBar value={(state.charge || 0) / 100} />
+
+        {/* Debug: Visualize static bodies */}
+        <StaticBodiesOverlay engine={engine} />
 
         {/* TP sprite — bulletproof rendering */}
         {tpVisible && Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) && (
