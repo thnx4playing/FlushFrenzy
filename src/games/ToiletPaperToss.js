@@ -384,7 +384,7 @@ const setupWorld = () => {
   removeOldRims(engine);
   
   // Add open-top toilet bowl
-  addOpenBowl(engine, WIDTH / 2, HEIGHT * 0.45, 42); // Moved down from 0.35 to 0.45 (35% to 45% of screen height)
+  addOpenBowl(engine, WIDTH / 2, HEIGHT * 0.40, 42); // Moved back up from 0.45 to 0.40 (50% of the way back)
   
   // Wire up scoring
   wireScoring(engine);
