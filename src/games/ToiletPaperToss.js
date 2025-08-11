@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { GameEngine } from 'react-native-game-engine';
 import Matter from 'matter-js';
 import { Audio } from 'expo-av';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Polygon, Circle as SvgCircle, Rect } from 'react-native-svg';
 import AimPad from '../../components/AimPad';
 import TrajectoryOverlay from '../../components/TrajectoryOverlay';
@@ -361,7 +362,7 @@ const addOpenBowl = (engine, bx, by, r = 42) => {
 };
 
 // Wire up scoring when the roll enters the bowl
-const wireScoring = (engine) => {
+const wireScoring = (engine, addScoreCallback) => {
   Matter.Events.on(engine, "collisionStart", (e) => {
     e.pairs.forEach(({ bodyA, bodyB }) => {
       const a = bodyA.label, b = bodyB.label;
@@ -375,7 +376,8 @@ const wireScoring = (engine) => {
         // Play water drop sound effect
         playWaterDropSound();
         
-        // ✅ add point, etc.
+        // Add point
+        addScoreCallback();
       }
     });
   });
@@ -393,7 +395,7 @@ const createTP = () => {
   });
 };
 
-const setupWorld = () => {
+const setupWorld = (addScoreCallback) => {
   const engine = Matter.Engine.create({ enableSleeping: false });
   const world = engine.world;
   world.gravity.y = CONSTANTS.GRAVITY_Y;
@@ -411,7 +413,7 @@ const setupWorld = () => {
   addOpenBowl(engine, WIDTH / 2, HEIGHT * 0.40, 42); // Moved back up from 0.45 to 0.40 (50% of the way back)
   
   // Wire up scoring
-  wireScoring(engine);
+  wireScoring(engine, addScoreCallback);
 
   // Add TP body to the world
   Matter.World.add(world, tp);
@@ -461,16 +463,58 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   const gameRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(0);
   const [misses, setMisses] = useState(0);
   const [timeLeft, setTimeLeft] = useState(gameMode === 'quick-flush' ? 60 : 0);
+  const [gameOverVisible, setGameOverVisible] = useState(false);
 
   const [isMuted, setIsMuted] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [tpPos, setTpPos] = useState({ x: -9999, y: -9999 });
   const [tpVisible, setTpVisible] = useState(false);
 
-  const [enginePkg] = useState(() => setupWorld());
+  const [enginePkg] = useState(() => setupWorld(addScore));
   const { engine, world, bodies } = enginePkg;
+
+  // Load high score on component mount
+  useEffect(() => {
+    loadHighScore();
+  }, []);
+
+  // High score functions
+  const loadHighScore = async () => {
+    try {
+      const savedHighScore = await AsyncStorage.getItem('toiletOlympicsHighScore');
+      if (savedHighScore) {
+        setHighScore(parseInt(savedHighScore));
+      }
+    } catch (error) {
+      console.log('Could not load high score:', error);
+    }
+  };
+
+  const saveHighScore = async (newScore) => {
+    try {
+      await AsyncStorage.setItem('toiletOlympicsHighScore', newScore.toString());
+      setHighScore(newScore);
+    } catch (error) {
+      console.log('Could not save high score:', error);
+    }
+  };
+
+  const addScore = () => {
+    const newScore = score + 1;
+    setScore(newScore);
+    
+    // Check if this is a new high score
+    if (newScore > highScore) {
+      saveHighScore(newScore);
+    }
+  };
+
+  const showGameOver = () => {
+    setGameOverVisible(true);
+  };
 
   // Debug: Dump static bodies to find invisible walls
   const dumpStatics = (engine) => {
@@ -908,6 +952,31 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
           </View>
         </View>
       </Modal>
+
+      {/* Game Over Modal */}
+      <Modal
+        transparent
+        animationType="fade"
+        visible={gameOverVisible}
+        onRequestClose={() => setGameOverVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Game Over!</Text>
+            <Text style={styles.modalText}>Final Score: {score}</Text>
+            <Text style={styles.modalText}>High Score: {highScore}</Text>
+            {score === highScore && score > 0 && (
+              <Text style={styles.newRecordText}>🎉 New Record! 🎉</Text>
+            )}
+            <TouchableOpacity onPress={() => {
+              setGameOverVisible(false);
+              onGameComplete && onGameComplete();
+            }} style={styles.modalButton}>
+              <Text style={styles.modalButtonText}>Play Again</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1076,6 +1145,13 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  newRecordText: {
+    color: '#FFD700',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 10,
   },
   // Old aim and charge styles removed - now using imported components
 });
