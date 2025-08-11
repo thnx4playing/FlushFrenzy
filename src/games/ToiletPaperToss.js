@@ -151,6 +151,13 @@ const BowlHitboxOverlay = ({ engine }) => {
     b.label === "BOWL_MAIN" || b.label === "BOWL_LEFT" || b.label === "BOWL_RIGHT" || b.label === "BOWL_TOP"
   );
   
+  // Debug: Log bowl bodies found
+  console.log("BOWL HITBOX DEBUG:", {
+    totalBodies: Matter.Composite.allBodies(engine.world).length,
+    bowlBodiesFound: bowlBodies.length,
+    bowlLabels: bowlBodies.map(b => b.label)
+  });
+  
   if (bowlBodies.length === 0) return null;
 
   return (
