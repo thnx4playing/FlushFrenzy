@@ -270,6 +270,10 @@ const setupWorld = () => {
   // Add toilet bowl
   addBowl(engine, WIDTH, HEIGHT);
 
+  // Add TP body to the world
+  Matter.World.add(world, tp);
+  console.log('TP body added to world');
+
   // Remove any old debug colliders
   Matter.Composite.allBodies(engine.world).forEach(b => {
     if (!["BOUNDARY", "BOWL_SENSOR", "BOWL_RIM", "TP"].includes(b.label)) {
