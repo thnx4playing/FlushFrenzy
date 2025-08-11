@@ -187,7 +187,7 @@ const CONSTANTS = {
   MAX_AIM_LEN: 160, // px drag clamp
   MAX_IMPULSE: 0.12, // scale for Matter.applyForce (tune 0.04..0.14)
   CHARGE_SPEED: 170, // percent per second
-  GRAVITY_Y: 0.8, // Reduced from 1.4 to 0.8 for higher arcs
+  GRAVITY_Y: 0.6, // Further reduced for 25% more travel distance
 };
 
 /******************** World Factory ********************/
@@ -404,7 +404,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       const charged = (stateRef.current?.charge ?? 0) / 100;
       const rawP = charged || a.power || 0;
       const p = Math.max(0.25, Math.min(1, rawP));
-      const SPEED = 25;  // Balanced speed - slower than original but still good distance
+      const SPEED = 20;  // Slower acceleration (20% reduction) for better control
       const vx = (a.dir?.x || 0) * SPEED * p;
       const vy = -(Math.abs(a.dir?.y || 0)) * SPEED * p;
       
@@ -422,7 +422,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     const charged = (stateRef.current?.charge ?? 0) / 100;
     const rawP = charged || a.power || 0;
     const p = Math.max(0.25, Math.min(1, rawP));     // TEMP min power 25%
-    const SPEED = 25;  // Balanced speed - slower than original but still good distance
+    const SPEED = 20;  // Slower acceleration (20% reduction) for better control
 
     // portrait: up is negative Y
     const vx = (a.dir?.x || 0) * SPEED * p;
