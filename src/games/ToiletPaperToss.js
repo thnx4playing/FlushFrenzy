@@ -16,8 +16,6 @@ import { Audio } from 'expo-av';
 import AimPad from '../../components/AimPad';
 import TrajectoryOverlay from '../../components/TrajectoryOverlay';
 import PowerBar from '../../components/PowerBar';
-import DebugDot from '../../components/DebugDot';
-import LoggerHUD from '../../components/LoggerHUD';
 
 const { width: WIDTH, height: HEIGHT } = Dimensions.get('window');
 
@@ -558,36 +556,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
           />
         )}
 
-        {/* TEMP: Red square test to rule out asset path */}
-        {tpVisible && <View style={{position:'absolute', left:tpPos.x-28, top:tpPos.y-28, width:56, height:56, backgroundColor:'red', zIndex:20}}/>}
 
-        {/* Diagnostic dots */}
-        {/* a) show where we *think* the pad center is */}
-        {lastAimRef.current?.origin && (
-          <View style={{
-            position:'absolute',
-            left:lastAimRef.current.origin.x-2,
-            top:lastAimRef.current.origin.y-2,
-            width:4,height:4,backgroundColor:'yellow',zIndex:999
-          }}/>
-        )}
-
-        {/* b) show where the physics body actually is */}
-        {tpVisible && (
-          <View style={{
-            position:'absolute',
-            left:tpPos.x-2, top:tpPos.y-2,
-            width:4, height:4, backgroundColor:'lime', zIndex:999
-          }}/>
-        )}
-
-        {/* On-screen logger for debugging */}
-        <LoggerHUD lines={[
-          `padCenter=${JSON.stringify(stateRef.current?.padOrigin)}`,
-          `tpPos=${tpPos.x|0},${tpPos.y|0}`,
-          `tpVisible=${tpVisible}`,
-          `lastAim=${JSON.stringify(lastAimRef.current)}`,
-        ]}/>
       </ImageBackground>
 
       <Modal
