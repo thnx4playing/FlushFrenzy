@@ -709,7 +709,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         />
 
         <AimPad
-          radius={67.5}
+          radius={74.25}
           onAim={({ dir, power, active, origin }) => {
             lastAimRef.current = { dir, power, origin };
             stateRef.current.padActive = !!active;
@@ -728,7 +728,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
           }}
         />
 
-        <PowerBar value={(state.charge || 0) / 100} />
+
 
         {/* Debug: Visualize static bodies (temporarily disabled) */}
         {/* <StaticBodiesOverlay engine={engine} /> */}
