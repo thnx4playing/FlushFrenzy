@@ -401,8 +401,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       bodies.tp = newTp;
       
       // Set velocity on the new body
-      const charged = (stateRef.current?.charge ?? 0) / 100;
-      const rawP = charged || a.power || 0;
+      const rawP = a.power || 0;
       const p = Math.max(0.25, Math.min(1, rawP));
       const SPEED = 16.2;  // Reduced acceleration (10% less) for smoother launch
       const vx = (a.dir?.x || 0) * SPEED * p;
@@ -418,9 +417,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       return;
     }
 
-    // power (use charge if available, else stick distance); add a safe minimum
-    const charged = (stateRef.current?.charge ?? 0) / 100;
-    const rawP = charged || a.power || 0;
+    // power from AimPad drag distance; add a safe minimum
+    const rawP = a.power || 0;
     const p = Math.max(0.25, Math.min(1, rawP));     // TEMP min power 25%
     const SPEED = 16.2;  // Reduced acceleration (10% less) for smoother launch
 
