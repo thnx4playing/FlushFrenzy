@@ -557,6 +557,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   const [tpPos, setTpPos] = useState({ x: -9999, y: -9999 });
   const [tpVisible, setTpVisible] = useState(false);
   const [toiletPos, setToiletPos] = useState({ x: WIDTH / 2, y: HEIGHT * 0.35 });
+  
+
 
   // Use ref to store scoring callback
   const addScoreRef = useRef(null);
@@ -964,8 +966,6 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
             doLaunch();                            // call your launch fn (below)
           }}
         />
-
-
 
         {/* Debug: Visualize static bodies (temporarily disabled) */}
         {/* <StaticBodiesOverlay engine={engine} /> */}

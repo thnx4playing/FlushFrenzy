@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { View, Dimensions, InteractionManager } from "react-native";
+import AimArrow from './AimArrow';
 
 export default function AimPad({ radius = 90, onAim, onRelease }) {
   const ref = useRef(null);
@@ -91,6 +92,15 @@ export default function AimPad({ radius = 90, onAim, onRelease }) {
         backgroundColor: "rgba(0,0,0,0.25)",
       }}
     >
+      {/* Power/Direction arrow */}
+      <AimArrow
+        origin={{ x: radius, y: radius }}                        // pad-local center
+        direction={{ dx: stick.x, dy: stick.y }}                 // follow finger; length = power
+        power={Math.hypot(stick.x, stick.y) / radius}            // normalize to 0-1
+        visible={dragging && Math.hypot(stick.x, stick.y) > 4}   // tiny deadzone
+        radius={radius}
+      />
+      
       <View
         pointerEvents="none"
         style={{
