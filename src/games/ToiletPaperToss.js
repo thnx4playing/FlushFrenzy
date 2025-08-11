@@ -285,8 +285,9 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     Matter.Body.setAngularVelocity(tp, 0.2 * p);
 
     // FIRST-FRAME SYNC + show sprite in the SAME component that renders it
-    setTpPos?.(spawn);
-    setTpVisible?.(true);
+    // Force immediate sync to prevent afterUpdate from overwriting
+    setTpPos(spawn);
+    setTpVisible(true);
 
     console.log('LAUNCH', { spawn, vx, vy, p });
   };
@@ -420,7 +421,11 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       const tp = bodies?.tp;
       if (!tp) return;
       const p = tp.position;
-      setTpPos?.({ x: p.x, y: p.y });
+      
+      // Only update tpPos if the body has moved from its initial off-screen position
+      if (p.x > -9000 && p.y > -9000) {
+        setTpPos({ x: p.x, y: p.y });
+      }
       
       // Hide TP when it falls off screen or stops moving
       if (tpVisible && tp.position.y > HEIGHT + 100) {
