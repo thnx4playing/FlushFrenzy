@@ -272,7 +272,7 @@ const CONSTANTS = {
   MAX_AIM_LEN: 160, // px drag clamp
   MAX_IMPULSE: 0.12, // scale for Matter.applyForce (tune 0.04..0.14)
   CHARGE_SPEED: 170, // percent per second
-  GRAVITY_Y: 0.2, // Ultra-low gravity for maximum hang time and distance
+  GRAVITY_Y: 0.15, // Fine-tuned gravity for optimal travel time
 };
 
 /******************** World Factory ********************/
@@ -358,6 +358,9 @@ const addOpenBowl = (engine, bx, by, r = 42) => {
     { label: "BOWL_BOTTOM", x: bottom.position.x.toFixed(1), y: bottom.position.y.toFixed(1) },
     { label: "BOWL_SENSOR", x: sensor.position.x.toFixed(1), y: sensor.position.y.toFixed(1) },
   ]);
+
+  // Return the bowl bodies for movement control
+  return { left, right, bottom, sensor, centerX: bx, centerY: by, radius: r };
 };
 
 // Wire up scoring when the roll enters the bowl
@@ -408,8 +411,8 @@ const setupWorld = (addScoreCallback) => {
   // Remove any old rim that blocks the opening
   removeOldRims(engine);
   
-  // Add open-top toilet bowl
-  addOpenBowl(engine, WIDTH / 2, HEIGHT * 0.40, 42); // Moved back up from 0.45 to 0.40 (50% of the way back)
+  // Add open-top toilet bowl and store the bodies for movement
+  const bowlBodies = addOpenBowl(engine, WIDTH / 2, HEIGHT * 0.40, 42); // Moved back up from 0.45 to 0.40 (50% of the way back)
   
   // Wire up scoring
   wireScoring(engine, addScoreCallback);
@@ -438,7 +441,7 @@ const setupWorld = (addScoreCallback) => {
   };
   logStatics(engine);
 
-  return { engine, world, bodies: { tp } };
+  return { engine, world, bodies: { tp, bowlBodies } };
 };
 
 /******************** Systems ********************/
@@ -457,6 +460,88 @@ const CollisionSystem = (entities, { events }) => {
   return entities;
 };
 
+// Moving toilet system
+const MovingToiletSystem = (entities, { time }) => {
+  const { engine, world, bodies } = entities.physics;
+  const bowlBodies = bodies?.bowlBodies;
+  
+  if (!bowlBodies) {
+    console.log('MovingToiletSystem: No bowlBodies found');
+    return entities;
+  }
+  
+  // Initialize movement state if not exists
+  if (!entities.toiletMovement) {
+    const centerX = WIDTH / 2; // Start exactly in the center
+    entities.toiletMovement = {
+      direction: -1, // Start moving left first
+      speed: 0.8, // pixels per frame
+      leftBound: centerX - 150, // 150 pixels left from center
+      rightBound: centerX + 150, // 150 pixels right from center
+      currentX: centerX
+    };
+  }
+  
+  const movement = entities.toiletMovement;
+  
+  // Update position
+  movement.currentX += movement.direction * movement.speed;
+  
+  // Check bounds and reverse direction
+  if (movement.currentX <= movement.leftBound) {
+    movement.currentX = movement.leftBound;
+    movement.direction = 1; // start moving right
+  } else if (movement.currentX >= movement.rightBound) {
+    movement.currentX = movement.rightBound;
+    movement.direction = -1; // start moving left
+  }
+  
+  // Move all bowl bodies together
+  const newCenterX = movement.currentX;
+  const centerY = bowlBodies.centerY;
+  const r = bowlBodies.radius;
+  const thickness = 16;
+  const tilt = 0.35;
+  
+  // Update left wall position
+  Matter.Body.setPosition(bowlBodies.left, {
+    x: newCenterX - r * 0.9,
+    y: centerY + r * 0.1
+  });
+  
+  // Update right wall position
+  Matter.Body.setPosition(bowlBodies.right, {
+    x: newCenterX + r * 0.9,
+    y: centerY + r * 0.1
+  });
+  
+  // Update bottom position
+  Matter.Body.setPosition(bowlBodies.bottom, {
+    x: newCenterX,
+    y: centerY + r * 0.8
+  });
+  
+  // Update sensor position
+  Matter.Body.setPosition(bowlBodies.sensor, {
+    x: newCenterX,
+    y: centerY + r * 0.2
+  });
+  
+  // Update the stored center position
+  bowlBodies.centerX = newCenterX;
+  
+  // Debug: Log movement every 60 frames (about once per second)
+  if (!entities.toiletMovement.frameCount) {
+    entities.toiletMovement.frameCount = 0;
+  }
+  entities.toiletMovement.frameCount++;
+  if (entities.toiletMovement.frameCount % 60 === 0) {
+    console.log('MovingToiletSystem: Toilet position:', newCenterX.toFixed(1), 'direction:', movement.direction);
+  }
+  
+  return entities;
+};
+
 /******************** Main Component ********************/
 export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   const gameRef = useRef(null);
@@ -471,6 +556,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [tpPos, setTpPos] = useState({ x: -9999, y: -9999 });
   const [tpVisible, setTpVisible] = useState(false);
+  const [toiletPos, setToiletPos] = useState({ x: WIDTH / 2, y: HEIGHT * 0.35 });
 
   // Use ref to store scoring callback
   const addScoreRef = useRef(null);
@@ -761,6 +847,15 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       if (tpVisible && tp.position.y > HEIGHT + 100) {
         setTpVisible(false);
       }
+      
+      // Update toilet position to match bowl colliders
+      const bowlBodies = bodies?.bowlBodies;
+      if (bowlBodies && Number.isFinite(bowlBodies.centerX)) {
+        setToiletPos({ 
+          x: bowlBodies.centerX, 
+          y: HEIGHT * 0.35 
+        });
+      }
     });
 
     return () => {
@@ -770,7 +865,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   }, [enginePkg, bodies.tp]);
 
   // Input handled via AimPad
-  const systems = [Physics, CollisionSystem];
+  const systems = [Physics, CollisionSystem, MovingToiletSystem];
 
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -832,7 +927,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
           style={styles.game}
           systems={systems}
           entities={{
-            physics: { engine, world },
+            physics: { engine, world, bodies },
             state,
             tp: { body: bodies.tp, renderer: null }, // TP now rendered separately
           }}
@@ -881,8 +976,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         {/* Toilet sprite (visual only, no physics) */}
         <View style={{
           position: 'absolute',
-          left: WIDTH * 0.5 - 160,
-          top: HEIGHT * 0.35 - 160,
+          left: toiletPos.x - 160,
+          top: toiletPos.y - 160,
           width: 320,
           height: 320,
           zIndex: 10,
