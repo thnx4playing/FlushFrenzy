@@ -256,17 +256,17 @@ const addBowl = (engine, W, H) => {
   // Create a bowl-shaped sensor using a polygon
   // This creates a proper bowl shape with curved top opening
   const bowlShape = [
-    { x: bowlX - bowlR, y: bowlY - bowlR * 0.2 },      // top left edge
-    { x: bowlX - bowlR * 0.8, y: bowlY - bowlR * 0.1 }, // top left curve start
-    { x: bowlX - bowlR * 0.6, y: bowlY + bowlR * 0.1 }, // top left curve down
-    { x: bowlX - bowlR * 0.4, y: bowlY + bowlR * 0.2 }, // top left curve deeper
-    { x: bowlX - bowlR * 0.2, y: bowlY + bowlR * 0.3 }, // top left curve bottom
-    { x: bowlX, y: bowlY + bowlR * 0.4 },               // center top (dips down)
-    { x: bowlX + bowlR * 0.2, y: bowlY + bowlR * 0.3 }, // top right curve bottom
-    { x: bowlX + bowlR * 0.4, y: bowlY + bowlR * 0.2 }, // top right curve deeper
-    { x: bowlX + bowlR * 0.6, y: bowlY + bowlR * 0.1 }, // top right curve down
-    { x: bowlX + bowlR * 0.8, y: bowlY - bowlR * 0.1 }, // top right curve start
-    { x: bowlX + bowlR, y: bowlY - bowlR * 0.2 },       // top right edge
+    { x: bowlX - bowlR, y: bowlY - bowlR * 0.1 },      // top left edge
+    { x: bowlX - bowlR * 0.7, y: bowlY },              // top left curve start
+    { x: bowlX - bowlR * 0.5, y: bowlY + bowlR * 0.3 }, // top left curve down
+    { x: bowlX - bowlR * 0.3, y: bowlY + bowlR * 0.5 }, // top left curve deeper
+    { x: bowlX - bowlR * 0.1, y: bowlY + bowlR * 0.7 }, // top left curve bottom
+    { x: bowlX, y: bowlY + bowlR * 0.8 },               // center top (deep dip)
+    { x: bowlX + bowlR * 0.1, y: bowlY + bowlR * 0.7 }, // top right curve bottom
+    { x: bowlX + bowlR * 0.3, y: bowlY + bowlR * 0.5 }, // top right curve deeper
+    { x: bowlX + bowlR * 0.5, y: bowlY + bowlR * 0.3 }, // top right curve down
+    { x: bowlX + bowlR * 0.7, y: bowlY },               // top right curve start
+    { x: bowlX + bowlR, y: bowlY - bowlR * 0.1 },       // top right edge
     { x: bowlX + bowlR * 0.8, y: bowlY },               // right side
     { x: bowlX + bowlR * 0.6, y: bowlY + bowlR * 0.5 }, // right curve
     { x: bowlX + bowlR * 0.4, y: bowlY + bowlR * 0.8 }, // right bottom
@@ -282,6 +282,9 @@ const addBowl = (engine, W, H) => {
     isSensor: true,
     label: "BOWL_SENSOR",
   });
+
+  // Debug: Log the bowl shape vertices
+  console.log("BOWL SHAPE VERTICES:", bowlShape.map((v, i) => `Point ${i}: (${v.x.toFixed(1)}, ${v.y.toFixed(1)})`));
 
   // Keep the rim as a circle for visual reference
   const rim = Matter.Bodies.circle(bowlX, bowlY, bowlR + 4, {
