@@ -711,7 +711,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         />
 
         <AimPad
-          radius={90}
+          radius={67.5}
           onAim={({ dir, power, active, origin }) => {
             lastAimRef.current = { dir, power, origin };
             stateRef.current.padActive = !!active;
