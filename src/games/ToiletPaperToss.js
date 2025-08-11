@@ -151,12 +151,10 @@ const BowlHitboxOverlay = ({ engine }) => {
     b.label === "BOWL_MAIN" || b.label === "BOWL_LEFT" || b.label === "BOWL_RIGHT" || b.label === "BOWL_TOP"
   );
   
-  // Debug: Log bowl bodies found
-  console.log("BOWL HITBOX DEBUG:", {
-    totalBodies: Matter.Composite.allBodies(engine.world).length,
-    bowlBodiesFound: bowlBodies.length,
-    bowlLabels: bowlBodies.map(b => b.label)
-  });
+  // Debug: Log bowl bodies found (only once)
+  if (bowlBodies.length === 0) {
+    console.log("BOWL HITBOX DEBUG: No bowl bodies found in world");
+  }
   
   if (bowlBodies.length === 0) return null;
 
@@ -381,7 +379,7 @@ const setupWorld = () => {
 
   // Remove any old debug colliders
   Matter.Composite.allBodies(engine.world).forEach(b => {
-    if (!["BOUNDARY", "BOWL_SENSOR", "BOWL_RIM", "TP"].includes(b.label)) {
+    if (!["BOUNDARY", "BOWL_MAIN", "BOWL_LEFT", "BOWL_RIGHT", "BOWL_TOP", "BOWL_RIM", "TP"].includes(b.label)) {
       Matter.World.remove(engine.world, b);
     }
   });
