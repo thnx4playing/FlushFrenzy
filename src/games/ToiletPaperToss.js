@@ -830,22 +830,30 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
           />
         </View>
 
-        {/* TP sprite — bulletproof rendering */}
+        {/* TP sprite — bulletproof rendering with rotation */}
         {tpVisible && Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) && (
           <Image
             source={require('../../assets/tp.png')}   // verify path!
-            style={{ position:'absolute', left: tpPos.x - 28, top: tpPos.y - 28, width:56, height:56, zIndex:20 }}
+            style={{ 
+              position:'absolute', 
+              left: tpPos.x - 28, 
+              top: tpPos.y - 28, 
+              width:56, 
+              height:56, 
+              zIndex:20,
+              transform: [{ rotate: `${bodies.tp.angle * (180 / Math.PI)}deg` }] // Convert radians to degrees
+            }}
             resizeMode="contain"
             onLoad={() => console.log('TP image loaded successfully')}
-            onError={(error) => console.error('TP image failed to load:', error)}
+            onError={(error) => {
+              console.error('TP image failed to load:', error);
+              // Only show red circle if image fails to load
+            }}
           />
         )}
         
-        {/* Debug: Log TP rendering state (commented out to reduce spam) */}
-        {/* {tpVisible && console.log('TP RENDER DEBUG:', { tpVisible, tpPos: { x: tpPos.x, y: tpPos.y }, isFinite: Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) })} */}
-        
-        {/* Debug: Show TP position as a simple colored circle if image fails */}
-        {tpVisible && Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) && (
+        {/* Debug: Show TP position as a simple colored circle ONLY if image fails */}
+        {/* {tpVisible && Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) && (
           <View
             style={{
               position: 'absolute',
@@ -860,7 +868,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
               zIndex: 19
             }}
           />
-        )}
+        )} */}
 
 
       </ImageBackground>
