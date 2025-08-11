@@ -148,7 +148,8 @@ const BowlHitboxOverlay = ({ engine }) => {
   if (!engine) return null;
   
   const bowlBodies = Matter.Composite.allBodies(engine.world).filter(b => 
-    b.label === "BOWL_MAIN" || b.label === "BOWL_LEFT" || b.label === "BOWL_RIGHT" || b.label === "BOWL_TOP"
+    b.label === "BOWL_MAIN" || b.label === "BOWL_LEFT" || b.label === "BOWL_RIGHT" || 
+    b.label === "BOWL_TOP_LEFT" || b.label === "BOWL_TOP_RIGHT" || b.label === "BOWL_TOP_CENTER"
   );
   
   // Debug: Log bowl bodies found (only once)
@@ -289,35 +290,51 @@ const addBowl = (engine, W, H) => {
   const bowlY = H * 0.35;   // moved up from 0.52 to 0.35 (35% of screen height)
   const bowlR = 42;         // adjust to hole size in px
 
-  // Create bowl using multiple simple shapes instead of one complex concave shape
-  // This should work better with Matter.js and be more reliable
+  // Create a proper bowl shape using multiple curved segments
+  // This creates a realistic toilet bowl with curved sides and open top
   
-  // Main bowl body (deep circle)
-  const mainBowl = Matter.Bodies.circle(bowlX, bowlY + bowlR * 0.3, bowlR * 0.6, {
+  // Main bowl bottom (deep circle)
+  const mainBowl = Matter.Bodies.circle(bowlX, bowlY + bowlR * 0.4, bowlR * 0.5, {
     isStatic: true,
     isSensor: true,
     label: "BOWL_MAIN",
   });
 
-  // Left side wall (curved)
-  const leftWall = Matter.Bodies.rectangle(bowlX - bowlR * 0.7, bowlY + bowlR * 0.2, bowlR * 0.4, bowlR * 0.8, {
+  // Left curved wall (angled rectangle)
+  const leftWall = Matter.Bodies.rectangle(bowlX - bowlR * 0.6, bowlY + bowlR * 0.1, bowlR * 0.3, bowlR * 0.6, {
     isStatic: true,
     isSensor: true,
     label: "BOWL_LEFT",
+    angle: -0.3, // slight outward angle
   });
 
-  // Right side wall (curved)
-  const rightWall = Matter.Bodies.rectangle(bowlX + bowlR * 0.7, bowlY + bowlR * 0.2, bowlR * 0.4, bowlR * 0.8, {
+  // Right curved wall (angled rectangle)
+  const rightWall = Matter.Bodies.rectangle(bowlX + bowlR * 0.6, bowlY + bowlR * 0.1, bowlR * 0.3, bowlR * 0.6, {
     isStatic: true,
     isSensor: true,
     label: "BOWL_RIGHT",
+    angle: 0.3, // slight outward angle
   });
 
-  // Top opening (narrow rectangle that creates the dip)
-  const topOpening = Matter.Bodies.rectangle(bowlX, bowlY + bowlR * 0.1, bowlR * 0.6, bowlR * 0.2, {
+  // Top left curve (small circle segment)
+  const topLeft = Matter.Bodies.circle(bowlX - bowlR * 0.4, bowlY - bowlR * 0.1, bowlR * 0.2, {
     isStatic: true,
     isSensor: true,
-    label: "BOWL_TOP",
+    label: "BOWL_TOP_LEFT",
+  });
+
+  // Top right curve (small circle segment)
+  const topRight = Matter.Bodies.circle(bowlX + bowlR * 0.4, bowlY - bowlR * 0.1, bowlR * 0.2, {
+    isStatic: true,
+    isSensor: true,
+    label: "BOWL_TOP_RIGHT",
+  });
+
+  // Center top opening (narrow rectangle creating the dip)
+  const topCenter = Matter.Bodies.rectangle(bowlX, bowlY + bowlR * 0.2, bowlR * 0.4, bowlR * 0.3, {
+    isStatic: true,
+    isSensor: true,
+    label: "BOWL_TOP_CENTER",
   });
 
   // Debug: Log the bowl components
@@ -325,7 +342,9 @@ const addBowl = (engine, W, H) => {
     { label: "BOWL_MAIN", x: mainBowl.position.x.toFixed(1), y: mainBowl.position.y.toFixed(1) },
     { label: "BOWL_LEFT", x: leftWall.position.x.toFixed(1), y: leftWall.position.y.toFixed(1) },
     { label: "BOWL_RIGHT", x: rightWall.position.x.toFixed(1), y: rightWall.position.y.toFixed(1) },
-    { label: "BOWL_TOP", x: topOpening.position.x.toFixed(1), y: topOpening.position.y.toFixed(1) },
+    { label: "BOWL_TOP_LEFT", x: topLeft.position.x.toFixed(1), y: topLeft.position.y.toFixed(1) },
+    { label: "BOWL_TOP_RIGHT", x: topRight.position.x.toFixed(1), y: topRight.position.y.toFixed(1) },
+    { label: "BOWL_TOP_CENTER", x: topCenter.position.x.toFixed(1), y: topCenter.position.y.toFixed(1) },
   ]);
 
   // Keep the rim as a circle for visual reference
@@ -334,12 +353,13 @@ const addBowl = (engine, W, H) => {
     label: "BOWL_RIM",
   });
 
-  Matter.World.add(world, [mainBowl, leftWall, rightWall, topOpening, rim]);
+  Matter.World.add(world, [mainBowl, leftWall, rightWall, topLeft, topRight, topCenter, rim]);
 
   Matter.Events.on(engine, "collisionStart", (e) => {
     e.pairs.forEach(({ bodyA, bodyB }) => {
       const names = new Set([bodyA.label, bodyB.label]);
-      if ((names.has("BOWL_MAIN") || names.has("BOWL_LEFT") || names.has("BOWL_RIGHT") || names.has("BOWL_TOP")) && names.has("TP")) {
+      if ((names.has("BOWL_MAIN") || names.has("BOWL_LEFT") || names.has("BOWL_RIGHT") || 
+           names.has("BOWL_TOP_LEFT") || names.has("BOWL_TOP_RIGHT") || names.has("BOWL_TOP_CENTER")) && names.has("TP")) {
         console.log("SCORE! TP hit the bowl!");
         // score point here
       }
@@ -379,7 +399,7 @@ const setupWorld = () => {
 
   // Remove any old debug colliders
   Matter.Composite.allBodies(engine.world).forEach(b => {
-    if (!["BOUNDARY", "BOWL_MAIN", "BOWL_LEFT", "BOWL_RIGHT", "BOWL_TOP", "BOWL_RIM", "TP"].includes(b.label)) {
+    if (!["BOUNDARY", "BOWL_MAIN", "BOWL_LEFT", "BOWL_RIGHT", "BOWL_TOP_LEFT", "BOWL_TOP_RIGHT", "BOWL_TOP_CENTER", "BOWL_RIM", "TP"].includes(b.label)) {
       Matter.World.remove(engine.world, b);
     }
   });
