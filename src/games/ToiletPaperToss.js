@@ -472,7 +472,14 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   const [tpPos, setTpPos] = useState({ x: -9999, y: -9999 });
   const [tpVisible, setTpVisible] = useState(false);
 
-  const [enginePkg] = useState(() => setupWorld(addScore));
+  // Use ref to store scoring callback
+  const addScoreRef = useRef(null);
+
+  const [enginePkg] = useState(() => setupWorld(() => {
+    if (addScoreRef.current) {
+      addScoreRef.current();
+    }
+  }));
   const { engine, world, bodies } = enginePkg;
 
   // Simple scoring functions (no persistent storage for now)
@@ -485,6 +492,11 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       setHighScore(newScore);
     }
   };
+
+  // Update the ref when addScore changes
+  useEffect(() => {
+    addScoreRef.current = addScore;
+  }, [score, highScore]);
 
   const showGameOver = () => {
     setGameOverVisible(true);
