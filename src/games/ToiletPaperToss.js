@@ -368,11 +368,13 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     }
 
     // wake + place
+    console.log('Before launch - TP static:', tp.isStatic, 'position:', tp.position.x.toFixed(1), tp.position.y.toFixed(1));
     Matter.Body.setStatic(tp, false);
     Matter.Sleeping.set(tp, false);
     Matter.Body.setPosition(tp, spawn);
     Matter.Body.setVelocity(tp, { x: 0, y: 0 });
     Matter.Body.setAngularVelocity(tp, 0);
+    console.log('After launch setup - TP static:', tp.isStatic, 'position:', tp.position.x.toFixed(1), tp.position.y.toFixed(1));
 
     // Verify the body position was set correctly
     const newPos = tp.position;
@@ -553,20 +555,33 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   // Physics runner and position mirroring
   useEffect(() => {
     const engine = enginePkg.engine;
+    console.log('Setting up physics runner...');
+    
     const runner = Matter.Runner.create();
     Matter.Runner.run(runner, engine);
 
     engine.world.gravity.x = 0;
     engine.world.gravity.y = CONSTANTS.GRAVITY_Y;
+    
+    console.log('Physics engine setup complete. Gravity Y:', CONSTANTS.GRAVITY_Y);
 
+    let updateCount = 0;
     Matter.Events.on(engine, "afterUpdate", () => {
+      updateCount++;
+      if (updateCount % 60 === 0) { // Log every 60 updates (about once per second)
+        console.log('Physics engine running - update count:', updateCount);
+      }
+      
       const tp = bodies?.tp;
-      if (!tp) return;
+      if (!tp) {
+        console.log('No TP body found in afterUpdate');
+        return;
+      }
       const p = tp.position;
       
-      // Debug: Log TP position updates
+      // Debug: Log TP position updates (only when visible to reduce spam)
       if (tpVisible) {
-        console.log('TP position update:', p.x.toFixed(1), p.y.toFixed(1));
+        console.log('TP position update:', p.x.toFixed(1), p.y.toFixed(1), 'static:', tp.isStatic);
       }
       
       // Always update tpPos if TP is visible and position is valid
@@ -579,8 +594,11 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         setTpVisible(false);
       }
     });
+    
+    console.log('afterUpdate event listener attached');
 
     return () => {
+      console.log('Cleaning up physics runner...');
       Matter.Events.off(engine, "afterUpdate");
       Matter.Engine.clear(engine);
     };
@@ -724,8 +742,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
           />
         )}
         
-        {/* Debug: Log TP rendering state (only when visible) */}
-        {tpVisible && console.log('TP RENDER DEBUG:', { tpVisible, tpPos: { x: tpPos.x, y: tpPos.y }, isFinite: Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) })}
+        {/* Debug: Log TP rendering state (commented out to reduce spam) */}
+        {/* {tpVisible && console.log('TP RENDER DEBUG:', { tpVisible, tpPos: { x: tpPos.x, y: tpPos.y }, isFinite: Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) })} */}
         
         {/* Debug: Show TP position as a simple colored circle if image fails */}
         {tpVisible && Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) && (
