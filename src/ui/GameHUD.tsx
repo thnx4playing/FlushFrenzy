@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   buttonsWrap: {
     position: 'absolute',
     right: 10,
-    top: 60,
+    top: 70,
     gap: 10,
     overflow: 'visible',
   },
