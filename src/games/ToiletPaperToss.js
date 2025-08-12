@@ -1360,11 +1360,16 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
                   setTimeLeft(gameMode === 'quick-flush' ? 60 : 0);
                   setTpVisible(false);
                   setTpPos({ x: -9999, y: -9999 });
-                  // Reset TP body position
+                  
+                  // Properly reset TP body physics
                   if (bodies?.tp) {
                     Matter.Body.setPosition(bodies.tp, { x: -9999, y: -9999 });
+                    Matter.Body.setVelocity(bodies.tp, { x: 0, y: 0 });
+                    Matter.Body.setAngularVelocity(bodies.tp, 0);
                     Matter.Body.setStatic(bodies.tp, true);
+                    Matter.Sleeping.set(bodies.tp, true);
                   }
+                  
                   // Reset endless plunge state if in that mode
                   if (gameMode === 'endless-plunge') {
                     startEndlessPlungeSession();
