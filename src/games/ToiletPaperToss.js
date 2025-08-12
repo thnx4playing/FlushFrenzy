@@ -416,7 +416,7 @@ const setupWorld = (addScoreCallback) => {
   removeOldRims(engine);
   
   // Add open-top toilet bowl and store the bodies for movement
-  const bowlBodies = addOpenBowl(engine, WIDTH / 2, HEIGHT * 0.45, 42); // Adjusted to match visual toilet position
+  const bowlBodies = addOpenBowl(engine, WIDTH / 2, HEIGHT * 0.40, 42); // Adjusted to match visual toilet position
   
   // Wire up scoring
   wireScoring(engine, addScoreCallback);
@@ -564,7 +564,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [tpPos, setTpPos] = useState({ x: -9999, y: -9999 });
   const [tpVisible, setTpVisible] = useState(false);
-  const [toiletPos, setToiletPos] = useState({ x: WIDTH / 2, y: HEIGHT * 0.45 });
+  const [toiletPos, setToiletPos] = useState({ x: WIDTH / 2, y: HEIGHT * 0.40 });
 
   // ===== Endless Plunge Round State =====
   const [epRound, setEpRound] = useState(1);           // starts at Round 1
@@ -1048,7 +1048,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       if (bowlBodies && Number.isFinite(bowlBodies.centerX)) {
         setToiletPos({ 
           x: bowlBodies.centerX, 
-          y: HEIGHT * 0.45 
+          y: HEIGHT * 0.40 
         });
       }
     });
