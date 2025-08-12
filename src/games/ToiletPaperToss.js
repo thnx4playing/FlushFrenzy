@@ -699,6 +699,45 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     // ensure any miss counters stop affecting endless mode; your code may already do this
   }
 
+  // Reset game completely - recreate physics world and trigger fake aimpad press
+  function resetGame() {
+    console.log('Resetting game completely');
+    
+    // Reset all game state
+    setScore(0);
+    setTimeLeft(gameMode === 'quick-flush' ? 60 : 0);
+    setTpVisible(false);
+    setTpPos({ x: -9999, y: -9999 });
+    
+    // Recreate the physics world
+    const newWorldSetup = setupWorld(() => {
+      if (addScoreRef.current) {
+        addScoreRef.current();
+      }
+    });
+    
+    // Update the engine package with new world
+    enginePkg.engine = newWorldSetup.engine;
+    enginePkg.world = newWorldSetup.world;
+    enginePkg.bodies = newWorldSetup.bodies;
+    
+    // Trigger fake aimpad press to initialize TP
+    if (newWorldSetup.bodies?.tp) {
+      const spawn = { x: 195, y: 745 }; // adjust to AimPad center if needed
+
+      Matter.Body.setStatic(newWorldSetup.bodies.tp, false);
+      Matter.Sleeping.set(newWorldSetup.bodies.tp, false);
+      Matter.Body.setPosition(newWorldSetup.bodies.tp, spawn);
+      Matter.Body.setVelocity(newWorldSetup.bodies.tp, { x: 0.1, y: -0.1 }); // tiny nudge
+      Matter.Body.setAngularVelocity(newWorldSetup.bodies.tp, 0);
+    }
+    
+    // Reset endless plunge state if in that mode
+    if (gameMode === 'endless-plunge') {
+      startEndlessPlungeSession();
+    }
+  }
+
   // Advance to next round (after win) or end game (after fail)
   async function advanceOrEndRound(won) {
     console.log('advanceOrEndRound called with won:', won, 'current round:', epRound);
@@ -1355,26 +1394,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
               <TouchableOpacity 
                 onPress={() => {
                   setGameOverVisible(false);
-                  // Reset game state for play again
-                  setScore(0);
-                  setTimeLeft(gameMode === 'quick-flush' ? 60 : 0);
-                  setTpVisible(false);
-                  setTpPos({ x: -9999, y: -9999 });
-                  
-                  // Properly reset TP body physics
-                  if (bodies?.tp) {
-                    Matter.Body.setPosition(bodies.tp, { x: -9999, y: -9999 });
-                    Matter.Body.setVelocity(bodies.tp, { x: 0, y: 0 });
-                    Matter.Body.setAngularVelocity(bodies.tp, 0);
-                    Matter.Body.setStatic(bodies.tp, true);
-                    Matter.Sleeping.set(bodies.tp, true);
-                  }
-                  
-                  // Reset endless plunge state if in that mode
-                  if (gameMode === 'endless-plunge') {
-                    startEndlessPlungeSession();
-                  }
-                  // Don't call onGameComplete for Play Again - just restart the game
+                  // Use the complete reset function
+                  resetGame();
                 }} 
                 style={styles.playAgainButton}
               >
