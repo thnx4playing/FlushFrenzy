@@ -1330,6 +1330,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
                   if (gameMode === 'endless-plunge') {
                     startEndlessPlungeSession();
                   }
+                  // Don't call onGameComplete for Play Again - just restart the game
                 }} 
                 style={styles.playAgainButton}
               >
