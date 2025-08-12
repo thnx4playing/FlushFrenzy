@@ -416,7 +416,7 @@ const setupWorld = (addScoreCallback) => {
   removeOldRims(engine);
   
   // Add open-top toilet bowl and store the bodies for movement
-  const bowlBodies = addOpenBowl(engine, WIDTH / 2, HEIGHT * 0.40, 42); // Moved back up from 0.45 to 0.40 (50% of the way back)
+  const bowlBodies = addOpenBowl(engine, WIDTH / 2, HEIGHT * 0.50, 42); // Lowered from 0.40 to 0.50 to sit on floor
   
   // Wire up scoring
   wireScoring(engine, addScoreCallback);
