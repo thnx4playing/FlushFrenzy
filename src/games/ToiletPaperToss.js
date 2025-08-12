@@ -17,7 +17,7 @@ import Svg, { Polygon, Circle as SvgCircle, Rect } from 'react-native-svg';
 import AimPad from '../../components/AimPad';
 import TrajectoryOverlay from '../../components/TrajectoryOverlay';
 import PowerBar from '../../components/PowerBar';
-import FancyHUD from '../components/FancyHUD';
+import GameHUD from '../ui/GameHUD';
 import { setHighScoreIfBest, getHighScore } from '../utils/highScore';
 
 // Set up poly-decomp for Matter.js concave shapes
@@ -1082,25 +1082,38 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   return (
     <View style={styles.container}>
 
-      {/* New FancyHUD Component */}
-      <FancyHUD
-        score={score}
-        round={gameMode === 'endless-plunge' ? epRound : 1}
-        points={gameMode === 'endless-plunge' ? epRoundPoints : 0}
-        timeLeft={gameMode === 'endless-plunge' ? epTimeLeft : timeLeft}
-        muted={isMuted}
-        onPressSettings={() => setSettingsVisible(true)}
-        onToggleAudio={() => setIsMuted(m => !m)}
-        onPressEndGame={() => {
-          if (gameMode === 'endless-plunge') {
+      {/* New GameHUD Component */}
+      {gameMode === 'endless-plunge' && (
+        <GameHUD
+          round={epRound}
+          points={epRoundPoints}
+          timeLeft={epTimeLeft}
+          pointsRemaining={Math.max(0, epTarget - epRoundPoints)}
+          isMuted={isMuted}
+          onToggleMute={() => setIsMuted(m => !m)}
+          onOpenSettings={() => setSettingsVisible(true)}
+          onEndGame={() => {
             endlessRef.current.running = false;
-          }
-          showGameOver();
-        }}
-        accent="#FFE37B"
-        bg="rgba(255,255,255,0.96)"
-        ink="#161616"
-      />
+            showGameOver();
+          }}
+        />
+      )}
+      
+      {/* Quick Flush HUD - simplified version */}
+      {gameMode === 'quick-flush' && (
+        <GameHUD
+          round={1}
+          points={score}
+          timeLeft={timeLeft}
+          pointsRemaining={0}
+          isMuted={isMuted}
+          onToggleMute={() => setIsMuted(m => !m)}
+          onOpenSettings={() => setSettingsVisible(true)}
+          onEndGame={() => {
+            showGameOver();
+          }}
+        />
+      )}
       
 
 
