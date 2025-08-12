@@ -736,8 +736,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   }
 
   const showGameOver = () => {
-    // Save high score when game ends naturally
-    handleGameComplete(score);
+    // Just show the game over modal - let the buttons handle navigation
     setGameOverVisible(true);
   };
 
