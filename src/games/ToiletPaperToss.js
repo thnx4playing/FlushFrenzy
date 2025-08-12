@@ -17,6 +17,7 @@ import Svg, { Polygon, Circle as SvgCircle, Rect } from 'react-native-svg';
 import AimPad from '../../components/AimPad';
 import TrajectoryOverlay from '../../components/TrajectoryOverlay';
 import PowerBar from '../../components/PowerBar';
+import { setHighScoreIfBest, getHighScore } from '../utils/highScore';
 
 // Set up poly-decomp for Matter.js concave shapes
 import decomp from 'poly-decomp';
@@ -375,6 +376,8 @@ const wireScoring = (engine, addScoreCallback) => {
         const tpBody = a === "TP" ? bodyA : bodyB;
         Matter.Body.setPosition(tpBody, { x: -9999, y: -9999 });
         
+
+        
         // Play water drop sound effect
         playWaterDropSound();
         
@@ -428,6 +431,13 @@ const setupWorld = (addScoreCallback) => {
     }
   });
 
+  // Ensure boundary walls are always present
+  const boundaryWalls = Matter.Composite.allBodies(engine.world).filter(b => b.label === "BOUNDARY");
+  if (boundaryWalls.length < 4) {
+    console.warn("Missing boundary walls! Rebuilding arena...");
+    buildArena(engine, WIDTH, HEIGHT, tp);
+  }
+
   // Verify the arena
   const logStatics = (engine) => {
     const statics = Matter.Composite.allBodies(engine.world).filter(b => b.isStatic);
@@ -466,7 +476,6 @@ const MovingToiletSystem = (entities, { time }) => {
   const bowlBodies = bodies?.bowlBodies;
   
   if (!bowlBodies) {
-    console.log('MovingToiletSystem: No bowlBodies found');
     return entities;
   }
   
@@ -478,7 +487,8 @@ const MovingToiletSystem = (entities, { time }) => {
       speed: 0.8, // pixels per frame
       leftBound: centerX - 150, // 150 pixels left from center
       rightBound: centerX + 150, // 150 pixels right from center
-      currentX: centerX
+      currentX: centerX,
+      frameCount: 0
     };
   }
   
@@ -500,8 +510,6 @@ const MovingToiletSystem = (entities, { time }) => {
   const newCenterX = movement.currentX;
   const centerY = bowlBodies.centerY;
   const r = bowlBodies.radius;
-  const thickness = 16;
-  const tilt = 0.35;
   
   // Update left wall position
   Matter.Body.setPosition(bowlBodies.left, {
@@ -530,14 +538,8 @@ const MovingToiletSystem = (entities, { time }) => {
   // Update the stored center position
   bowlBodies.centerX = newCenterX;
   
-  // Debug: Log movement every 60 frames (about once per second)
-  if (!entities.toiletMovement.frameCount) {
-    entities.toiletMovement.frameCount = 0;
-  }
+  // Increment frame count
   entities.toiletMovement.frameCount++;
-  if (entities.toiletMovement.frameCount % 60 === 0) {
-    console.log('MovingToiletSystem: Toilet position:', newCenterX.toFixed(1), 'direction:', movement.direction);
-  }
   
   return entities;
 };
@@ -548,7 +550,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   const [ready, setReady] = useState(false);
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
-  const [misses, setMisses] = useState(0);
+  const [persistentHighScore, setPersistentHighScore] = useState(0);
+
   const [timeLeft, setTimeLeft] = useState(gameMode === 'quick-flush' ? 60 : 0);
   const [gameOverVisible, setGameOverVisible] = useState(false);
 
@@ -594,6 +597,17 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     if (newScore > highScore) {
       setHighScore(newScore);
     }
+    
+    // For endless plunge, save high score periodically to ensure it's tracked
+    if (gameMode === 'endless-plunge' && newScore > persistentHighScore) {
+      setHighScoreIfBest(newScore, gameMode).then(record => {
+        if (record.score === newScore) {
+          setPersistentHighScore(newScore);
+        }
+      }).catch(error => {
+        console.log('Error saving high score:', error);
+      });
+    }
   };
 
   // Update the ref when addScore changes
@@ -602,6 +616,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   }, [score, highScore]);
 
   const showGameOver = () => {
+    // Save high score when game ends naturally
+    handleGameComplete(score);
     setGameOverVisible(true);
   };
 
@@ -633,8 +649,6 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       x: a.origin?.x || WIDTH / 2, 
       y: a.origin?.y || HEIGHT - 24 - 90 
     };
-
-
 
     // Ensure spawn coordinates are valid numbers
     if (!Number.isFinite(spawn.x) || !Number.isFinite(spawn.y)) {
@@ -695,12 +709,14 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     Matter.Body.setVelocity(tp, { x: vx, y: vy });
     Matter.Body.setAngularVelocity(tp, 0.2 * p);
 
-
-
     // FIRST-FRAME SYNC + show sprite in the SAME component that renders it
     // Force immediate sync to prevent afterUpdate from overwriting
     setTpPos(spawn);
     setTpVisible(true);
+    
+    // Reset turn state for new TP roll
+    stateRef.current.turnOver = false;
+    stateRef.current.missCounted = false;
   };
 
   const stateRef = useRef({
@@ -718,6 +734,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     padVel: null,
   });
 
+
+
   // Load sounds
   useEffect(() => {
     loadSounds();
@@ -727,6 +745,45 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       }
     };
   }, []);
+
+
+
+  // Load persistent high score on mount
+  useEffect(() => {
+    const loadHighScore = async () => {
+      try {
+        const highScoreRecord = await getHighScore(gameMode);
+        if (highScoreRecord) {
+          setPersistentHighScore(highScoreRecord.score);
+          setHighScore(highScoreRecord.score); // Also set session high score
+        }
+      } catch (error) {
+        console.log('Error loading high score:', error);
+      }
+    };
+    loadHighScore();
+  }, [gameMode]);
+
+
+
+  // Handle game completion and save high score
+  const handleGameComplete = async (finalScore) => {
+    try {
+      const highScoreRecord = await setHighScoreIfBest(finalScore, gameMode);
+      if (highScoreRecord.score === finalScore) {
+        // New high score achieved!
+        setPersistentHighScore(finalScore);
+        setHighScore(finalScore);
+      }
+    } catch (error) {
+      console.log('Error saving high score:', error);
+    }
+    
+    // Call the original onGameComplete callback
+    if (onGameComplete) {
+      onGameComplete(finalScore);
+    }
+  };
 
   // Apply mute state to loaded sounds
   useEffect(() => {
@@ -753,12 +810,10 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         setTimeLeft(timeLeft - 1);
       }, 1000);
     } else if (gameMode === 'quick-flush' && timeLeft === 0) {
-      onGameComplete(score);
-    } else if (gameMode === 'endless-plunge' && misses >= 3) {
-      onGameComplete(score);
+      showGameOver();
     }
     return () => clearTimeout(timer);
-  }, [timeLeft, misses, gameMode, score]);
+  }, [timeLeft, gameMode, score]);
 
   // Collision handling: if tp hits ground, mark turn over
   useEffect(() => {
@@ -766,41 +821,25 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       const pairs = e.pairs || [];
       for (const p of pairs) {
         const labels = [p.bodyA.label, p.bodyB.label];
-        if (labels.includes('toiletPaper') && labels.includes('ground')) {
-          stateRef.current.turnOver = true;
-          setMisses(prev => prev + 1);
-        }
-        if (labels.includes('toiletPaper') && labels.includes('toilet')) {
-          setScore(prev => prev + 3);
-          if (!isMuted) {
-            playDingSound();
-          }
-          // Let TP fall naturally after scoring
-          // No position reset - let physics handle it
-        }
+        
+        // Note: Bowl scoring is handled by wireScoring function, so we don't duplicate it here
+        // Miss detection is now handled in afterUpdate loop for more precise control
       }
     };
     Matter.Events.on(engine, 'collisionStart', onCollide);
     return () => Matter.Events.off(engine, 'collisionStart', onCollide);
-  }, [engine, bodies.tp]);
+  }, [engine, bodies.tp, tpVisible, gameMode]);
 
-  // After a turn ends, reset the paper
+  // Reset turn state when a new TP roll is launched
   useEffect(() => {
-    let raf;
-    const loop = () => {
-      if (stateRef.current.turnOver) {
-        // Let TP fall naturally, just reset UI state
-        stateRef.current.turnOver = false;
-        stateRef.current.isCharging = false;
-        stateRef.current.aiming = false;
-        stateRef.current.charge = 0;
-        stateRef.current.chargeDir = 1;
-      }
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [bodies.tp]);
+    if (!stateRef.current.turnOver) {
+      // Reset UI state when turn is active
+      stateRef.current.isCharging = false;
+      stateRef.current.aiming = false;
+      stateRef.current.charge = 0;
+      stateRef.current.chargeDir = 1;
+    }
+  }, [stateRef.current.turnOver]);
 
   // Oscillating charge system for power meter
   useEffect(() => {
@@ -830,7 +869,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     engine.world.gravity.x = 0;
     engine.world.gravity.y = CONSTANTS.GRAVITY_Y;
     
-    let updateCount = 0;
+        let updateCount = 0;
     Matter.Events.on(engine, "afterUpdate", () => {
       updateCount++;
       
@@ -845,12 +884,12 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         setTpPos({ x: p.x, y: p.y });
       }
       
-      // Hide TP when it falls off screen or stops moving
+      // Hide TP if it falls too far below the screen
       if (tpVisible && tp.position.y > HEIGHT + 100) {
         setTpVisible(false);
       }
       
-      // Update toilet position to match bowl colliders
+      // Update toilet position to match bowl colliders (only if bowlBodies exists)
       const bowlBodies = bodies?.bowlBodies;
       if (bowlBodies && Number.isFinite(bowlBodies.centerX)) {
         setToiletPos({ 
@@ -864,7 +903,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       Matter.Events.off(engine, "afterUpdate");
       Matter.Engine.clear(engine);
     };
-  }, [enginePkg, bodies.tp]);
+  }, [enginePkg, bodies.tp, gameMode, tpVisible]);
 
   // Input handled via AimPad
   const systems = [Physics, CollisionSystem, MovingToiletSystem];
@@ -905,16 +944,24 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
                  <Text style={styles.timeValue}>{formatTime(timeLeft)}</Text>
                </View>
              )}
-                         {gameMode === 'endless-plunge' && (
-               <View style={styles.missesContainer}>
-                 <Text style={styles.missesLabel}>Misses</Text>
-                 <Text style={styles.missesValue}>{misses}/3</Text>
-               </View>
-             )}
+                         
           </View>
-          <TouchableOpacity accessibilityLabel="Toggle sound" onPress={() => setIsMuted(m => !m)} style={styles.iconButton}>
-            <Ionicons name={isMuted ? 'volume-mute' : 'volume-high'} size={22} color={isMuted ? '#adb5bd' : '#343a40'} />
-          </TouchableOpacity>
+                     <View style={styles.actionsRight}>
+             {gameMode === 'endless-plunge' && (
+               <TouchableOpacity 
+                 accessibilityLabel="End Game" 
+                 onPress={() => {
+                   showGameOver();
+                 }} 
+                 style={styles.iconButton}
+               >
+                 <Ionicons name="stop-circle" size={22} color="#E91E63" />
+               </TouchableOpacity>
+             )}
+             <TouchableOpacity accessibilityLabel="Toggle sound" onPress={() => setIsMuted(m => !m)} style={styles.iconButton}>
+               <Ionicons name={isMuted ? 'volume-mute' : 'volume-high'} size={22} color={isMuted ? '#adb5bd' : '#343a40'} />
+             </TouchableOpacity>
+           </View>
         </View>
       </View>
 
@@ -1057,19 +1104,83 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         onRequestClose={() => setGameOverVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Game Over!</Text>
-            <Text style={styles.modalText}>Final Score: {score}</Text>
-            <Text style={styles.modalText}>High Score: {highScore}</Text>
-            {score === highScore && score > 0 && (
-              <Text style={styles.newRecordText}>🎉 New Record! 🎉</Text>
+          <View style={styles.gameOverModalCard}>
+            {/* Background gradient effect */}
+            <View style={styles.modalBackgroundGradient} />
+            
+            {/* Header with game mode icon */}
+            <View style={styles.gameOverHeader}>
+              <View style={styles.headerIconContainer}>
+                <Ionicons 
+                  name={gameMode === 'quick-flush' ? 'flash' : 'infinite'} 
+                  size={18} 
+                  color="#FFFFFF" 
+                />
+              </View>
+              <Text style={styles.gameOverTitle}>Game Complete!</Text>
+            </View>
+            
+            {/* Score display with modern cards */}
+            <View style={styles.scoreSection}>
+              <View style={styles.scoreCard}>
+                <View style={styles.scoreCardHeader}>
+                  <Ionicons name="star" size={14} color="#FFD700" />
+                  <Text style={styles.scoreCardTitle}>Your Score</Text>
+                </View>
+                <Text style={styles.finalScoreValue}>{score}</Text>
+              </View>
+              
+              <View style={styles.scoreCard}>
+                <View style={styles.scoreCardHeader}>
+                  <Ionicons name="trophy" size={14} color="#E91E63" />
+                  <Text style={styles.scoreCardTitle}>Best Score</Text>
+                </View>
+                <Text style={styles.highScoreValue}>{persistentHighScore}</Text>
+              </View>
+            </View>
+            
+            {/* New record celebration */}
+            {score === persistentHighScore && score > 0 && (
+              <View style={styles.newRecordContainer}>
+                <Ionicons name="sparkles" size={14} color="#E91E63" />
+                <Text style={styles.newRecordText}>NEW RECORD!</Text>
+                <Ionicons name="sparkles" size={14} color="#E91E63" />
+              </View>
             )}
-            <TouchableOpacity onPress={() => {
-              setGameOverVisible(false);
-              onGameComplete && onGameComplete();
-            }} style={styles.modalButton}>
-              <Text style={styles.modalButtonText}>Play Again</Text>
-            </TouchableOpacity>
+            
+            {/* Action buttons */}
+            <View style={styles.actionButtonsContainer}>
+              <TouchableOpacity 
+                onPress={() => {
+                  setGameOverVisible(false);
+                  // Reset game state for play again
+                  setScore(0);
+                  setTimeLeft(gameMode === 'quick-flush' ? 60 : 0);
+                  setTpVisible(false);
+                  setTpPos({ x: -9999, y: -9999 });
+                  // Reset TP body position
+                  if (bodies?.tp) {
+                    Matter.Body.setPosition(bodies.tp, { x: -9999, y: -9999 });
+                    Matter.Body.setStatic(bodies.tp, true);
+                  }
+                }} 
+                style={styles.playAgainButton}
+              >
+                <Ionicons name="play" size={14} color="#FFFFFF" />
+                <Text style={styles.playAgainButtonText}>Play Again</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={() => {
+                  setGameOverVisible(false);
+                  onGameComplete && onGameComplete();
+                }} 
+                style={styles.menuButton}
+              >
+                <Ionicons name="home" size={14} color="#4A5568" />
+                <Text style={styles.menuButtonText}>Main Menu</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1109,6 +1220,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flex: 1,
     gap: 16,
+  },
+  actionsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   scoreContainer: {
     alignItems: 'center',
@@ -1191,37 +1307,7 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
-  missesContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 90,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 2,
-    borderColor: '#FFB3BA',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  missesLabel: {
-    fontSize: 14,
-    color: '#2d3748',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  missesValue: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#E91E63',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
+
   gameArea: {
     flex: 1,
     position: 'relative',
@@ -1306,12 +1392,183 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-  newRecordText: {
-    color: '#FFD700',
+  // Game Over Modal Styles
+  gameOverModalCard: {
+    width: '75%',
+    backgroundColor: '#1a202c',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#4a5568',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 12,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  modalBackgroundGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(74, 85, 104, 0.1)',
+    borderRadius: 24,
+  },
+  gameOverHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 10,
+  },
+  headerIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFD700',
+  },
+  gameOverTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '900',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  scoreSection: {
+    width: '100%',
+    marginBottom: 16,
+    gap: 8,
+  },
+  scoreCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  scoreCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    gap: 4,
+  },
+  scoreCardTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#4A5568',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  finalScoreValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#4A90E2',
     textAlign: 'center',
-    marginTop: 10,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  highScoreValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#E91E63',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  newRecordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(233, 30, 99, 0.15)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: '#E91E63',
+    gap: 4,
+  },
+  newRecordText: {
+    color: '#E91E63',
+    fontSize: 12,
+    fontWeight: '800',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    width: '100%',
+  },
+  playAgainButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4ECDC4',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 2,
+    borderColor: '#2d3748',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+    gap: 4,
+  },
+  playAgainButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  menuButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 2,
+    borderColor: '#4a5568',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+    gap: 4,
+  },
+  menuButtonText: {
+    color: '#4A5568',
+    fontWeight: '700',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   // Old aim and charge styles removed - now using imported components
 });

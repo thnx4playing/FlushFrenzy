@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
+import { HighScoreLabel } from '../components/HighScoreLabel';
 
 const { width, height } = Dimensions.get('window');
 
@@ -68,6 +69,10 @@ export default function HomeScreen({ navigation }) {
                 style={mode.id === 'quick-flush' ? styles.quickFlushImage : styles.endlessPlungeImage}
                 resizeMode="contain"
               />
+              <View style={styles.highScoreContainer}>
+                <Ionicons name="trophy" size={16} color="#FFD700" style={styles.trophyIcon} />
+                <HighScoreLabel mode={mode.id} style={styles.highScoreText} />
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -140,6 +145,34 @@ const styles = StyleSheet.create({
     width: width * 0.95,
     height: 220,
     marginVertical: -10,
+  },
+  highScoreContainer: {
+    position: 'absolute',
+    bottom: 15,
+    right: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  trophyIcon: {
+    marginRight: 2,
+  },
+  highScoreText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   quickFlushImage: {
     width: width * 0.765, // 10% smaller (was 0.85)

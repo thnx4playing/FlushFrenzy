@@ -21,11 +21,9 @@ export default function AimArrow({
   origin,
   radius = 60,
 }) {
-  console.log('AimArrow render check:', { visible, origin, direction });
   if (!visible || !origin) return null;
 
   const picked = pickDirection(direction);
-  console.log('AimArrow picked:', picked);
   if (!picked) return null;
 
   // Normalize
@@ -37,7 +35,6 @@ export default function AimArrow({
   const sy =  vy;
 
   const mag = Math.hypot(sx, sy);
-  console.log('AimArrow mag:', mag);
   if (mag === 0) return null;
   const ux = sx / mag;
   const uy = sy / mag;
@@ -54,10 +51,8 @@ export default function AimArrow({
 
   // Angle in degrees
   const angleDeg = (Math.atan2(uy, ux) * 180) / Math.PI;
-  console.log('AimArrow angleDeg:', angleDeg);
 
   const { x: ox, y: oy } = origin;
-  console.log('AimArrow rendering JSX with:', { ox, oy, angleDeg, shaftLen });
 
     // Calculate the end point of the line based on direction and power
   const endX = ox + (ux * shaftLen);

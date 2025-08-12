@@ -14,8 +14,6 @@ import ToiletPaperToss from '../games/ToiletPaperToss';
 
 export default function GameScreen({ route, navigation }) {
   const { gameId, gameMode } = route.params;
-  const [gameComplete, setGameComplete] = useState(false);
-  const [score, setScore] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
 
   const gameNames = {
@@ -32,21 +30,12 @@ export default function GameScreen({ route, navigation }) {
   };
 
   const handleGameComplete = (finalScore) => {
-    setScore(finalScore);
-    setGameComplete(true);
-  };
-
-  const handleTutorialStart = () => {
-    setShowTutorial(false);
-  };
-
-  const handleBackToMenu = () => {
+    // Let ToiletPaperToss handle the game completion popup
+    // Just navigate back to home when user chooses to go to menu
     navigation.navigate('Home');
   };
 
-  const handlePlayAgain = () => {
-    setGameComplete(false);
-    setScore(0);
+  const handleTutorialStart = () => {
     setShowTutorial(false);
   };
 
@@ -82,42 +71,6 @@ export default function GameScreen({ route, navigation }) {
             >
               <Text style={styles.tutorialButtonText}>Let's Play! 🚽</Text>
             </TouchableOpacity>
-          </View>
-        </View>
-      </ImageBackground>
-    );
-  }
-
-  if (gameComplete) {
-    return (
-      <ImageBackground 
-        source={require('../../assets/game_background.png')} 
-        style={styles.container}
-        resizeMode="stretch"
-      >
-        <View style={styles.resultsContainer}>
-          <View style={styles.resultsCard}>
-            <Text style={styles.resultsTitle}>Game Complete!</Text>
-            <Text style={styles.resultsScore}>Final Score: {score}</Text>
-            <Text style={styles.resultsMode}>{gameNames[gameMode]}</Text>
-            
-            <View style={styles.resultsButtons}>
-              <TouchableOpacity
-                style={[styles.resultsButton, styles.playAgainButton]}
-                onPress={handlePlayAgain}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.playAgainButtonText}>Play Again</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.resultsButton, styles.menuButton]}
-                onPress={handleBackToMenu}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.menuButtonText}>Back to Menu</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
       </ImageBackground>
@@ -215,70 +168,5 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 1,
   },
-  resultsContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  resultsCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 30,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
-    maxWidth: 350,
-  },
-  resultsTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 20,
-  },
-  resultsScore: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#4ECDC4',
-    marginBottom: 10,
-  },
-  resultsMode: {
-    fontSize: 18,
-    color: '#6c757d',
-    marginBottom: 30,
-  },
-  resultsButtons: {
-    flexDirection: 'row',
-    gap: 15,
-  },
-  resultsButton: {
-    paddingVertical: 15,
-    paddingHorizontal: 25,
-    borderRadius: 25,
-    minWidth: 120,
-  },
-  playAgainButton: {
-    backgroundColor: '#4ECDC4',
-  },
-  playAgainButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  menuButton: {
-    backgroundColor: '#6c757d',
-  },
-  menuButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
+
 });
