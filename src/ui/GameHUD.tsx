@@ -34,25 +34,25 @@ export default function GameHUD({
       pointerEvents="box-none"
       style={[styles.hudRoot, { paddingTop: insets.top + 6 }, containerStyle]}
     >
-      {/* Top center pill with stats */}
-      <View style={styles.centerWrap} pointerEvents="box-none">
-        <LinearGradient
-          colors={['#FFE99E', '#FFD36E']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.pill}
-        >
-          <View style={styles.pillBorder} />
+             {/* Top center pill with stats */}
+       <View style={styles.centerWrap} pointerEvents="box-none">
+         <LinearGradient
+           colors={['#FFE99E', '#FFD36E']}
+           start={{ x: 0, y: 0 }}
+           end={{ x: 1, y: 1 }}
+           style={styles.pill}
+         >
+           <View style={styles.pillBorder} />
 
-          <Badge label="ROUND" value={round} />
-          <Dot />
-          <Badge label="POINTS" value={points} />
-          <Dot />
-          <Badge label="TIME" value={`${timeLeft}s`} />
-          <Dot />
-          <Badge label="REMAIN" value={Math.max(0, pointsRemaining)} accent />
-        </LinearGradient>
-      </View>
+           <Badge label="ROUND" value={round} />
+           <Dot />
+           <Badge label="POINTS" value={points} />
+           <Dot />
+           <Badge label="TIME" value={`${timeLeft}s`} />
+           <Dot />
+           <Badge label="REMAIN" value={Math.max(0, pointsRemaining)} accent />
+         </LinearGradient>
+       </View>
 
       {/* Right floating buttons */}
       <View style={[styles.buttonsWrap, { marginTop: insets.top + 8 }]}>
