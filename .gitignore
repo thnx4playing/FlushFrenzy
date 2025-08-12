@@ -53,3 +53,7 @@ android/
 *.apk
 *.aab
 *.keystore
+
+# Large files
+*.zip
+tsconfig.zip
