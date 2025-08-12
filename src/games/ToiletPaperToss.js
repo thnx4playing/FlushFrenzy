@@ -1279,27 +1279,67 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
                   color="#FFFFFF" 
                 />
               </View>
-              <Text style={styles.gameOverTitle}>Game Complete!</Text>
+              <Text style={styles.gameOverTitle}>
+                {gameMode === 'endless-plunge' ? 'Plunge Complete!' : 'Game Complete!'}
+              </Text>
             </View>
             
-            {/* Score display with modern cards */}
-            <View style={styles.scoreSection}>
-              <View style={styles.scoreCard}>
-                <View style={styles.scoreCardHeader}>
-                  <Ionicons name="star" size={14} color="#FFD700" />
-                  <Text style={styles.scoreCardTitle}>Your Score</Text>
+            {/* Endless Plunge specific stats */}
+            {gameMode === 'endless-plunge' ? (
+              <View style={styles.endlessStatsSection}>
+                {/* Round reached */}
+                <View style={styles.statCard}>
+                  <View style={[styles.statIconContainer, { backgroundColor: 'rgba(74, 144, 226, 0.1)', borderColor: '#4A90E2' }]}>
+                    <Ionicons name="layers" size={20} color="#4A90E2" />
+                  </View>
+                  <View style={styles.statContent}>
+                    <Text style={styles.statLabel}>Round Reached</Text>
+                    <Text style={styles.statValue}>{epRound}</Text>
+                  </View>
                 </View>
-                <Text style={styles.finalScoreValue}>{score}</Text>
-              </View>
-              
-              <View style={styles.scoreCard}>
-                <View style={styles.scoreCardHeader}>
-                  <Ionicons name="trophy" size={14} color="#E91E63" />
-                  <Text style={styles.scoreCardTitle}>Best Score</Text>
+                
+                {/* Total score */}
+                <View style={styles.statCard}>
+                  <View style={[styles.statIconContainer, { backgroundColor: 'rgba(255, 215, 0, 0.1)', borderColor: '#FFD700' }]}>
+                    <Ionicons name="star" size={20} color="#FFD700" />
+                  </View>
+                  <View style={styles.statContent}>
+                    <Text style={styles.statLabel}>Total Score</Text>
+                    <Text style={styles.statValue}>{score}</Text>
+                  </View>
                 </View>
-                <Text style={styles.highScoreValue}>{persistentHighScore}</Text>
+                
+                {/* High score */}
+                <View style={styles.statCard}>
+                  <View style={[styles.statIconContainer, { backgroundColor: 'rgba(233, 30, 99, 0.1)', borderColor: '#E91E63' }]}>
+                    <Ionicons name="trophy" size={20} color="#E91E63" />
+                  </View>
+                  <View style={styles.statContent}>
+                    <Text style={styles.statLabel}>Best Score</Text>
+                    <Text style={styles.statValue}>{persistentHighScore}</Text>
+                  </View>
+                </View>
               </View>
-            </View>
+            ) : (
+              /* Quick Flush stats (original design) */
+              <View style={styles.scoreSection}>
+                <View style={styles.scoreCard}>
+                  <View style={styles.scoreCardHeader}>
+                    <Ionicons name="star" size={14} color="#FFD700" />
+                    <Text style={styles.scoreCardTitle}>Your Score</Text>
+                  </View>
+                  <Text style={styles.finalScoreValue}>{score}</Text>
+                </View>
+                
+                <View style={styles.scoreCard}>
+                  <View style={styles.scoreCardHeader}>
+                    <Ionicons name="trophy" size={14} color="#E91E63" />
+                    <Text style={styles.scoreCardTitle}>Best Score</Text>
+                  </View>
+                  <Text style={styles.highScoreValue}>{persistentHighScore}</Text>
+                </View>
+              </View>
+            )}
             
             {/* New record celebration */}
             {score === persistentHighScore && score > 0 && (
@@ -1509,6 +1549,55 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 16,
     gap: 8,
+  },
+  endlessStatsSection: {
+    width: '100%',
+    marginBottom: 16,
+    gap: 12,
+  },
+  statCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    gap: 12,
+  },
+  statIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(74, 144, 226, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#4A90E2',
+  },
+  statContent: {
+    flex: 1,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4A5568',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#2D3748',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   scoreCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
