@@ -1274,9 +1274,9 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
             <View style={styles.gameOverHeader}>
               <View style={styles.headerIconContainer}>
                 <Ionicons 
-                  name={gameMode === 'quick-flush' ? 'flash' : 'infinite'} 
+                  name={gameMode === 'quick-flush' ? 'flash' : 'game-controller'} 
                   size={14} 
-                  color="#FFFFFF" 
+                  color="#3B82F6" 
                 />
               </View>
               <Text style={styles.gameOverTitle}>
@@ -1289,33 +1289,33 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
               <View style={styles.endlessStatsSection}>
                 {/* Round reached */}
                 <View style={styles.statCard}>
-                  <View style={[styles.statIconContainer, { backgroundColor: 'rgba(74, 144, 226, 0.1)', borderColor: '#4A90E2' }]}>
-                    <Ionicons name="layers" size={14} color="#4A90E2" />
+                  <View style={[styles.statIconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.15)', borderColor: '#3B82F6' }]}>
+                    <Ionicons name="infinite" size={14} color="#3B82F6" />
                   </View>
                   <View style={styles.statContent}>
-                    <Text style={styles.statLabel}>Round Reached</Text>
+                    <Text style={styles.statLabel}>Round</Text>
                     <Text style={styles.statValue}>{epRound}</Text>
                   </View>
                 </View>
                 
                 {/* Total score */}
                 <View style={styles.statCard}>
-                  <View style={[styles.statIconContainer, { backgroundColor: 'rgba(255, 215, 0, 0.1)', borderColor: '#FFD700' }]}>
-                    <Ionicons name="star" size={14} color="#FFD700" />
+                  <View style={[styles.statIconContainer, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: '#F59E0B' }]}>
+                    <Ionicons name="star" size={14} color="#F59E0B" />
                   </View>
                   <View style={styles.statContent}>
-                    <Text style={styles.statLabel}>Total Score</Text>
+                    <Text style={styles.statLabel}>Score</Text>
                     <Text style={styles.statValue}>{score}</Text>
                   </View>
                 </View>
                 
                 {/* High score */}
                 <View style={styles.statCard}>
-                  <View style={[styles.statIconContainer, { backgroundColor: 'rgba(233, 30, 99, 0.1)', borderColor: '#E91E63' }]}>
-                    <Ionicons name="trophy" size={14} color="#E91E63" />
+                  <View style={[styles.statIconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: '#EF4444' }]}>
+                    <Ionicons name="trophy" size={14} color="#EF4444" />
                   </View>
                   <View style={styles.statContent}>
-                    <Text style={styles.statLabel}>Best Score</Text>
+                    <Text style={styles.statLabel}>Best</Text>
                     <Text style={styles.statValue}>{persistentHighScore}</Text>
                   </View>
                 </View>
@@ -1529,11 +1529,11 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: '#FFD700',
+    borderColor: '#3B82F6',
   },
   gameOverTitle: {
     fontSize: 16,
@@ -1551,25 +1551,26 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   endlessStatsSection: {
-    width: '90%',
+    width: '100%',
     marginBottom: 12,
-    gap: 6,
-    alignSelf: 'center',
+    gap: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   statCard: {
-    flexDirection: 'row',
+    flex: 1,
     alignItems: 'center',
     backgroundColor: '#F7FAFC',
     borderRadius: 8,
     padding: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderWidth: 2,
+    borderColor: '#000000',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
-    gap: 6,
+    marginHorizontal: 2,
   },
   statIconContainer: {
     width: 28,
@@ -1582,7 +1583,8 @@ const styles = StyleSheet.create({
     borderColor: '#4A90E2',
   },
   statContent: {
-    flex: 1,
+    alignItems: 'center',
+    marginTop: 4,
   },
   statLabel: {
     fontSize: 8,
