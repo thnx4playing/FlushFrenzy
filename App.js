@@ -2,6 +2,8 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Provider as PaperProvider } from 'react-native-paper';
 
 // Import screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -11,9 +13,11 @@ const Stack = createStackNavigator();
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <StatusBar style="auto" />
-      <Stack.Navigator
+    <SafeAreaProvider>
+      <PaperProvider>
+        <NavigationContainer>
+          <StatusBar style="light" hidden={true} />
+          <Stack.Navigator
         initialRouteName="Home"
         screenOptions={{
           headerShown: false,
@@ -36,6 +40,8 @@ export default function App() {
           }}
         />
       </Stack.Navigator>
-    </NavigationContainer>
+        </NavigationContainer>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }

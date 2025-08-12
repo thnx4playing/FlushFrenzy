@@ -17,6 +17,7 @@ import Svg, { Polygon, Circle as SvgCircle, Rect } from 'react-native-svg';
 import AimPad from '../../components/AimPad';
 import TrajectoryOverlay from '../../components/TrajectoryOverlay';
 import PowerBar from '../../components/PowerBar';
+import FancyHUD from '../components/FancyHUD';
 import { setHighScoreIfBest, getHighScore } from '../utils/highScore';
 
 // Set up poly-decomp for Matter.js concave shapes
@@ -494,8 +495,12 @@ const MovingToiletSystem = (entities, { time }) => {
   
   const movement = entities.toiletMovement;
   
+  // Apply speed multiplier for endless plunge
+  const speedMul = entities.endlessRef?.current?.toiletSpeedMul || 1;
+  const effSpeed = movement.speed * speedMul;
+  
   // Update position
-  movement.currentX += movement.direction * movement.speed;
+  movement.currentX += movement.direction * effSpeed;
   
   // Check bounds and reverse direction
   if (movement.currentX <= movement.leftBound) {
@@ -560,6 +565,25 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   const [tpPos, setTpPos] = useState({ x: -9999, y: -9999 });
   const [tpVisible, setTpVisible] = useState(false);
   const [toiletPos, setToiletPos] = useState({ x: WIDTH / 2, y: HEIGHT * 0.35 });
+
+  // ===== Endless Plunge Round State =====
+  const [epRound, setEpRound] = useState(1);           // starts at Round 1
+  const [epTimeLeft, setEpTimeLeft] = useState(30);    // seconds remaining in current round
+  const [epTarget, setEpTarget] = useState(10);        // points required this round
+  const [epRoundPoints, setEpRoundPoints] = useState(0);
+  const [toiletSpeedMul, setToiletSpeedMul] = useState(1); // 1.0 -> 1.5 (capped)
+  const [tpSkin, setTpSkin] = useState('tp.png');
+
+  // convenience ref so physics/tickers can read latest values without stale closures
+  const endlessRef = useRef({
+    round: 1,
+    timeLeft: 30,
+    target: 10,
+    roundPoints: 0,
+    toiletSpeedMul: 1,
+    tpSkin: 'tp.png',
+    running: false,            // is a round currently active
+  });
   
 
 
@@ -608,12 +632,108 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         console.log('Error saving high score:', error);
       });
     }
+
+    // Endless Plunge round scoring
+    if (gameMode === 'endless-plunge' && endlessRef.current.running) {
+      setEpRoundPoints(p => {
+        const newPoints = p + 1;
+        console.log('Round points updated:', newPoints, '/', endlessRef.current.target);
+        
+        // Auto-advance the instant target is reached (instead of waiting for timer)
+        if (newPoints >= endlessRef.current.target) {
+          console.log('Target reached! Advancing to next round...');
+          endlessRef.current.running = false;
+          setTimeout(() => advanceOrEndRound(true), 120); // tiny delay for UX
+        }
+        
+        return newPoints;
+      });
+    }
   };
 
   // Update the ref when addScore changes
   useEffect(() => {
     addScoreRef.current = addScore;
   }, [score, highScore]);
+
+  // Keep endless ref in sync with state
+  useEffect(() => { endlessRef.current.round = epRound; }, [epRound]);
+  useEffect(() => { endlessRef.current.timeLeft = epTimeLeft; }, [epTimeLeft]);
+  useEffect(() => { endlessRef.current.target = epTarget; }, [epTarget]);
+  useEffect(() => { endlessRef.current.roundPoints = epRoundPoints; }, [epRoundPoints]);
+  useEffect(() => { endlessRef.current.toiletSpeedMul = toiletSpeedMul; }, [toiletSpeedMul]);
+  useEffect(() => { endlessRef.current.tpSkin = tpSkin; }, [tpSkin]);
+
+  // Round math helpers
+  const TP_SKINS = ['tp-blue.png','tp-green.png','tp-pink.png','tp-purple.png','tp-red.png'];
+
+  function pickRandomSkin(exclude) {
+    const pool = TP_SKINS.filter(s => s !== exclude);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  // First 5 rounds: 30s/10pts each, +10% speed per round (cap 50% total).
+  // After that: add +15s time and +5 points required each round, speed stays capped at 1.5x.
+  function getRoundConfig(round) {
+    if (round <= 5) {
+      return { time: 30, target: 10, speedMul: 1 + 0.10 * (round - 1) };
+    }
+    const extra = round - 5;
+    const time = 45 + (extra - 1) * 15; // 45s at round 6, +15s each round
+    const target = 15 + (extra - 1) * 5; // 15 at round 6, +5 each round
+    return { time, target, speedMul: 1.5 };
+  }
+
+  // Kick off Endless Plunge session (Round 1)
+  function startEndlessPlungeSession() {
+    console.log('Starting Endless Plunge session');
+    setEpRound(1);
+    const cfg = getRoundConfig(1);
+    console.log('Round 1 config:', cfg);
+    setEpTimeLeft(cfg.time);
+    setEpTarget(cfg.target);
+    setEpRoundPoints(0);
+    setToiletSpeedMul(cfg.speedMul);
+    setTpSkin(pickRandomSkin(undefined));
+    endlessRef.current.running = true;
+    // ensure any miss counters stop affecting endless mode; your code may already do this
+  }
+
+  // Advance to next round (after win) or end game (after fail)
+  async function advanceOrEndRound(won) {
+    console.log('advanceOrEndRound called with won:', won, 'current round:', epRound);
+    
+    if (!won) {
+      // Show your existing game over modal
+      showGameOver();
+      endlessRef.current.running = false;
+      return;
+    }
+
+    // Play win sound
+    try {
+      const sound = new Audio.Sound();
+      await sound.loadAsync(require('../../assets/ding.mp3'));
+      await sound.playAsync();
+      // don't await unload immediately—let it finish
+      setTimeout(() => sound.unloadAsync().catch(()=>{}), 2000);
+    } catch (e) {
+      // fail silently if sound not available
+    }
+
+    // Next round setup
+    const next = epRound + 1;
+    const cfg = getRoundConfig(next);
+    console.log('Advancing to round', next, 'with config:', cfg);
+    
+    setEpRound(next);
+    setEpTimeLeft(cfg.time);
+    setEpTarget(cfg.target);
+    setEpRoundPoints(0);
+    setToiletSpeedMul(cfg.speedMul);
+    setTpSkin(prev => pickRandomSkin(prev));
+    endlessRef.current.running = true;
+  }
 
   const showGameOver = () => {
     // Save high score when game ends naturally
@@ -764,6 +884,13 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     loadHighScore();
   }, [gameMode]);
 
+  // Initialize endless plunge session when game mode changes
+  useEffect(() => {
+    if (gameMode === 'endless-plunge') {
+      startEndlessPlungeSession();
+    }
+  }, [gameMode]);
+
 
 
   // Handle game completion and save high score
@@ -814,6 +941,33 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     }
     return () => clearTimeout(timer);
   }, [timeLeft, gameMode, score]);
+
+  // Endless Plunge timer ticker (1 Hz)
+  useEffect(() => {
+    if (gameMode !== 'endless-plunge') return;
+    let id = null;
+
+    const tick = () => {
+      if (!endlessRef.current.running) return;
+      setEpTimeLeft(t => {
+        if (t <= 1) {
+          // time is up -> win if target met, else lose
+          // Use current state values instead of ref to avoid stale closure issues
+          const won = epRoundPoints >= epTarget;
+          console.log('Time up! Round points:', epRoundPoints, 'Target:', epTarget, 'Won:', won);
+          // stop this round before advancing
+          endlessRef.current.running = false;
+          // small delay so UI can show 0
+          setTimeout(() => advanceOrEndRound(won), 100);
+          return 0;
+        }
+        return t - 1;
+      });
+    };
+
+    id = setInterval(tick, 1000);
+    return () => { if (id) clearInterval(id); };
+  }, [gameMode, epRoundPoints, epTarget]); // Include dependencies to avoid stale closures
 
   // Collision handling: if tp hits ground, mark turn over
   useEffect(() => {
@@ -927,43 +1081,28 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
 
   return (
     <View style={styles.container}>
-      {/* Game UI */}
-      <View style={styles.gameUI}>
-        <View style={styles.actionsRow}>
-          <TouchableOpacity accessibilityLabel="Settings" onPress={() => setSettingsVisible(true)} style={styles.iconButton}>
-            <Ionicons name="settings-sharp" size={22} color="#343a40" />
-          </TouchableOpacity>
-          <View style={styles.actionsCenter}>
-                         <View style={styles.scoreContainer}>
-               <Text style={styles.scoreLabel}>Score</Text>
-               <Text style={styles.scoreValue}>{score}</Text>
-             </View>
-                         {gameMode === 'quick-flush' && (
-               <View style={styles.timeContainer}>
-                 <Text style={styles.timeLabel}>Time</Text>
-                 <Text style={styles.timeValue}>{formatTime(timeLeft)}</Text>
-               </View>
-             )}
-                         
-          </View>
-                     <View style={styles.actionsRight}>
-             {gameMode === 'endless-plunge' && (
-               <TouchableOpacity 
-                 accessibilityLabel="End Game" 
-                 onPress={() => {
-                   showGameOver();
-                 }} 
-                 style={styles.iconButton}
-               >
-                 <Ionicons name="stop-circle" size={22} color="#E91E63" />
-               </TouchableOpacity>
-             )}
-             <TouchableOpacity accessibilityLabel="Toggle sound" onPress={() => setIsMuted(m => !m)} style={styles.iconButton}>
-               <Ionicons name={isMuted ? 'volume-mute' : 'volume-high'} size={22} color={isMuted ? '#adb5bd' : '#343a40'} />
-             </TouchableOpacity>
-           </View>
-        </View>
-      </View>
+
+      {/* New FancyHUD Component */}
+      <FancyHUD
+        score={score}
+        round={gameMode === 'endless-plunge' ? epRound : 1}
+        points={gameMode === 'endless-plunge' ? epRoundPoints : 0}
+        timeLeft={gameMode === 'endless-plunge' ? epTimeLeft : timeLeft}
+        muted={isMuted}
+        onPressSettings={() => setSettingsVisible(true)}
+        onToggleAudio={() => setIsMuted(m => !m)}
+        onPressEndGame={() => {
+          if (gameMode === 'endless-plunge') {
+            endlessRef.current.running = false;
+          }
+          showGameOver();
+        }}
+        accent="#FFE37B"
+        bg="rgba(255,255,255,0.96)"
+        ink="#161616"
+      />
+      
+
 
       {/* Game Area */}
       <ImageBackground 
@@ -978,6 +1117,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
           entities={{
             physics: { engine, world, bodies },
             state,
+            endlessRef, // Pass the ref so systems can access endless plunge state
             tp: { body: bodies.tp, renderer: null }, // TP now rendered separately
           }}
         >
@@ -1039,7 +1179,17 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         {/* TP sprite — bulletproof rendering with rotation */}
         {tpVisible && Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) && (
           <Image
-            source={require('../../assets/tp.png')}   // verify path!
+            source={(() => {
+              const skinMap = {
+                'tp.png':        require('../../assets/tp.png'),
+                'tp-blue.png':   require('../../assets/tp-blue.png'),
+                'tp-green.png':  require('../../assets/tp-green.png'),
+                'tp-pink.png':   require('../../assets/tp-pink.png'),
+                'tp-purple.png': require('../../assets/tp-purple.png'),
+                'tp-red.png':    require('../../assets/tp-red.png'),
+              };
+              return skinMap[tpSkin] || skinMap['tp.png'];
+            })()}
             style={{ 
               position:'absolute', 
               left: tpPos.x - 28, 
@@ -1163,6 +1313,10 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
                     Matter.Body.setPosition(bodies.tp, { x: -9999, y: -9999 });
                     Matter.Body.setStatic(bodies.tp, true);
                   }
+                  // Reset endless plunge state if in that mode
+                  if (gameMode === 'endless-plunge') {
+                    startEndlessPlungeSession();
+                  }
                 }} 
                 style={styles.playAgainButton}
               >
@@ -1194,119 +1348,13 @@ const styles = StyleSheet.create({
     flex: 1, 
     backgroundColor: '#f8fafc' 
   },
-  gameUI: {
-    flexDirection: 'column',
-    justifyContent: 'flex-start',
-    padding: 16,
-    paddingTop: 80,
-    backgroundColor: '#ADD8E6',
-    borderBottomWidth: 3,
-    borderBottomColor: '#4a5568',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  actionsCenter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    gap: 16,
-  },
-  actionsRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  scoreContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 90,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 2,
-    borderColor: '#A8E6CF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  timeContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 90,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 2,
-    borderColor: '#FFB3BA',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  iconButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#4a5568',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  scoreLabel: {
-    fontSize: 14,
-    color: '#2d3748',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  scoreValue: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#4A90E2',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
 
-  timeLabel: {
-    fontSize: 14,
-    color: '#2d3748',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  timeValue: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#E91E63',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
+
+
+
+
+
+
 
   gameArea: {
     flex: 1,
