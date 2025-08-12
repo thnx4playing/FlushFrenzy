@@ -1275,7 +1275,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
               <View style={styles.headerIconContainer}>
                 <Ionicons 
                   name={gameMode === 'quick-flush' ? 'flash' : 'infinite'} 
-                  size={18} 
+                  size={14} 
                   color="#FFFFFF" 
                 />
               </View>
@@ -1290,7 +1290,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
                 {/* Round reached */}
                 <View style={styles.statCard}>
                   <View style={[styles.statIconContainer, { backgroundColor: 'rgba(74, 144, 226, 0.1)', borderColor: '#4A90E2' }]}>
-                    <Ionicons name="layers" size={20} color="#4A90E2" />
+                    <Ionicons name="layers" size={16} color="#4A90E2" />
                   </View>
                   <View style={styles.statContent}>
                     <Text style={styles.statLabel}>Round Reached</Text>
@@ -1301,7 +1301,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
                 {/* Total score */}
                 <View style={styles.statCard}>
                   <View style={[styles.statIconContainer, { backgroundColor: 'rgba(255, 215, 0, 0.1)', borderColor: '#FFD700' }]}>
-                    <Ionicons name="star" size={20} color="#FFD700" />
+                    <Ionicons name="star" size={16} color="#FFD700" />
                   </View>
                   <View style={styles.statContent}>
                     <Text style={styles.statLabel}>Total Score</Text>
@@ -1312,7 +1312,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
                 {/* High score */}
                 <View style={styles.statCard}>
                   <View style={[styles.statIconContainer, { backgroundColor: 'rgba(233, 30, 99, 0.1)', borderColor: '#E91E63' }]}>
-                    <Ionicons name="trophy" size={20} color="#E91E63" />
+                    <Ionicons name="trophy" size={16} color="#E91E63" />
                   </View>
                   <View style={styles.statContent}>
                     <Text style={styles.statLabel}>Best Score</Text>
@@ -1495,18 +1495,18 @@ const styles = StyleSheet.create({
   },
   // Game Over Modal Styles
   gameOverModalCard: {
-    width: '75%',
+    width: '80%',
     backgroundColor: '#1a202c',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#4a5568',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -1522,25 +1522,25 @@ const styles = StyleSheet.create({
   gameOverHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 10,
+    marginBottom: 12,
+    gap: 8,
   },
   headerIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: 'rgba(255, 215, 0, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#FFD700',
   },
   gameOverTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
     color: '#FFFFFF',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
@@ -1552,52 +1552,52 @@ const styles = StyleSheet.create({
   },
   endlessStatsSection: {
     width: '100%',
-    marginBottom: 16,
-    gap: 12,
+    marginBottom: 12,
+    gap: 8,
   },
   statCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1.5,
     borderColor: '#E2E8F0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
-    gap: 12,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    gap: 8,
   },
   statIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'rgba(74, 144, 226, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#4A90E2',
   },
   statContent: {
     flex: 1,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '700',
     color: '#4A5568',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
+    letterSpacing: 0.3,
+    marginBottom: 1,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '900',
     color: '#2D3748',
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0.5, height: 0.5 },
+    textShadowRadius: 1,
   },
   scoreCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
