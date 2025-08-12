@@ -1290,7 +1290,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
                 {/* Round reached */}
                 <View style={styles.statCard}>
                   <View style={[styles.statIconContainer, { backgroundColor: 'rgba(74, 144, 226, 0.1)', borderColor: '#4A90E2' }]}>
-                    <Ionicons name="layers" size={16} color="#4A90E2" />
+                    <Ionicons name="layers" size={14} color="#4A90E2" />
                   </View>
                   <View style={styles.statContent}>
                     <Text style={styles.statLabel}>Round Reached</Text>
@@ -1301,7 +1301,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
                 {/* Total score */}
                 <View style={styles.statCard}>
                   <View style={[styles.statIconContainer, { backgroundColor: 'rgba(255, 215, 0, 0.1)', borderColor: '#FFD700' }]}>
-                    <Ionicons name="star" size={16} color="#FFD700" />
+                    <Ionicons name="star" size={14} color="#FFD700" />
                   </View>
                   <View style={styles.statContent}>
                     <Text style={styles.statLabel}>Total Score</Text>
@@ -1312,7 +1312,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
                 {/* High score */}
                 <View style={styles.statCard}>
                   <View style={[styles.statIconContainer, { backgroundColor: 'rgba(233, 30, 99, 0.1)', borderColor: '#E91E63' }]}>
-                    <Ionicons name="trophy" size={16} color="#E91E63" />
+                    <Ionicons name="trophy" size={14} color="#E91E63" />
                   </View>
                   <View style={styles.statContent}>
                     <Text style={styles.statLabel}>Best Score</Text>
@@ -1495,16 +1495,16 @@ const styles = StyleSheet.create({
   },
   // Game Over Modal Styles
   gameOverModalCard: {
-    width: '80%',
-    backgroundColor: '#1a202c',
+    width: '85%',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#4a5568',
+    borderColor: '#E2E8F0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 8,
     position: 'relative',
@@ -1538,12 +1538,12 @@ const styles = StyleSheet.create({
   gameOverTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: '#2D3748',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0.5, height: 0.5 },
+    textShadowRadius: 1,
   },
   scoreSection: {
     width: '100%',
@@ -1551,53 +1551,54 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   endlessStatsSection: {
-    width: '100%',
+    width: '90%',
     marginBottom: 12,
-    gap: 8,
+    gap: 6,
+    alignSelf: 'center',
   },
   statCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: '#F7FAFC',
     borderRadius: 8,
-    padding: 10,
-    borderWidth: 1.5,
+    padding: 8,
+    borderWidth: 1,
     borderColor: '#E2E8F0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    gap: 8,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    gap: 6,
   },
   statIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: 'rgba(74, 144, 226, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#4A90E2',
   },
   statContent: {
     flex: 1,
   },
   statLabel: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '700',
     color: '#4A5568',
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
     marginBottom: 1,
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
     color: '#2D3748',
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
-    textShadowOffset: { width: 0.5, height: 0.5 },
-    textShadowRadius: 1,
+    textShadowColor: 'rgba(0, 0, 0, 0.05)',
+    textShadowOffset: { width: 0.25, height: 0.25 },
+    textShadowRadius: 0.5,
   },
   scoreCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
