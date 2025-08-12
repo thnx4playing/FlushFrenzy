@@ -29,10 +29,17 @@ export default function GameScreen({ route, navigation }) {
     }
   };
 
-  const handleGameComplete = (finalScore) => {
-    // Let ToiletPaperToss handle the game completion popup
-    // Just navigate back to home when user chooses to go to menu
-    navigation.navigate('Home');
+  const handleGameComplete = (finalScore, playAgain = false) => {
+    if (playAgain) {
+      // For Play Again, navigate back to the same game mode
+      navigation.replace('Game', { 
+        gameId: 'toilet-paper-toss',
+        gameMode: gameMode 
+      });
+    } else {
+      // For Main Menu, navigate back to home
+      navigation.navigate('Home');
+    }
   };
 
   const handleTutorialStart = () => {
