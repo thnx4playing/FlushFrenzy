@@ -209,9 +209,10 @@ const styles = StyleSheet.create({
   hudBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 8,
     paddingVertical: 10,
     borderRadius: 18,
+    maxWidth: '85%',
     shadowColor: '#000',
     shadowOpacity: 0.18,
     shadowRadius: 8,
@@ -248,12 +249,23 @@ const styles = StyleSheet.create({
   hudContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
+    justifyContent: 'space-between',
+    flex: 1,
   },
 
   // Each stat block
-  stat: { minWidth: 70, paddingHorizontal: 6 },
-  statTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+  stat: { 
+    minWidth: 60, 
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    flex: 1,
+  },
+  statTop: { 
+    flexDirection: 'column', 
+    alignItems: 'center', 
+    marginBottom: 2 
+  },
 
   // brighter labels, darker values for contrast
   statLabel: {
