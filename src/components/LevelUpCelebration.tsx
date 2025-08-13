@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import * as Haptics from 'expo-haptics';
@@ -23,13 +23,15 @@ export default function LevelUpCelebration({
 }: Props) {
   // force ConfettiCannon to re-mount every time we show
   const instanceKey = useMemo(() => (visible ? `${Date.now()}` : 'off'), [visible]);
+  const soundPlayedRef = useRef(false);
 
   useEffect(() => {
     let soundObj: Audio.Sound | null = null;
     let timeoutId: NodeJS.Timeout | null = null;
 
     const play = async () => {
-      if (!visible) return;
+      if (!visible || soundPlayedRef.current) return;
+      soundPlayedRef.current = true;
 
       // Notify that celebration is starting
       onStart?.();
@@ -42,13 +44,26 @@ export default function LevelUpCelebration({
         const src = sound ?? require('../../assets/ding.mp3');
         const { sound: s } = await Audio.Sound.createAsync(src, { volume: 0.9, shouldPlay: true });
         soundObj = s;
+        
+        // Ensure sound is unloaded after playing
+        setTimeout(() => {
+          if (soundObj) {
+            soundObj.unloadAsync().catch(() => {});
+            soundObj = null;
+          }
+        }, 1000);
       } catch {}
 
       // Auto-hide after the confetti settles
       timeoutId = setTimeout(() => onDone?.(), 2200);
     };
 
-    play();
+    if (visible) {
+      play();
+    } else {
+      // Reset sound played flag when component becomes invisible
+      soundPlayedRef.current = false;
+    }
 
     return () => {
       if (soundObj) {
@@ -58,7 +73,7 @@ export default function LevelUpCelebration({
         clearTimeout(timeoutId);
       }
     };
-  }, [visible, onDone, sound]);
+  }, [visible, onDone, sound, onStart]);
 
   if (!visible) return null;
 
