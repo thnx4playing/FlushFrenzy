@@ -676,12 +676,20 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   useEffect(() => { endlessRef.current.tpSkin = tpSkin; }, [tpSkin]);
 
   // Detect when points reach target and trigger level up banner
+  const levelUpTriggeredRef = useRef(false);
+  
   useEffect(() => {
-    if (epRoundPoints >= epTarget && epRoundPoints > 0 && !showLevelUp) {
+    if (epRoundPoints >= epTarget && epRoundPoints > 0 && !levelUpTriggeredRef.current) {
       // Points reached target - trigger level up!
+      levelUpTriggeredRef.current = true;
       setShowLevelUp(true);
     }
-  }, [epRoundPoints, epTarget, showLevelUp]);
+  }, [epRoundPoints, epTarget]);
+  
+  // Reset trigger when round changes
+  useEffect(() => {
+    levelUpTriggeredRef.current = false;
+  }, [epRound]);
 
   // Round math helpers
   const TP_SKINS = ['tp-blue.png','tp-green.png','tp-pink.png','tp-purple.png','tp-red.png'];

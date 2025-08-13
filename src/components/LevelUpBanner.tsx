@@ -38,7 +38,7 @@ export default function LevelUpBanner({ visible, onComplete, onStart }: Props) {
       opacity.setValue(0);
 
       // Animation sequence
-      Animated.sequence([
+      Animated.parallel([
         // Slide down with bounce
         Animated.timing(translateY, {
           toValue: 0,
@@ -51,52 +51,54 @@ export default function LevelUpBanner({ visible, onComplete, onStart }: Props) {
           toValue: 1,
           duration: 300,
           useNativeDriver: true
-        }),
-        // Hold for a moment
-        Animated.delay(800),
-        // Bounce effect
-        Animated.sequence([
-          Animated.timing(scale, {
-            toValue: 1.15,
-            duration: 100,
-            useNativeDriver: true
-          }),
-          Animated.timing(scale, {
-            toValue: 0.95,
-            duration: 100,
-            useNativeDriver: true
-          }),
-          Animated.timing(scale, {
-            toValue: 1.05,
-            duration: 100,
-            useNativeDriver: true
-          }),
-          Animated.timing(scale, {
-            toValue: 1,
-            duration: 100,
-            useNativeDriver: true
-          })
-        ]),
-        // Hold for another moment
-        Animated.delay(500),
-        // Fade out and slide up
-        Animated.parallel([
-          Animated.timing(opacity, {
-            toValue: 0,
-            duration: 400,
-            useNativeDriver: true
-          }),
-          Animated.timing(translateY, {
-            toValue: -100,
-            duration: 400,
-            useNativeDriver: true
-          })
-        ])
+        })
       ]).start(() => {
-        if (sound) {
-          sound.unloadAsync();
-        }
-        onComplete && onComplete();
+        // After slide down, do bounce effect
+        setTimeout(() => {
+          Animated.sequence([
+            Animated.timing(scale, {
+              toValue: 1.15,
+              duration: 100,
+              useNativeDriver: true
+            }),
+            Animated.timing(scale, {
+              toValue: 0.95,
+              duration: 100,
+              useNativeDriver: true
+            }),
+            Animated.timing(scale, {
+              toValue: 1.05,
+              duration: 100,
+              useNativeDriver: true
+            }),
+            Animated.timing(scale, {
+              toValue: 1,
+              duration: 100,
+              useNativeDriver: true
+            })
+          ]).start(() => {
+            // After bounce, fade out
+            setTimeout(() => {
+              Animated.parallel([
+                Animated.timing(opacity, {
+                  toValue: 0,
+                  duration: 400,
+                  useNativeDriver: true
+                }),
+                Animated.timing(translateY, {
+                  toValue: -100,
+                  duration: 400,
+                  useNativeDriver: true
+                })
+              ]).start(() => {
+                if (sound) {
+                  sound.unloadAsync();
+                }
+                onComplete && onComplete();
+              });
+            }, 800); // Wait 800ms before fade out
+          });
+        }, 800); // Wait 800ms before bounce
       });
     }
   }, [visible, onStart]);
