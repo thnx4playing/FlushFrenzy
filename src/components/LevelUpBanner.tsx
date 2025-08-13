@@ -44,70 +44,67 @@ export default function LevelUpBanner({ visible, onComplete, onStart }: Props) {
       // Play sound in background (don't wait for it)
       playSound();
 
-      // Animation sequence
+      // Animation sequence - appear immediately, then bounce
       Animated.parallel([
-        // Slide down with bounce
+        // Appear immediately at final position
         Animated.timing(translateY, {
           toValue: 0,
-          duration: 600,
-          easing: Easing.out(Easing.back(1.2)),
+          duration: 100,
           useNativeDriver: true
         }),
-        // Fade in
+        // Fade in quickly
         Animated.timing(opacity, {
           toValue: 1,
-          duration: 300,
+          duration: 100,
           useNativeDriver: true
         })
       ]).start(() => {
-        // After slide down, do bounce effect
-        setTimeout(() => {
-          Animated.sequence([
-            Animated.timing(scale, {
-              toValue: 1.15,
-              duration: 100,
-              useNativeDriver: true
-            }),
-            Animated.timing(scale, {
-              toValue: 0.95,
-              duration: 100,
-              useNativeDriver: true
-            }),
-            Animated.timing(scale, {
-              toValue: 1.05,
-              duration: 100,
-              useNativeDriver: true
-            }),
-            Animated.timing(scale, {
-              toValue: 1,
-              duration: 100,
-              useNativeDriver: true
-            })
-          ]).start(() => {
-            // After bounce, fade out
-            setTimeout(() => {
-              Animated.parallel([
-                Animated.timing(opacity, {
-                  toValue: 0,
-                  duration: 400,
-                  useNativeDriver: true
-                }),
-                Animated.timing(translateY, {
-                  toValue: -100,
-                  duration: 400,
-                  useNativeDriver: true
-                })
-              ]).start(() => {
-                if (soundRef.current) {
-                  soundRef.current.unloadAsync();
-                  soundRef.current = null;
-                }
-                animationStartedRef.current = false;
-                onComplete && onComplete();
-              });
-            }, 800); // Wait 800ms before fade out
-          });
-        }, 800); // Wait 800ms before bounce
+        // Immediately start bounce effect
+        Animated.sequence([
+          Animated.timing(scale, {
+            toValue: 1.15,
+            duration: 100,
+            useNativeDriver: true
+          }),
+          Animated.timing(scale, {
+            toValue: 0.95,
+            duration: 100,
+            useNativeDriver: true
+          }),
+          Animated.timing(scale, {
+            toValue: 1.05,
+            duration: 100,
+            useNativeDriver: true
+          }),
+          Animated.timing(scale, {
+            toValue: 1,
+            duration: 100,
+            useNativeDriver: true
+          })
+        ]).start(() => {
+          // Hold for a moment, then fade out
+          setTimeout(() => {
+            Animated.parallel([
+              Animated.timing(opacity, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true
+              }),
+              Animated.timing(translateY, {
+                toValue: -100,
+                duration: 300,
+                useNativeDriver: true
+              })
+            ]).start(() => {
+              if (soundRef.current) {
+                soundRef.current.unloadAsync();
+                soundRef.current = null;
+              }
+              animationStartedRef.current = false;
+              onComplete && onComplete();
+            });
+          }, 600); // Hold for 600ms before fade out
+        });
       });
     } else if (!visible) {
       // Reset animation flag when component becomes invisible
