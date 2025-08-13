@@ -647,12 +647,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         const newPoints = p + 1;
         console.log('Round points updated:', newPoints, '/', endlessRef.current.target);
         
-        // Auto-advance the instant target is reached (instead of waiting for timer)
-        if (newPoints >= endlessRef.current.target) {
-          console.log('Target reached! Advancing to next round...');
-          endlessRef.current.running = false;
-          setTimeout(() => advanceOrEndRound(true), 120); // tiny delay for UX
-        }
+        // Don't auto-advance - let the level up banner handle it
+        // The banner will trigger and pause the game, then advance when complete
         
         return newPoints;
       });
@@ -1134,6 +1130,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
           onComplete={() => {
             setShowLevelUp(false);
             setIsTimerPaused(false); // Resume timer after celebration
+            // Advance to next round after celebration
+            advanceOrEndRound(true);
           }}
         />
       )}

@@ -34,20 +34,15 @@ export default function LevelUpBanner({ visible, onComplete, onStart }: Props) {
     if (visible && !animationStartedRef.current) {
       animationStartedRef.current = true;
       onStart?.(); // Call onStart callback to pause game
-      playSound();
-
+      
+      // Start animation immediately
       // Reset starting position
       translateY.setValue(-100);
       scale.setValue(0);
       opacity.setValue(0);
-    } else if (!visible) {
-      // Reset animation flag when component becomes invisible
-      animationStartedRef.current = false;
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
-        soundRef.current = null;
-      }
-        }
+
+      // Play sound in background (don't wait for it)
+      playSound();
 
       // Animation sequence
       Animated.parallel([
@@ -102,20 +97,27 @@ export default function LevelUpBanner({ visible, onComplete, onStart }: Props) {
                   duration: 400,
                   useNativeDriver: true
                 })
-                             ]).start(() => {
-                 if (soundRef.current) {
-                   soundRef.current.unloadAsync();
-                   soundRef.current = null;
-                 }
-                 animationStartedRef.current = false;
-                 onComplete && onComplete();
-               });
-             }, 800); // Wait 800ms before fade out
-           });
-         }, 800); // Wait 800ms before bounce
-       });
-     }
-   }, [visible, onStart]);
+              ]).start(() => {
+                if (soundRef.current) {
+                  soundRef.current.unloadAsync();
+                  soundRef.current = null;
+                }
+                animationStartedRef.current = false;
+                onComplete && onComplete();
+              });
+            }, 800); // Wait 800ms before fade out
+          });
+        }, 800); // Wait 800ms before bounce
+      });
+    } else if (!visible) {
+      // Reset animation flag when component becomes invisible
+      animationStartedRef.current = false;
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+    }
+  }, [visible, onStart]);
 
   if (!visible) return null;
 
