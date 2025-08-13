@@ -67,29 +67,29 @@ export default function GameHUD({
           <View style={styles.bottomShade} pointerEvents="none" />
 
           <View style={styles.hudContent}>
-            <Stat
-              icon={<Ionicons name="trophy" size={14} color="#7A3E00" style={{ marginRight: 6 }} />}
-              label="Round"
-              value={round}
-            />
-            <Separator />
-            <Stat
-              icon={<Ionicons name="star" size={14} color="#7A3E00" style={{ marginRight: 6 }} />}
-              label="Points"
-              value={points}
-            />
-            <Separator />
-            <Stat
-              icon={<Ionicons name="timer-outline" size={14} color="#7A3E00" style={{ marginRight: 6 }} />}
-              label="Time"
-              value={`${timeLeft}s`}
-            />
-            <Separator />
-            <Stat
-              icon={<MaterialCommunityIcons name="target" size={14} color="#7A3E00" style={{ marginRight: 6 }} />}
-              label="To Go"
-              value={Math.max(0, pointsRemaining)}
-            />
+                         <Stat
+               icon={<Ionicons name="trophy" size={14} color="#7A3E00" />}
+               label="Round"
+               value={round}
+             />
+             <Separator />
+             <Stat
+               icon={<Ionicons name="star" size={14} color="#7A3E00" />}
+               label="Points"
+               value={points}
+             />
+             <Separator />
+             <Stat
+               icon={<Ionicons name="timer-outline" size={14} color="#7A3E00" />}
+               label="Time"
+               value={`${timeLeft}s`}
+             />
+             <Separator />
+             <Stat
+               icon={<MaterialCommunityIcons name="target" size={14} color="#7A3E00" />}
+               label="To Go"
+               value={Math.max(0, pointsRemaining)}
+             />
           </View>
         </LinearGradient>
       </View>
@@ -193,9 +193,10 @@ const styles = StyleSheet.create({
   hudBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 8,
     paddingVertical: 10,
     borderRadius: 18,
+    maxWidth: '85%',
     // Warm cartoon gradient container expects to sit above game canvas
     // Make sure the parent container DOES NOT clip:
     // parentStyle: { overflow: 'visible' }
@@ -242,16 +243,20 @@ const styles = StyleSheet.create({
   hudContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
+    justifyContent: 'space-between',
+    flex: 1,
   },
 
   // Each stat block
   stat: {
-    minWidth: 70,
-    paddingHorizontal: 6,
+    minWidth: 60,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    flex: 1,
   },
   statTop: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     marginBottom: 2,
   },
