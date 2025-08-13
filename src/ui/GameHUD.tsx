@@ -53,12 +53,12 @@ export default function GameHUD({
     >
       {/* Top center pill with stats */}
       <View style={styles.centerWrap} pointerEvents="box-none">
-        <LinearGradient
-          colors={['#FFE59A', '#FFC55C']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.hudBar}
-        >
+                 <LinearGradient
+           colors={['#AEE6FF', '#FFC2E8']}
+           start={{ x: 0, y: 0 }}
+           end={{ x: 1, y: 1 }}
+           style={styles.hudBar}
+         >
           {/* Chunky cartoon outline */}
           <View style={styles.hudStroke} pointerEvents="none" />
 
@@ -66,31 +66,47 @@ export default function GameHUD({
           <View style={styles.topShine} pointerEvents="none" />
           <View style={styles.bottomShade} pointerEvents="none" />
 
-          <View style={styles.hudContent}>
-                         <Stat
-               icon={<Ionicons name="trophy" size={14} color="#7A3E00" />}
+                     <View style={styles.hudContent}>
+             <Stat
+               icon={<Ionicons name="trophy" size={14} color="#5A3EFF" />}
                label="Round"
                value={round}
              />
              <Separator />
              <Stat
-               icon={<Ionicons name="star" size={14} color="#7A3E00" />}
+               icon={<Ionicons name="star" size={14} color="#5A3EFF" />}
                label="Points"
                value={points}
              />
              <Separator />
              <Stat
-               icon={<Ionicons name="timer-outline" size={14} color="#7A3E00" />}
+               icon={<Ionicons name="timer-outline" size={14} color="#5A3EFF" />}
                label="Time"
                value={`${timeLeft}s`}
              />
              <Separator />
              <Stat
-               icon={<MaterialCommunityIcons name="target" size={14} color="#7A3E00" />}
+               icon={<MaterialCommunityIcons name="target" size={14} color="#5A3EFF" />}
                label="To Go"
                value={Math.max(0, pointsRemaining)}
              />
-          </View>
+           </View>
+
+           {/* Optional "bubble" sprinkles */}
+           <View pointerEvents="none" style={{ position: 'absolute', inset: 0 }}>
+             <View style={{
+               position: 'absolute', width: 10, height: 10, borderRadius: 10,
+               backgroundColor: 'rgba(255,255,255,0.6)', top: 8, left: 12
+             }}/>
+             <View style={{
+               position: 'absolute', width: 6, height: 6, borderRadius: 6,
+               backgroundColor: 'rgba(255,255,255,0.55)', top: 16, left: 32
+             }}/>
+             <View style={{
+               position: 'absolute', width: 8, height: 8, borderRadius: 8,
+               backgroundColor: 'rgba(255,255,255,0.55)', bottom: 10, right: 16
+             }}/>
+           </View>
         </LinearGradient>
       </View>
 
@@ -193,19 +209,14 @@ const styles = StyleSheet.create({
   hudBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 18,
-    maxWidth: '85%',
-    // Warm cartoon gradient container expects to sit above game canvas
-    // Make sure the parent container DOES NOT clip:
-    // parentStyle: { overflow: 'visible' }
     shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 5 },
     elevation: 6,
-    // If your bar looked too flat before, slightly squeeze height via padding only
   },
 
   // Bold outline
@@ -214,64 +225,49 @@ const styles = StyleSheet.create({
     inset: 0,
     borderRadius: 18,
     borderWidth: 3,
-    borderColor: '#7A3E00', // dark caramel outline
+    borderColor: '#5A3EFF', // playful purple outline
   },
 
   // Gentle highlight strip on top
   topShine: {
     position: 'absolute',
-    left: 8,
-    right: 8,
-    top: 6,
-    height: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.35)',
+    left: 8, right: 8, top: 6,
+    height: 10, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.4)',
   },
 
   // Subtle inner shadow at bottom for depth
   bottomShade: {
     position: 'absolute',
-    left: 8,
-    right: 8,
-    bottom: 6,
-    height: 12,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0,0,0,0.12)',
+    left: 8, right: 8, bottom: 6,
+    height: 12, borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.10)',
   },
 
   // Row of stats
   hudContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    justifyContent: 'space-between',
-    flex: 1,
+    gap: 12,
   },
 
   // Each stat block
-  stat: {
-    minWidth: 60,
-    paddingHorizontal: 4,
-    alignItems: 'center',
-    flex: 1,
-  },
-  statTop: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
+  stat: { minWidth: 70, paddingHorizontal: 6 },
+  statTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+
+  // brighter labels, darker values for contrast
   statLabel: {
     fontSize: 12,
-    color: '#7A3E00', // matches outline
-    fontWeight: '700',
+    color: '#5A3EFF', // matches outline
+    fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   statValue: {
     fontSize: 18,
-    color: '#3A1C00',
+    color: '#1E1B4B', // deep indigo
     fontWeight: '900',
-    textShadowColor: 'rgba(255,255,255,0.35)',
+    textShadowColor: 'rgba(255,255,255,0.45)',
     textShadowRadius: 2,
     textShadowOffset: { width: 0, height: 1 },
   },
@@ -281,6 +277,6 @@ const styles = StyleSheet.create({
     width: 2,
     height: 26,
     borderRadius: 2,
-    backgroundColor: 'rgba(122,62,0,0.25)',
+    backgroundColor: 'rgba(90,62,255,0.25)', // purple lightly
   },
 });
