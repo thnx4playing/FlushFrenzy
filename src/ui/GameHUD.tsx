@@ -9,6 +9,8 @@ type Props = {
   points: number;            // per-round points
   timeLeft: number;          // seconds left
   pointsRemaining: number;   // target - points (clamped >= 0)
+  totalScore?: number;       // cumulative score for the entire game
+  roundTarget?: number;      // target points for current round
   isMuted: boolean;
   onToggleMute: () => void;
   onOpenSettings: () => void;
@@ -33,11 +35,26 @@ const Stat: React.FC<{ icon: React.ReactNode; label: string; value: string | num
 
 const Separator = () => <View style={styles.sep} />;
 
+const Sep = () => (
+  <View style={styles.sepWrap}>
+    <LinearGradient
+      colors={['#1E8E5A', '#6EF3A0']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
+      style={styles.sep}
+    />
+    <View style={styles.sepDotTop} />
+    <View style={styles.sepDotBottom} />
+  </View>
+);
+
 export default function GameHUD({
   round,
   points,
   timeLeft,
   pointsRemaining,
+  totalScore,
+  roundTarget,
   isMuted,
   onToggleMute,
   onOpenSettings,
@@ -54,7 +71,7 @@ export default function GameHUD({
       {/* Top center pill with stats */}
       <View style={styles.centerWrap} pointerEvents="box-none">
                  <LinearGradient
-           colors={['#AEE6FF', '#FFC2E8']}
+           colors={['#D7FF7A', '#6EF3A0']}
            start={{ x: 0, y: 0 }}
            end={{ x: 1, y: 1 }}
            style={styles.hudBar}
@@ -62,34 +79,28 @@ export default function GameHUD({
           {/* Chunky cartoon outline */}
           <View style={styles.hudStroke} pointerEvents="none" />
 
-          {/* Top shine & bottom shade for depth */}
-          <View style={styles.topShine} pointerEvents="none" />
-          <View style={styles.bottomShade} pointerEvents="none" />
+          
 
                      <View style={styles.hudContent}>
-             <Stat
-               icon={<Ionicons name="trophy" size={14} color="#5A3EFF" />}
-               label="Round"
-               value={round}
-             />
-             <Separator />
-             <Stat
-               icon={<Ionicons name="star" size={14} color="#5A3EFF" />}
-               label="Points"
-               value={points}
-             />
-             <Separator />
-             <Stat
-               icon={<Ionicons name="timer-outline" size={14} color="#5A3EFF" />}
-               label="Time"
-               value={`${timeLeft}s`}
-             />
-             <Separator />
-             <Stat
-               icon={<MaterialCommunityIcons name="target" size={14} color="#5A3EFF" />}
-               label="To Go"
-               value={Math.max(0, pointsRemaining)}
-             />
+             <View style={styles.statPill}>
+               <Text style={styles.statLabel}>Round</Text>
+               <Text style={styles.statValue}>{round}</Text>
+             </View>
+
+             <View style={styles.statPill}>
+               <Text style={styles.statLabel}>Points</Text>
+               <Text style={styles.statValue}>{roundTarget ? `${points}/${roundTarget}` : points}</Text>
+             </View>
+
+             <View style={styles.statPill}>
+               <Text style={styles.statLabel}>Time</Text>
+               <Text style={styles.statValue}>{timeLeft}s</Text>
+             </View>
+
+             <View style={styles.statPill}>
+               <Text style={styles.statLabel}>Total</Text>
+               <Text style={styles.statValue}>{totalScore !== undefined ? totalScore : points}</Text>
+             </View>
            </View>
 
            {/* Optional "bubble" sprinkles */}
@@ -110,8 +121,8 @@ export default function GameHUD({
         </LinearGradient>
       </View>
 
-      {/* Right floating buttons */}
-      <View style={[styles.buttonsWrap, { marginTop: insets.top + 8 }]}>
+      {/* Bottom horizontal buttons */}
+      <View style={[styles.bottomButtonsWrap, { marginTop: insets.top + 90 }]}>
         <CircleButton
           onPress={onOpenSettings}
           icon={<Ionicons name="settings-sharp" size={22} color="#2A2A2A" />}
@@ -181,13 +192,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'visible',
   },
-  buttonsWrap: {
-    position: 'absolute',
-    right: 10,
-    top: 70,
-    gap: 10,
-    overflow: 'visible',
-  },
+     bottomButtonsWrap: {
+     position: 'absolute',
+     left: 0,
+     right: 0,
+     flexDirection: 'row',
+     justifyContent: 'center',
+     gap: 20,
+     overflow: 'visible',
+   },
   circleBtn: {
     width: 44,
     height: 44,
@@ -206,28 +219,29 @@ const styles = StyleSheet.create({
   },
 
   // Outer gradient pill
-  hudBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 10,
-    borderRadius: 18,
-    maxWidth: '85%',
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 6,
-  },
+     hudBar: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     justifyContent: 'center',
+     paddingHorizontal: 24,
+     paddingVertical: 12,
+     borderRadius: 18,
+     maxWidth: '95%',
+     shadowColor: '#000',
+     shadowOpacity: 0.18,
+     shadowRadius: 8,
+     shadowOffset: { width: 0, height: 5 },
+     elevation: 6,
+   },
 
   // Bold outline
-  hudStroke: {
-    position: 'absolute',
-    inset: 0,
-    borderRadius: 18,
-    borderWidth: 3,
-    borderColor: '#5A3EFF', // playful purple outline
-  },
+     hudStroke: {
+     position: 'absolute',
+     inset: 0,
+     borderRadius: 18,
+     borderWidth: 3,
+     borderColor: '#000000', // black outline
+   },
 
   // Gentle highlight strip on top
   topShine: {
@@ -246,49 +260,80 @@ const styles = StyleSheet.create({
   },
 
   // Row of stats
-  hudContent: {
-    flexDirection: 'row',
+     hudContent: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     justifyContent: 'center',
+     gap: 8,
+   },
+
+  // SLIME PILL behind each stat
+     statPill: {
+     minWidth: 80,
+     paddingHorizontal: 10,
+     paddingVertical: 8,
+     borderRadius: 12,
+     backgroundColor: 'rgba(110, 243, 160, 0.18)', // soft slime tint
+     borderWidth: 1,
+     borderColor: 'rgba(30, 142, 90, 0.35)',
+     alignItems: 'center',
+     justifyContent: 'center',
+   },
+
+     statTop: { flexDirection: 'column', alignItems: 'center', marginBottom: 2 },
+
+     statLabel: {
+     fontSize: 12,
+     color: '#1E8E5A',
+     fontWeight: '800',
+     textTransform: 'uppercase',
+     letterSpacing: 0.5,
+     marginBottom: 4,
+   },
+
+                                                                                               statValue: {
+         fontSize: 16,
+         color: '#000000', // black color
+         fontWeight: '900',
+         textShadowColor: 'rgba(255,255,255,0.45)', // white shadow for black text
+         textShadowRadius: 2,
+         textShadowOffset: { width: 0, height: 1 },
+       },
+
+  // SLIME DIVIDER
+  sepWrap: {
+    width: 16,
     alignItems: 'center',
-    gap: 8,
-    justifyContent: 'space-between',
-    flex: 1,
+    justifyContent: 'center',
+    marginHorizontal: 2,
   },
-
-  // Each stat block
-  stat: { 
-    minWidth: 60, 
-    paddingHorizontal: 4,
-    alignItems: 'center',
-    flex: 1,
-  },
-  statTop: { 
-    flexDirection: 'column', 
-    alignItems: 'center', 
-    marginBottom: 2 
-  },
-
-  // brighter labels, darker values for contrast
-  statLabel: {
-    fontSize: 12,
-    color: '#5A3EFF', // matches outline
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  statValue: {
-    fontSize: 18,
-    color: '#1E1B4B', // deep indigo
-    fontWeight: '900',
-    textShadowColor: 'rgba(255,255,255,0.45)',
-    textShadowRadius: 2,
-    textShadowOffset: { width: 0, height: 1 },
-  },
-
-  // Vertical separators
   sep: {
-    width: 2,
-    height: 26,
-    borderRadius: 2,
-    backgroundColor: 'rgba(90,62,255,0.25)', // purple lightly
+    width: 4,
+    height: 32,
+    borderRadius: 4,
+    shadowColor: '#1E8E5A',
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  sepDotTop: {
+    position: 'absolute',
+    top: 2,
+    width: 6,
+    height: 6,
+    borderRadius: 6,
+    backgroundColor: '#6EF3A0',
+    transform: [{ translateX: 6 }],
+    opacity: 0.9,
+  },
+  sepDotBottom: {
+    position: 'absolute',
+    bottom: 2,
+    width: 8,
+    height: 8,
+    borderRadius: 8,
+    backgroundColor: '#1E8E5A',
+    transform: [{ translateX: -6 }],
+    opacity: 0.85,
   },
 });

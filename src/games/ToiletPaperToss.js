@@ -1096,6 +1096,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
           points={epRoundPoints}
           timeLeft={epTimeLeft}
           pointsRemaining={Math.max(0, epTarget - epRoundPoints)}
+          totalScore={score}
+          roundTarget={epTarget}
           isMuted={isMuted}
           onToggleMute={() => setIsMuted(m => !m)}
           onOpenSettings={() => setSettingsVisible(true)}
@@ -1113,6 +1115,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
           points={score}
           timeLeft={timeLeft}
           pointsRemaining={0}
+          totalScore={score}
+          roundTarget={0}
           isMuted={isMuted}
           onToggleMute={() => setIsMuted(m => !m)}
           onOpenSettings={() => setSettingsVisible(true)}
