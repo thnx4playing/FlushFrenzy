@@ -19,20 +19,6 @@ type Props = {
 };
 
 // --- small helpers ---
-const Stat: React.FC<{ icon: React.ReactNode; label: string; value: string | number }> = ({
-  icon,
-  label,
-  value,
-}) => (
-  <View style={styles.stat}>
-    <View style={styles.statTop}>
-      {icon}
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-    <Text style={styles.statValue}>{String(value)}</Text>
-  </View>
-);
-
 const Separator = () => <View style={styles.sep} />;
 
 const Sep = () => (
@@ -280,7 +266,7 @@ const styles = StyleSheet.create({
      justifyContent: 'center',
    },
 
-     statTop: { flexDirection: 'column', alignItems: 'center', marginBottom: 2 },
+
 
      statLabel: {
      fontSize: 12,

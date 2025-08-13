@@ -14,10 +14,12 @@ import { GameEngine } from 'react-native-game-engine';
 import Matter from 'matter-js';
 import { Audio } from 'expo-av';
 import Svg, { Polygon, Circle as SvgCircle, Rect } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AimPad from '../../components/AimPad';
 import TrajectoryOverlay from '../../components/TrajectoryOverlay';
 import PowerBar from '../../components/PowerBar';
 import GameHUD from '../ui/GameHUD';
+import LevelUpCelebration from '../components/LevelUpCelebration';
 import { setHighScoreIfBest, getHighScore } from '../utils/highScore';
 
 // Set up poly-decomp for Matter.js concave shapes
@@ -573,6 +575,13 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   const [epRoundPoints, setEpRoundPoints] = useState(0);
   const [toiletSpeedMul, setToiletSpeedMul] = useState(1); // 1.0 -> 1.5 (capped)
   const [tpSkin, setTpSkin] = useState('tp.png');
+  
+  // ===== Level Up Celebration State =====
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [isTimerPaused, setIsTimerPaused] = useState(false);
+  const prevRound = useRef(1);
+  const insets = useSafeAreaInsets();
+  const HUD_HEIGHT = 56; // Approximate HUD height
 
   // convenience ref so physics/tickers can read latest values without stale closures
   const endlessRef = useRef({
@@ -664,6 +673,15 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   useEffect(() => { endlessRef.current.toiletSpeedMul = toiletSpeedMul; }, [toiletSpeedMul]);
   useEffect(() => { endlessRef.current.tpSkin = tpSkin; }, [tpSkin]);
 
+  // Detect round changes and trigger level up celebration
+  useEffect(() => {
+    if (epRound > prevRound.current) {
+      // Level advanced!
+      setShowLevelUp(true);
+    }
+    prevRound.current = epRound;
+  }, [epRound]);
+
   // Round math helpers
   const TP_SKINS = ['tp-blue.png','tp-green.png','tp-pink.png','tp-purple.png','tp-red.png'];
 
@@ -718,17 +736,6 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       return;
     }
 
-    // Play win sound
-    try {
-      const sound = new Audio.Sound();
-      await sound.loadAsync(require('../../assets/ding.mp3'));
-      await sound.playAsync();
-      // don't await unload immediately—let it finish
-      setTimeout(() => sound.unloadAsync().catch(()=>{}), 2000);
-    } catch (e) {
-      // fail silently if sound not available
-    }
-
     // Next round setup
     const next = epRound + 1;
     const cfg = getRoundConfig(next);
@@ -741,6 +748,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     setToiletSpeedMul(cfg.speedMul);
     setTpSkin(prev => pickRandomSkin(prev));
     endlessRef.current.running = true;
+    
+    // Note: The level up celebration will be triggered by the useEffect that watches epRound
   }
 
   const showGameOver = () => {
@@ -955,7 +964,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     let id = null;
 
     const tick = () => {
-      if (!endlessRef.current.running) return;
+      if (!endlessRef.current.running || isTimerPaused) return; // Don't tick when paused
       setEpTimeLeft(t => {
         if (t <= 1) {
           // time is up -> win if target met, else lose
@@ -974,7 +983,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
 
     id = setInterval(tick, 1000);
     return () => { if (id) clearInterval(id); };
-  }, [gameMode, epRoundPoints, epTarget]); // Include dependencies to avoid stale closures
+  }, [gameMode, epRoundPoints, epTarget, isTimerPaused]); // Include dependencies to avoid stale closures
 
   // Collision handling: if tp hits ground, mark turn over
   useEffect(() => {
@@ -1104,6 +1113,20 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
           onEndGame={() => {
             endlessRef.current.running = false;
             showGameOver();
+          }}
+        />
+      )}
+
+      {/* Level Up Celebration */}
+      {gameMode === 'endless-plunge' && (
+        <LevelUpCelebration
+          visible={showLevelUp}
+          round={epRound}
+          topOffset={insets.top + HUD_HEIGHT}
+          onStart={() => setIsTimerPaused(true)} // Pause timer when celebration starts
+          onDone={() => {
+            setShowLevelUp(false);
+            setIsTimerPaused(false); // Resume timer after celebration
           }}
         />
       )}
@@ -1268,7 +1291,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+                      </Modal>
 
       {/* Game Over Modal */}
       <Modal

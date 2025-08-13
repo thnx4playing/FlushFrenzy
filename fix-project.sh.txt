@@ -1,0 +1,6 @@
+chmod -R +x node_modules/.bin 2>/dev/null || true
+xattr -dr com.apple.quarantine . 2>/dev/null || true
+npm install
+npx expo prebuild --platform ios --clean
+cd ios
+pod install
