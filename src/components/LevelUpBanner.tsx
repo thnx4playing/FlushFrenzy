@@ -7,9 +7,10 @@ const { width } = Dimensions.get('window');
 type Props = {
   visible: boolean;
   onComplete?: () => void;
+  onStart?: () => void;
 };
 
-export default function LevelUpBanner({ visible, onComplete }: Props) {
+export default function LevelUpBanner({ visible, onComplete, onStart }: Props) {
   const translateY = useRef(new Animated.Value(-100)).current;
   const scale = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -20,14 +21,15 @@ export default function LevelUpBanner({ visible, onComplete }: Props) {
     const playSound = async () => {
       try {
         sound = new Audio.Sound();
-        await sound.loadAsync(require('../../assets/ding.mp3')); // Using existing ding.mp3
+        await sound.loadAsync(require('../../assets/win.mp3')); // Using win.mp3 for level up
         await sound.playAsync();
       } catch (err) {
-        console.warn('Error playing ding.mp3', err);
+        console.warn('Error playing win.mp3', err);
       }
     };
 
     if (visible) {
+      onStart?.(); // Call onStart callback to pause game
       playSound();
 
       // Reset starting position
@@ -37,49 +39,56 @@ export default function LevelUpBanner({ visible, onComplete }: Props) {
 
       // Animation sequence
       Animated.sequence([
-        Animated.parallel([
-          Animated.timing(opacity, {
-            toValue: 1,
-            duration: 200,
+        // Slide down with bounce
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: 600,
+          easing: Easing.out(Easing.back(1.2)),
+          useNativeDriver: true
+        }),
+        // Fade in
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true
+        }),
+        // Hold for a moment
+        Animated.delay(800),
+        // Bounce effect
+        Animated.sequence([
+          Animated.timing(scale, {
+            toValue: 1.15,
+            duration: 100,
             useNativeDriver: true
           }),
-          Animated.spring(scale, {
-            toValue: 1,
-            friction: 4,
-            tension: 100,
+          Animated.timing(scale, {
+            toValue: 0.95,
+            duration: 100,
             useNativeDriver: true
           }),
-          Animated.timing(translateY, {
-            toValue: 0,
-            duration: 500,
-            easing: Easing.out(Easing.exp),
+          Animated.timing(scale, {
+            toValue: 1.05,
+            duration: 100,
+            useNativeDriver: true
+          }),
+          Animated.timing(scale, {
+            toValue: 1,
+            duration: 100,
             useNativeDriver: true
           })
         ]),
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(scale, {
-              toValue: 1.1,
-              duration: 150,
-              useNativeDriver: true
-            }),
-            Animated.timing(scale, {
-              toValue: 1,
-              duration: 150,
-              useNativeDriver: true
-            })
-          ]),
-          { iterations: 3 }
-        ),
+        // Hold for another moment
+        Animated.delay(500),
+        // Fade out and slide up
         Animated.parallel([
           Animated.timing(opacity, {
             toValue: 0,
-            duration: 300,
+            duration: 400,
             useNativeDriver: true
           }),
           Animated.timing(translateY, {
             toValue: -100,
-            duration: 300,
+            duration: 400,
             useNativeDriver: true
           })
         ])
@@ -90,7 +99,7 @@ export default function LevelUpBanner({ visible, onComplete }: Props) {
         onComplete && onComplete();
       });
     }
-  }, [visible]);
+  }, [visible, onStart]);
 
   if (!visible) return null;
 
@@ -112,21 +121,29 @@ export default function LevelUpBanner({ visible, onComplete }: Props) {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 80,
+    top: 160,
     left: width / 2 - 150,
     width: 300,
     padding: 15,
-    backgroundColor: '#ffeb3b',
-    borderRadius: 20,
+    backgroundColor: '#4FC3F7', // Light sky blue
+    borderRadius: 25,
     alignItems: 'center',
     borderWidth: 4,
-    borderColor: '#f57c00'
+    borderColor: '#ffffff', // White border
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    zIndex: 9999
   },
   text: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#d32f2f',
-    textShadowColor: 'rgba(0,0,0,0.3)',
+    fontSize: 34,
+    fontWeight: '900',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: '#fff',
+    textShadowColor: 'rgba(0, 0, 0, 0.25)',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 3
   }

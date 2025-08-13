@@ -578,6 +578,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   
   // ===== Level Up Banner State =====
   const [showLevelUp, setShowLevelUp] = useState(false);
+  const [isTimerPaused, setIsTimerPaused] = useState(false);
   const prevRound = useRef(1);
   const insets = useSafeAreaInsets();
 
@@ -668,17 +669,19 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   useEffect(() => { endlessRef.current.timeLeft = epTimeLeft; }, [epTimeLeft]);
   useEffect(() => { endlessRef.current.target = epTarget; }, [epTarget]);
   useEffect(() => { endlessRef.current.roundPoints = epRoundPoints; }, [epRoundPoints]);
-  useEffect(() => { endlessRef.current.toiletSpeedMul = toiletSpeedMul; }, [toiletSpeedMul]);
+  useEffect(() => { 
+    // Pause toilet movement during level up celebration
+    endlessRef.current.toiletSpeedMul = isTimerPaused ? 0 : toiletSpeedMul; 
+  }, [toiletSpeedMul, isTimerPaused]);
   useEffect(() => { endlessRef.current.tpSkin = tpSkin; }, [tpSkin]);
 
-  // Detect round changes and trigger level up banner
+  // Detect when points reach target and trigger level up banner
   useEffect(() => {
-    if (epRound > prevRound.current) {
-      // Level advanced!
+    if (epRoundPoints >= epTarget && epRoundPoints > 0 && !showLevelUp) {
+      // Points reached target - trigger level up!
       setShowLevelUp(true);
     }
-    prevRound.current = epRound;
-  }, [epRound]);
+  }, [epRoundPoints, epTarget, showLevelUp]);
 
   // Round math helpers
   const TP_SKINS = ['tp-blue.png','tp-green.png','tp-pink.png','tp-purple.png','tp-red.png'];
@@ -692,12 +695,12 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   // Every round after: +5s time, +2 points, +5% speed (cap at +50%)
   function getRoundConfig(round) {
     if (round === 1) {
-      return { time: 30, target: 10, speedMul: 1.0 };
+      return { time: 30, target: 1, speedMul: 1.0 }; // TESTING: Changed from 10 to 1
     }
     
     const extraRounds = round - 1;
     const time = 30 + (extraRounds * 5); // 35s at round 2, 40s at round 3, etc.
-    const target = 10 + (extraRounds * 2); // 12 at round 2, 14 at round 3, etc.
+    const target = 1 + (extraRounds * 1); // TESTING: Changed from 10 + (extraRounds * 2) to 1 + (extraRounds * 1)
     
     // Speed increases by 5% each round, capped at +50% (1.5x total)
     const speedIncrease = Math.min(extraRounds * 0.05, 0.50);
@@ -962,7 +965,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     let id = null;
 
     const tick = () => {
-      if (!endlessRef.current.running) return;
+      if (!endlessRef.current.running || isTimerPaused) return; // Don't tick when paused
       setEpTimeLeft(t => {
         if (t <= 1) {
           // time is up -> win if target met, else lose
@@ -981,7 +984,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
 
     id = setInterval(tick, 1000);
     return () => { if (id) clearInterval(id); };
-  }, [gameMode, epRoundPoints, epTarget]); // Include dependencies to avoid stale closures
+  }, [gameMode, epRoundPoints, epTarget, isTimerPaused]); // Include dependencies to avoid stale closures
 
   // Collision handling: if tp hits ground, mark turn over
   useEffect(() => {
@@ -1119,7 +1122,11 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       {gameMode === 'endless-plunge' && (
         <LevelUpBanner
           visible={showLevelUp}
-          onComplete={() => setShowLevelUp(false)}
+          onStart={() => setIsTimerPaused(true)} // Pause timer when celebration starts
+          onComplete={() => {
+            setShowLevelUp(false);
+            setIsTimerPaused(false); // Resume timer after celebration
+          }}
         />
       )}
       
