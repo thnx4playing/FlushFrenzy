@@ -19,7 +19,7 @@ import AimPad from '../../components/AimPad';
 import TrajectoryOverlay from '../../components/TrajectoryOverlay';
 import PowerBar from '../../components/PowerBar';
 import GameHUD from '../ui/GameHUD';
-import LevelUpCelebration from '../components/LevelUpCelebration';
+import LevelUpBanner from '../components/LevelUpBanner';
 import { setHighScoreIfBest, getHighScore } from '../utils/highScore';
 
 // Set up poly-decomp for Matter.js concave shapes
@@ -576,12 +576,10 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   const [toiletSpeedMul, setToiletSpeedMul] = useState(1); // 1.0 -> 1.5 (capped)
   const [tpSkin, setTpSkin] = useState('tp.png');
   
-  // ===== Level Up Celebration State =====
+  // ===== Level Up Banner State =====
   const [showLevelUp, setShowLevelUp] = useState(false);
-  const [isTimerPaused, setIsTimerPaused] = useState(false);
   const prevRound = useRef(1);
   const insets = useSafeAreaInsets();
-  const HUD_HEIGHT = 56; // Approximate HUD height
 
   // convenience ref so physics/tickers can read latest values without stale closures
   const endlessRef = useRef({
@@ -673,7 +671,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   useEffect(() => { endlessRef.current.toiletSpeedMul = toiletSpeedMul; }, [toiletSpeedMul]);
   useEffect(() => { endlessRef.current.tpSkin = tpSkin; }, [tpSkin]);
 
-  // Detect round changes and trigger level up celebration
+  // Detect round changes and trigger level up banner
   useEffect(() => {
     if (epRound > prevRound.current) {
       // Level advanced!
@@ -964,7 +962,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     let id = null;
 
     const tick = () => {
-      if (!endlessRef.current.running || isTimerPaused) return; // Don't tick when paused
+      if (!endlessRef.current.running) return;
       setEpTimeLeft(t => {
         if (t <= 1) {
           // time is up -> win if target met, else lose
@@ -983,7 +981,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
 
     id = setInterval(tick, 1000);
     return () => { if (id) clearInterval(id); };
-  }, [gameMode, epRoundPoints, epTarget, isTimerPaused]); // Include dependencies to avoid stale closures
+  }, [gameMode, epRoundPoints, epTarget]); // Include dependencies to avoid stale closures
 
   // Collision handling: if tp hits ground, mark turn over
   useEffect(() => {
@@ -1117,17 +1115,11 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
         />
       )}
 
-      {/* Level Up Celebration */}
+      {/* Level Up Banner */}
       {gameMode === 'endless-plunge' && (
-        <LevelUpCelebration
+        <LevelUpBanner
           visible={showLevelUp}
-          round={epRound}
-          topOffset={insets.top + HUD_HEIGHT}
-          onStart={() => setIsTimerPaused(true)} // Pause timer when celebration starts
-          onDone={() => {
-            setShowLevelUp(false);
-            setIsTimerPaused(false); // Resume timer after celebration
-          }}
+          onComplete={() => setShowLevelUp(false)}
         />
       )}
       
