@@ -672,16 +672,22 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  // First 5 rounds: 30s/10pts each, +10% speed per round (cap 50% total).
-  // After that: add +15s time and +5 points required each round, speed stays capped at 1.5x.
+  // First round: 30s/10pts
+  // Every round after: +5s time, +1 point, +5% speed (cap at +50%)
   function getRoundConfig(round) {
-    if (round <= 5) {
-      return { time: 30, target: 10, speedMul: 1 + 0.10 * (round - 1) };
+    if (round === 1) {
+      return { time: 30, target: 10, speedMul: 1.0 };
     }
-    const extra = round - 5;
-    const time = 45 + (extra - 1) * 15; // 45s at round 6, +15s each round
-    const target = 15 + (extra - 1) * 5; // 15 at round 6, +5 each round
-    return { time, target, speedMul: 1.5 };
+    
+    const extraRounds = round - 1;
+    const time = 30 + (extraRounds * 5); // 35s at round 2, 40s at round 3, etc.
+    const target = 10 + extraRounds; // 11 at round 2, 12 at round 3, etc.
+    
+    // Speed increases by 5% each round, capped at +50% (1.5x total)
+    const speedIncrease = Math.min(extraRounds * 0.05, 0.50);
+    const speedMul = 1.0 + speedIncrease;
+    
+    return { time, target, speedMul };
   }
 
   // Kick off Endless Plunge session (Round 1)
