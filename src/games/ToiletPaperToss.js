@@ -673,7 +673,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   }
 
   // First round: 30s/10pts
-  // Every round after: +5s time, +1 point, +5% speed (cap at +50%)
+  // Every round after: +5s time, +2 points, +5% speed (cap at +50%)
   function getRoundConfig(round) {
     if (round === 1) {
       return { time: 30, target: 10, speedMul: 1.0 };
@@ -681,7 +681,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     
     const extraRounds = round - 1;
     const time = 30 + (extraRounds * 5); // 35s at round 2, 40s at round 3, etc.
-    const target = 10 + extraRounds; // 11 at round 2, 12 at round 3, etc.
+    const target = 10 + (extraRounds * 2); // 12 at round 2, 14 at round 3, etc.
     
     // Speed increases by 5% each round, capped at +50% (1.5x total)
     const speedIncrease = Math.min(extraRounds * 0.05, 0.50);
