@@ -17,16 +17,16 @@ const { width, height } = Dimensions.get('window');
 
 const GAME_MODES = [
   {
-    id: 'quick-flush',
-    title: 'QUICK FLUSH',
-    subtitle: '60 SECOND CHALLENGE',
-    imageSource: require('../../assets/quick_flush.png'),
-  },
-  {
     id: 'endless-plunge',
     title: 'ENDLESS PLUNGE',
-    subtitle: '3 MISSES ALLOWED',
+    subtitle: 'BEAT THE CLOCK',
     imageSource: require('../../assets/endless_plunge.png'),
+  },
+  {
+    id: 'quick-flush',
+    title: 'PRACTICE MODE',
+    subtitle: '60 SECOND CHALLENGE',
+    imageSource: require('../../assets/quick_flush.png'),
   },
 ];
 
@@ -55,7 +55,16 @@ export default function HomeScreen({ navigation }) {
       resizeMode="stretch"
     >
       <View style={styles.content}>
-        {/* Game Modes - moved to top */}
+        {/* Header moved to top with increased size */}
+        <View style={styles.header}>
+          <Image 
+            source={require('../../assets/header.png')} 
+            style={styles.headerImage}
+            resizeMode="contain"
+          />
+        </View>
+
+        {/* Game Modes - moved down to allow room for header */}
         <View style={styles.gameModesContainer}>
           {GAME_MODES.map((mode, index) => (
             <TouchableOpacity
@@ -66,33 +75,24 @@ export default function HomeScreen({ navigation }) {
             >
               <Image 
                 source={mode.imageSource}
-                style={mode.id === 'quick-flush' ? styles.quickFlushImage : styles.endlessPlungeImage}
+                style={styles.gameModeImage}
                 resizeMode="contain"
               />
               <View style={styles.highScoreContainer}>
-                <Ionicons name="trophy" size={16} color="#FFD700" style={styles.trophyIcon} />
+                <Ionicons name="trophy" size={16} color="#FF6B35" style={styles.trophyIcon} />
                 <HighScoreLabel mode={mode.id} style={styles.highScoreText} />
               </View>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Header moved to bottom */}
-        <View style={styles.header}>
-          <Image 
-            source={require('../../assets/header.png')} 
-            style={styles.headerImage}
-            resizeMode="contain"
-          />
-        </View>
-
         {/* Bottom corner actions */}
         <View style={styles.bottomBar} pointerEvents="box-none">
           <TouchableOpacity style={styles.bottomLeft} onPress={() => setSettingsVisible(true)}>
-            <Ionicons name="settings-sharp" size={26} color="#343a40" />
+            <Ionicons name="settings-sharp" size={26} color="#FFFFFF" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.bottomRight} onPress={() => setIsMuted(m => !m)}>
-            <Ionicons name={isMuted ? 'volume-mute' : 'volume-high'} size={26} color="#343a40" />
+            <Ionicons name={isMuted ? 'volume-mute' : 'volume-high'} size={26} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
@@ -125,11 +125,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 0,
   },
+  header: {
+    width: '100%',
+    height: height * 0.25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 80,
+  },
+  headerImage: {
+    width: width * 0.9,
+    height: height * 0.3,
+  },
   gameModesContainer: {
     flex: 1,
     justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingTop: 120,
+    paddingTop: 60,
   },
   gameModeCard: {
     alignItems: 'center',
@@ -146,11 +157,16 @@ const styles = StyleSheet.create({
     height: 220,
     marginVertical: -10,
   },
+  gameModeImage: {
+    width: width * 0.765, // 10% smaller (was 0.85)
+    height: 291.6, // 10% smaller (was 324)
+    alignSelf: 'center',
+  },
   highScoreContainer: {
     position: 'absolute',
     bottom: 15,
     right: 15,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -169,32 +185,7 @@ const styles = StyleSheet.create({
   highScoreText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  quickFlushImage: {
-    width: width * 0.765, // 10% smaller (was 0.85)
-    height: 291.6, // 10% smaller (was 324)
-    alignSelf: 'center',
-  },
-  endlessPlungeImage: {
-    width: width * 0.95,
-    height: 220,
-    alignSelf: 'center',
-  },
-  header: {
-    width: '100%',
-    height: height * 0.1,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingBottom: 0,
-    marginBottom: 0,
-  },
-  headerImage: {
-    width: width,
-    height: height * 0.3,
+    color: '#000000',
   },
   bottomBar: {
     position: 'absolute',

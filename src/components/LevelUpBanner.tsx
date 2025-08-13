@@ -8,9 +8,10 @@ type Props = {
   visible: boolean;
   onComplete?: () => void;
   onStart?: () => void;
+  round?: number;
 };
 
-export default function LevelUpBanner({ visible, onComplete, onStart }: Props) {
+export default function LevelUpBanner({ visible, onComplete, onStart, round }: Props) {
   const translateY = useRef(new Animated.Value(-100)).current;
   const scale = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -129,6 +130,9 @@ export default function LevelUpBanner({ visible, onComplete, onStart }: Props) {
       ]}
     >
       <Text style={styles.text}>LEVEL UP!</Text>
+      {typeof round === 'number' && (
+        <Text style={styles.roundText}>Round {round}</Text>
+      )}
     </Animated.View>
   );
 }
@@ -136,7 +140,7 @@ export default function LevelUpBanner({ visible, onComplete, onStart }: Props) {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 160,
+    top: 200,
     left: width / 2 - 150,
     width: 300,
     padding: 15,
@@ -161,5 +165,14 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.25)',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 3
+  },
+  roundText: {
+    marginTop: 4,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    textShadowColor: 'rgba(0, 0, 0, 0.25)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2
   }
 });

@@ -20,6 +20,7 @@ import TrajectoryOverlay from '../../components/TrajectoryOverlay';
 import PowerBar from '../../components/PowerBar';
 import GameHUD from '../ui/GameHUD';
 import LevelUpBanner from '../components/LevelUpBanner';
+import PracticeCustomizationModal from '../components/PracticeCustomizationModal';
 import { setHighScoreIfBest, getHighScore } from '../utils/highScore';
 
 // Set up poly-decomp for Matter.js concave shapes
@@ -559,7 +560,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   const [highScore, setHighScore] = useState(0);
   const [persistentHighScore, setPersistentHighScore] = useState(0);
 
-  const [timeLeft, setTimeLeft] = useState(gameMode === 'quick-flush' ? 60 : 0);
+  const [timeLeft, setTimeLeft] = useState(0);
   const [gameOverVisible, setGameOverVisible] = useState(false);
 
   const [isMuted, setIsMuted] = useState(false);
@@ -581,6 +582,17 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   const [isTimerPaused, setIsTimerPaused] = useState(false);
   const prevRound = useRef(1);
   const insets = useSafeAreaInsets();
+
+  // ===== Practice Mode Customization State =====
+  const [practiceCustomizationVisible, setPracticeCustomizationVisible] = useState(false);
+  const [practiceSettings, setPracticeSettings] = useState({
+    tpSkin: 'tp.png',
+    toiletSpeed: 5,
+    gravity: 5,
+  });
+  const [practiceGameStarted, setPracticeGameStarted] = useState(false);
+  const [currentGravity, setCurrentGravity] = useState(CONSTANTS.GRAVITY_Y);
+  const [currentSpeed, setCurrentSpeed] = useState(16.2);
 
   // convenience ref so physics/tickers can read latest values without stale closures
   const endlessRef = useRef({
@@ -687,11 +699,18 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     levelUpTriggeredRef.current = false;
   }, [epRound]);
 
+  // Show practice customization modal when Practice Mode is selected
+  useEffect(() => {
+    if (gameMode === 'quick-flush' && !practiceGameStarted) {
+      setPracticeCustomizationVisible(true);
+    }
+  }, [gameMode]);
+
   // Round math helpers
-  const TP_SKINS = ['tp-blue.png','tp-green.png','tp-pink.png','tp-purple.png','tp-red.png'];
+  const TP_SKINS = ['tp.png','tp-blue.png','tp-green.png','tp-pink.png','tp-purple.png','tp-red.png','tp-orange.png','tp-rainbow.png'];
 
   function pickRandomSkin(exclude) {
-    const pool = TP_SKINS.filter(s => s !== exclude);
+    const pool = TP_SKINS.filter(s => s !== exclude && s !== 'tp.png'); // Exclude default skin from random selection
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
@@ -699,12 +718,12 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   // Every round after: +5s time, +2 points, +5% speed (cap at +50%)
   function getRoundConfig(round) {
     if (round === 1) {
-      return { time: 30, target: 1, speedMul: 1.0 }; // TESTING: Changed from 10 to 1
+      return { time: 30, target: 10, speedMul: 1.0 };
     }
     
     const extraRounds = round - 1;
     const time = 30 + (extraRounds * 5); // 35s at round 2, 40s at round 3, etc.
-    const target = 1 + (extraRounds * 1); // TESTING: Changed from 10 + (extraRounds * 2) to 1 + (extraRounds * 1)
+    const target = 10 + (extraRounds * 2); // 12 at round 2, 14 at round 3, etc.
     
     // Speed increases by 5% each round, capped at +50% (1.5x total)
     const speedIncrease = Math.min(extraRounds * 0.05, 0.50);
@@ -760,6 +779,49 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
   const showGameOver = () => {
     // Just show the game over modal - let the buttons handle navigation
     setGameOverVisible(true);
+  };
+
+  // Calculate adjusted speed based on gravity setting
+  const getAdjustedSpeed = () => {
+    if (gameMode === 'quick-flush' && practiceGameStarted) {
+      return currentSpeed; // Use the current speed set by practice mode
+    }
+    return 16.2; // Default speed for other modes
+  };
+
+  // Practice Mode Customization Handlers
+  const handlePracticePlay = (settings) => {
+    setPracticeSettings(settings);
+    setPracticeCustomizationVisible(false);
+    setPracticeGameStarted(true);
+    
+    // Apply practice settings
+    setTpSkin(settings.tpSkin);
+    
+    // Update toilet speed for practice mode
+    const toiletSpeedMultiplier = settings.toiletSpeed / 5; // Convert 0-10 to 0-2x multiplier
+    setToiletSpeedMul(toiletSpeedMultiplier);
+    
+    // Update gravity for practice mode
+    // Convert 1-10 to 0.2-2x multiplier (minimum gravity is 0.2x default)
+    const gravityMultiplier = Math.max(0.2, settings.gravity / 5); // Convert 1-10 to 0.2-2x multiplier
+    const newGravity = CONSTANTS.GRAVITY_Y * gravityMultiplier;
+    setCurrentGravity(newGravity);
+    world.gravity.y = newGravity;
+    
+    // Update launch speed with less aggressive reduction
+    // Use a more gradual speed reduction: 0.8x to 1.6x range instead of 0.6x to 1.4x
+    const speedMultiplier = 0.8 + (settings.gravity - 1) * 0.089; // Maps 1-10 to 0.8-1.6
+    const newSpeed = 16.2 * speedMultiplier;
+    setCurrentSpeed(newSpeed);
+  };
+
+  const handlePracticeClose = () => {
+    setPracticeCustomizationVisible(false);
+    // Navigate back to home screen or handle as needed
+    if (onGameComplete) {
+      onGameComplete();
+    }
   };
 
   // Debug: Dump static bodies to find invisible walls
@@ -825,7 +887,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       // Set velocity on the new body
       const rawP = a.power || 0;
       const p = Math.max(0.25, Math.min(1, rawP));
-      const SPEED = 16.2;  // Reduced acceleration (10% less) for smoother launch
+      const SPEED = getAdjustedSpeed();  // Use gravity-adjusted speed
       const vx = (a.dir?.x || 0) * SPEED * p;
       const vy = -(Math.abs(a.dir?.y || 0)) * SPEED * p;
       
@@ -841,7 +903,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     // power from AimPad drag distance; add a safe minimum
     const rawP = a.power || 0;
     const p = Math.max(0.25, Math.min(1, rawP));     // TEMP min power 25%
-    const SPEED = 16.2;  // Reduced acceleration (10% less) for smoother launch
+    const SPEED = getAdjustedSpeed();  // Use gravity-adjusted speed
 
     // portrait: up is negative Y
     const vx = (a.dir?.x || 0) * SPEED * p;
@@ -950,18 +1012,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     applyVolume();
   }, [isMuted]);
 
-  // Game timer
-  useEffect(() => {
-    let timer;
-    if (gameMode === 'quick-flush' && timeLeft > 0) {
-      timer = setTimeout(() => {
-        setTimeLeft(timeLeft - 1);
-      }, 1000);
-    } else if (gameMode === 'quick-flush' && timeLeft === 0) {
-      showGameOver();
-    }
-    return () => clearTimeout(timer);
-  }, [timeLeft, gameMode, score]);
+  // Game timer (removed for Practice Mode - game only ends on user action)
 
   // Endless Plunge timer ticker (1 Hz)
   useEffect(() => {
@@ -1042,7 +1093,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     Matter.Runner.run(runner, engine);
 
     engine.world.gravity.x = 0;
-    engine.world.gravity.y = CONSTANTS.GRAVITY_Y;
+    // Use current gravity setting (default or practice mode custom)
+    engine.world.gravity.y = currentGravity;
     
         let updateCount = 0;
     Matter.Events.on(engine, "afterUpdate", () => {
@@ -1078,7 +1130,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       Matter.Events.off(engine, "afterUpdate");
       Matter.Engine.clear(engine);
     };
-  }, [enginePkg, bodies.tp, gameMode, tpVisible]);
+  }, [enginePkg, bodies.tp, gameMode, tpVisible, currentGravity]);
 
   // Input handled via AimPad
   const systems = [Physics, CollisionSystem, MovingToiletSystem];
@@ -1106,6 +1158,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       {/* New GameHUD Component */}
       {gameMode === 'endless-plunge' && (
         <GameHUD
+          gameMode={gameMode}
           round={epRound}
           points={epRoundPoints}
           timeLeft={epTimeLeft}
@@ -1126,6 +1179,7 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       {gameMode === 'endless-plunge' && (
         <LevelUpBanner
           visible={showLevelUp}
+          round={epRound + 1} // Show the round we're advancing to
           onStart={() => setIsTimerPaused(true)} // Pause timer when celebration starts
           onComplete={() => {
             setShowLevelUp(false);
@@ -1139,9 +1193,10 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       {/* Quick Flush HUD - simplified version */}
       {gameMode === 'quick-flush' && (
         <GameHUD
+          gameMode={gameMode}
           round={1}
           points={score}
-          timeLeft={timeLeft}
+          timeLeft={0}
           pointsRemaining={0}
           totalScore={score}
           roundTarget={0}
@@ -1239,6 +1294,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
                 'tp-pink.png':   require('../../assets/tp-pink.png'),
                 'tp-purple.png': require('../../assets/tp-purple.png'),
                 'tp-red.png':    require('../../assets/tp-red.png'),
+                'tp-orange.png': require('../../assets/tp-orange.png'),
+                'tp-rainbow.png': require('../../assets/tp-rainbow.png'),
               };
               return skinMap[tpSkin] || skinMap['tp.png'];
             })()}
@@ -1297,6 +1354,14 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
           </View>
         </View>
                       </Modal>
+
+      {/* Practice Customization Modal */}
+      <PracticeCustomizationModal
+        visible={practiceCustomizationVisible}
+        onPlay={handlePracticePlay}
+        onClose={handlePracticeClose}
+        availableTpSkins={TP_SKINS}
+      />
 
       {/* Game Over Modal */}
       <Modal

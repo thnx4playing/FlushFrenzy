@@ -4,7 +4,7 @@ module.exports = {
   expo: {
     name: "ToiletOlympicsGameV2",
     slug: "ToiletOlympicsGameV2",
-    version: "1.7.0",
+    version: "1.8.0",
     orientation: "portrait",
     icon: path.resolve(__dirname, 'assets/icon.png'),
     userInterfaceStyle: "light",
@@ -16,7 +16,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.thnx4playing.ToiletOlympicsGameV2",
-      buildNumber: "62",
+      buildNumber: "63",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false
       }
