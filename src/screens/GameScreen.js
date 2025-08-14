@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,9 +12,12 @@ import {
 // Import individual game components
 import ToiletPaperToss from '../games/ToiletPaperToss';
 
+
 export default function GameScreen({ route, navigation }) {
   const { gameId, gameMode } = route.params;
   const [showTutorial, setShowTutorial] = useState(false);
+  const sheetRef = useRef(null);
+
 
   const gameNames = {
     'quick-flush': 'Quick Flush',
@@ -89,7 +92,10 @@ export default function GameScreen({ route, navigation }) {
       <ToiletPaperToss 
         onGameComplete={handleGameComplete}
         gameMode={gameMode}
+        sheetRef={sheetRef}
       />
+      
+
     </View>
   );
 }

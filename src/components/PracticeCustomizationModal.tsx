@@ -1,5 +1,5 @@
 // src/components/PracticeCustomizationModal.tsx
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,14 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  Dimensions,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
+
+
+const { width: screenWidth } = Dimensions.get('window');
 
 type Props = {
   visible: boolean;
@@ -31,11 +36,16 @@ const PracticeCustomizationModal: React.FC<Props> = ({
   onClose,
   availableTpSkins,
 }) => {
-  const [settings, setSettings] = useState<PracticeSettings>({
+    const [settings, setSettings] = useState<PracticeSettings>({
     tpSkin: 'tp.png',
     toiletSpeed: 5,
     gravity: 5,
   });
+  
+  const [skinPickerOpen, setSkinPickerOpen] = useState(false);
+  const [tempSkin, setTempSkin] = useState(settings.tpSkin);
+  
+  
 
   const resetToDefaults = () => {
     setSettings({
@@ -72,112 +82,168 @@ const PracticeCustomizationModal: React.FC<Props> = ({
   };
 
   return (
-    <Modal
-      transparent
-      animationType="fade"
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalCard}>
-          {/* Background gradient effect */}
-          <View style={styles.modalBackgroundGradient} />
-          
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerIconContainer}>
-              <Ionicons name="settings" size={16} color="#4DA8FF" />
-            </View>
-            <Text style={styles.modalTitle}>Practice Mode Setup</Text>
-          </View>
-
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            {/* Toilet Paper Color Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Toilet Paper Color</Text>
-              <View style={styles.skinGrid}>
-                {availableTpSkins.map((skin) => (
-                  <TouchableOpacity
-                    key={skin}
-                    style={[
-                      styles.skinOption,
-                      settings.tpSkin === skin && styles.selectedSkin,
-                    ]}
-                    onPress={() => setSettings({ ...settings, tpSkin: skin })}
-                  >
-                    <Image source={skinMap[skin]} style={styles.skinImage} />
-                    <Text style={[
-                      styles.skinName,
-                      settings.tpSkin === skin && styles.selectedSkinText,
-                    ]}>
-                      {skinNames[skin]}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+    <>
+             <Modal
+         transparent
+         presentationStyle="overFullScreen"
+         statusBarTranslucent
+         animationType="fade"
+         visible={visible}
+         onRequestClose={onClose}
+       >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            {/* Background gradient effect */}
+            <View style={styles.modalBackgroundGradient} />
+            
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.headerIconContainer}>
+                <Ionicons name="settings" size={16} color="#4DA8FF" />
               </View>
+              <Text style={styles.modalTitle}>Practice Mode Setup</Text>
             </View>
 
-            {/* Toilet Movement Speed Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Toilet Movement Speed</Text>
-              <View style={styles.sliderContainer}>
-                <Text style={styles.sliderValue}>{settings.toiletSpeed}</Text>
-                                 <Slider
-                   style={styles.slider}
-                   minimumValue={1}
-                   maximumValue={10}
-                   value={settings.toiletSpeed}
-                   onValueChange={(value) => 
-                     setSettings({ ...settings, toiletSpeed: Math.round(value) })
-                   }
-                   minimumTrackTintColor="#4DA8FF"
-                   maximumTrackTintColor="#E0E0E0"
-                   thumbStyle={styles.sliderThumb}
-                 />
-                <View style={styles.sliderLabels}>
-                  <Text style={styles.sliderLabel}>Slow</Text>
-                  <Text style={styles.sliderLabel}>Fast</Text>
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+              {/* Toilet Paper Color Section */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Toilet Paper Color</Text>
+
+                <TouchableOpacity
+                  style={styles.selectorRow}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setTempSkin(settings.tpSkin);
+                    setSkinPickerOpen(true);
+                  }}
+                >
+                  <View style={styles.selectorLeft}>
+                    <Image source={skinMap[settings.tpSkin]} style={styles.selectorThumb} resizeMode="contain" />
+                    <Text style={styles.selectorText}>
+                      {skinNames[settings.tpSkin] ?? settings.tpSkin}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#2C3E50" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Toilet Movement Speed Section */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Toilet Movement Speed</Text>
+                <View style={styles.sliderContainer}>
+                  <Text style={styles.sliderValue}>{settings.toiletSpeed}</Text>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={1}
+                    maximumValue={10}
+                    value={settings.toiletSpeed}
+                    onValueChange={(value) => 
+                      setSettings({ ...settings, toiletSpeed: Math.round(value) })
+                    }
+                    minimumTrackTintColor="#4DA8FF"
+                    maximumTrackTintColor="#E0E0E0"
+                    thumbStyle={styles.sliderThumb}
+                  />
+                  <View style={styles.sliderLabels}>
+                    <Text style={styles.sliderLabel}>Slow</Text>
+                    <Text style={styles.sliderLabel}>Fast</Text>
+                  </View>
                 </View>
               </View>
-            </View>
 
-            {/* Gravity Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Gravity</Text>
-              <View style={styles.sliderContainer}>
-                <Text style={styles.sliderValue}>{settings.gravity}</Text>
-                                 <Slider
-                   style={styles.slider}
-                   minimumValue={1}
-                   maximumValue={10}
-                   value={settings.gravity}
-                   onValueChange={(value) => 
-                     setSettings({ ...settings, gravity: Math.round(value) })
-                   }
-                   minimumTrackTintColor="#4DA8FF"
-                   maximumTrackTintColor="#E0E0E0"
-                   thumbStyle={styles.sliderThumb}
-                 />
-                                 <View style={styles.sliderLabels}>
-                   <Text style={styles.sliderLabel}>Very Low</Text>
-                   <Text style={styles.sliderLabel}>High</Text>
-                 </View>
+              {/* Gravity Section */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Gravity</Text>
+                <View style={styles.sliderContainer}>
+                  <Text style={styles.sliderValue}>{settings.gravity}</Text>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={1}
+                    maximumValue={10}
+                    value={settings.gravity}
+                    onValueChange={(value) => 
+                      setSettings({ ...settings, gravity: Math.round(value) })
+                    }
+                    minimumTrackTintColor="#4DA8FF"
+                    maximumTrackTintColor="#E0E0E0"
+                    thumbStyle={styles.sliderThumb}
+                  />
+                  <View style={styles.sliderLabels}>
+                    <Text style={styles.sliderLabel}>Very Low</Text>
+                    <Text style={styles.sliderLabel}>High</Text>
+                  </View>
+                </View>
               </View>
-            </View>
-          </ScrollView>
+            </ScrollView>
 
-          {/* Buttons */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity onPress={resetToDefaults} style={styles.defaultsButton}>
-              <Text style={styles.defaultsButtonText}>Defaults</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handlePlay} style={styles.playButton}>
-              <Text style={styles.playButtonText}>Play</Text>
-            </TouchableOpacity>
+            {/* Buttons */}
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity onPress={resetToDefaults} style={styles.defaultsButton}>
+                <Text style={styles.defaultsButtonText}>Defaults</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handlePlay} style={styles.playButton}>
+                <Text style={styles.playButtonText}>Play</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Skin Picker Overlay */}
+            {skinPickerOpen && (
+              <View style={styles.overlay}>
+                <View style={styles.sheet}>
+                  <Text style={styles.sheetTitle}>Choose Paper Color</Text>
+
+                  {/* Live preview */}
+                  <View style={styles.previewRow}>
+                    <Image source={skinMap[tempSkin]} style={styles.previewImage} resizeMode="contain" />
+                    <Text style={styles.previewName}>{skinNames[tempSkin] ?? tempSkin}</Text>
+                  </View>
+
+                  {/* Compact scrollable list */}
+                  <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+                    {availableTpSkins.map((skin) => {
+                      const selected = tempSkin === skin;
+                      return (
+                        <TouchableOpacity
+                          key={skin}
+                          style={[styles.listRow, selected && styles.listRowSelected]}
+                          onPress={() => setTempSkin(skin)}
+                          activeOpacity={0.8}
+                        >
+                          <View style={styles.rowLeft}>
+                            <Image source={skinMap[skin]} style={styles.rowThumb} resizeMode="contain" />
+                            <Text style={styles.rowText}>{skinNames[skin] ?? skin}</Text>
+                          </View>
+                          {selected && <Ionicons name="checkmark-circle" size={18} color="#0EA5E9" />}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+
+                  {/* Actions */}
+                  <View style={styles.sheetButtons}>
+                    <TouchableOpacity onPress={() => setSkinPickerOpen(false)} style={styles.btnSecondary}>
+                      <Text style={styles.btnSecondaryText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSettings({ ...settings, tpSkin: tempSkin });
+                        setSkinPickerOpen(false);
+                      }}
+                      style={styles.btnPrimary}
+                    >
+                      <Text style={styles.btnPrimaryText}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
-        </View>
-      </View>
-    </Modal>
+                 </View>
+       </Modal>
+
+               {/* Bottom Sheet for TP Skin Selection - Outside the modal */}
+        {/* TPSkinSheet is now rendered at GameScreen level */}
+     </>
   );
 };
 
@@ -243,9 +309,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 16,
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 12,
     backgroundColor: '#F8F9FA',
     borderRadius: 12,
     borderWidth: 2,
@@ -260,74 +326,56 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textAlign: 'center',
   },
-  skinGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  skinOption: {
-    width: '48%',
-    alignItems: 'center',
-    padding: 10,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#2C3E50',
-    backgroundColor: '#FFFFFF',
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  selectedSkin: {
-    borderColor: '#4DA8FF',
-    backgroundColor: '#E3F2FD',
-    shadowColor: '#4DA8FF',
-    shadowOpacity: 0.3,
-  },
-  skinImage: {
-    width: 32,
-    height: 32,
-    marginBottom: 6,
-  },
-  skinName: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#666666',
-    textAlign: 'center',
-  },
-  selectedSkinText: {
-    color: '#4DA8FF',
-    fontWeight: '600',
-  },
+     // Compact color selector styles
+   selectorRow: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     justifyContent: 'space-between',
+     paddingHorizontal: 14,
+     paddingVertical: 10,
+     borderRadius: 10,
+     borderWidth: 2,
+     borderColor: '#2C3E50',
+     backgroundColor: '#F8F9FA',
+   },
+       selectorLeft: { 
+      flexDirection: 'row', 
+      alignItems: 'center', 
+    },
+
+       selectorText: { 
+      fontSize: 16, 
+      fontWeight: '600', 
+      color: '#2C3E50' 
+    },
   sliderContainer: {
     alignItems: 'center',
     paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   sliderValue: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#4DA8FF',
-    marginBottom: 8,
+    marginBottom: 6,
     textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
   slider: {
     width: '100%',
-    height: 30,
+    height: 20,
   },
   sliderThumb: {
     backgroundColor: '#4DA8FF',
-    width: 20,
-    height: 20,
+    width: 16,
+    height: 16,
   },
   sliderLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    marginTop: 6,
+    marginTop: 4,
   },
   sliderLabel: {
     fontSize: 11,
@@ -387,6 +435,101 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  selectorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#2C3E50',
+    backgroundColor: '#F8F9FA',
+  },
+  selectorLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  selectorThumb: { width: 36, height: 36 },
+  selectorText: { fontSize: 16, fontWeight: '600', color: '#2C3E50' },
+
+  overlay: {
+    position: 'absolute',
+    left: 0, right: 0, top: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sheet: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#2C3E50',
+    padding: 16,
+    maxHeight: '70%',
+    width: '90%',
+    maxWidth: 400,
+  },
+  sheetTitle: { 
+    textAlign: 'center', 
+    fontWeight: '700', 
+    color: '#2C3E50', 
+    fontSize: 18,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  previewRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 12, 
+    alignSelf: 'center', 
+    marginBottom: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#2C3E50',
+  },
+  previewImage: { width: 64, height: 64 },
+  previewName: { fontSize: 18, fontWeight: '700', color: '#2C3E50' },
+
+  list: { marginTop: 8 },
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginBottom: 4,
+  },
+  listRowSelected: { backgroundColor: '#F0F9FF', borderWidth: 2, borderColor: '#0EA5E9' },
+  rowLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  rowThumb: { width: 40, height: 40, marginRight: 12 },
+  rowText: { fontSize: 16, color: '#2C3E50', fontWeight: '500' },
+
+  sheetButtons: { flexDirection: 'row', gap: 12, marginTop: 10 },
+  btnSecondary: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#2C3E50',
+    alignItems: 'center',
+  },
+  btnSecondaryText: { fontWeight: '700', color: '#2C3E50' },
+  btnPrimary: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#4DA8FF',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  btnPrimaryText: { fontWeight: '700', color: '#fff' },
 });
 
 export default PracticeCustomizationModal;

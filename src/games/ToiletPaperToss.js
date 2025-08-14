@@ -553,7 +553,7 @@ const MovingToiletSystem = (entities, { time }) => {
 };
 
 /******************** Main Component ********************/
-export default function ToiletPaperToss({ onGameComplete, gameMode }) {
+export default function ToiletPaperToss({ onGameComplete, gameMode, sheetRef }) {
   const gameRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [score, setScore] = useState(0);
@@ -591,6 +591,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
     gravity: 5,
   });
   const [practiceGameStarted, setPracticeGameStarted] = useState(false);
+  
+
   const [currentGravity, setCurrentGravity] = useState(CONSTANTS.GRAVITY_Y);
   const [currentSpeed, setCurrentSpeed] = useState(16.2);
 
@@ -823,6 +825,8 @@ export default function ToiletPaperToss({ onGameComplete, gameMode }) {
       onGameComplete();
     }
   };
+
+
 
   // Debug: Dump static bodies to find invisible walls
   const dumpStatics = (engine) => {
