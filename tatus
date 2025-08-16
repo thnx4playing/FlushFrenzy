@@ -1,0 +1,10 @@
+[33m37cb23b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;33mtag: [m[1;33mStable-Build-V10[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m Practice mode customization working - Fixed color selector popup and reduced slider sizes
+[33mfd9a4e0[m[33m ([m[1;33mtag: [m[1;33mStable-Build-V9[m[33m)[m v1.8.0 build 63: Game modes fully functional with practice mode customization
+[33mabf061c[m Fix level up animation timing - banner appears immediately instead of sliding down slowly
+[33m07cc0ae[m Fix level up timing and pause issues - animation starts immediately, game properly pauses during celebration
+[33mbb80976[m Fix rapid sound playing and animation restart issues - use refs to track animation state and sound instance
+[33m7acb185[m Fix useInsertionEffect error - use ref to track level up trigger and simplify animation sequence
+[33md93ace1[m Fix level up timing and add pause/resume functionality - banner triggers immediately when points reach target, game pauses during celebration
+[33m8f7c327[m Replace confetti celebration with animated LevelUpBanner - simpler, more performant level up effect
+[33m500cf07[m[33m ([m[1;33mtag: [m[1;33mStable-Build-V8[m[33m)[m Increment iOS build number to 62 for TestFlight submission
+[33mcfe71bf[m Restore original scoring system - ready for TestFlight build to test confetti performance

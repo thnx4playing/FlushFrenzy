@@ -1,118 +1,114 @@
-import React, { useRef, useState, useEffect } from "react";
-import { View, Dimensions, InteractionManager } from "react-native";
-import AimArrow from './AimArrow';
+// components/AimPad.js
+import React, { useImperativeHandle, forwardRef, useRef, useState } from 'react';
+import { View, PanResponder } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 
-export default function AimPad({ radius = 90, onAim, onRelease }) {
-  const ref = useRef(null);
-  const [center, setCenter] = useState(null); // {x,y} in screen coords
-  const [stick, setStick] = useState({ x: 0, y: 0 });
-  const [dragging, setDragging] = useState(false);
+const RADIUS = 90;
 
-  const measureCenter = () => {
-    if (!ref.current) return;
-    ref.current.measureInWindow((x, y, w, h) => {
-      const cx = x + w / 2;
-      const cy = y + h / 2;
-      if (cx && cy) setCenter({ x: cx, y: cy });
-      else requestAnimationFrame(measureCenter); // retry next frame
-    });
+const clamp = (v, max) => Math.max(-max, Math.min(max, v));
+
+const AimPad = forwardRef(function AimPad(
+  { onAimingChanged, onRelease },
+  ref
+) {
+  const wrapRef = useRef(null);
+  const centerRef = useRef({ x: 0, y: 0 });
+  const [isReady, setReady] = useState(false);
+
+
+
+  // Always compute center from onLayout (no measureInWindow races)
+  const onLayout = e => {
+    const { x, y, width, height } = e.nativeEvent.layout;
+    centerRef.current = { x: x + width / 2, y: y + height / 2 };
+    setReady(true);
+
   };
 
-  useEffect(() => {
-    // let layout settle fully before measuring
-    InteractionManager.runAfterInteractions(() => {
-      requestAnimationFrame(measureCenter);
-    });
-  }, []);
+  useImperativeHandle(ref, () => ({
+    getCenter: () => {
+      const center = centerRef.current;
 
-  const clampCircle = (dx, dy) => {
-    const len = Math.hypot(dx, dy);
-    if (len <= radius) return { x: dx, y: dy, len };
-    const s = radius / (len || 1);
-    return { x: dx * s, y: dy * s, len: radius };
-  };
+      return center;
+    },
+  }));
 
-  const updateFromPage = (pageX, pageY, active) => {
-    if (!center) return; // ignore until measured
-    const dx = pageX - center.x;
-    const dy = pageY - center.y;
-    const { x, y, len } = clampCircle(dx, dy);
-    setStick({ x, y });
-
-    const mag = (len || 0) / (radius || 1);
-    const L = Math.hypot(x, y) || 1;
-    const dir = { x: x / L, y: -(y / L) }; // portrait: up = -Y
-    onAim?.({ dir, power: mag, active, origin: center });
-  };
-
-  const grant = (e) => {
-    if (!center) {
-      // first touch too early — measure now and start next frame
-      measureCenter();
-      requestAnimationFrame(() => {
+  const responder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => {
+        return true;
+      },
+      onMoveShouldSetPanResponder: () => {
+        return true;
+      },
+      onPanResponderGrant: e => {
+        if (!isReady) {
+          return;
+        }
         const { pageX, pageY } = e.nativeEvent;
-        setDragging(true);
-        updateFromPage(pageX, pageY, true);
-      });
-      return;
-    }
-    setDragging(true);
-    updateFromPage(e.nativeEvent.pageX, e.nativeEvent.pageY, true);
-  };
+        const dx = pageX - centerRef.current.x;
+        const dy = pageY - centerRef.current.y;
+        const mag = Math.hypot(dx, dy);
+        const power = Math.min(mag / RADIUS, 1);
+        const ndx = mag ? dx / mag : 0;
+        const ndy = mag ? dy / mag : 0;
+        
 
-  const move = (e) => dragging && updateFromPage(e.nativeEvent.pageX, e.nativeEvent.pageY, true);
+        
+        onAimingChanged?.({ origin: centerRef.current, direction: { dx: ndx, dy: ndy }, power });
+      },
+      onPanResponderMove: (_, g) => {
+        if (!isReady) {
+          return;
+        }
+        const dx = clamp(g.moveX - centerRef.current.x, RADIUS);
+        const dy = clamp(g.moveY - centerRef.current.y, RADIUS);
+        const mag = Math.hypot(dx, dy);
+        const power = Math.min(mag / RADIUS, 1);
+        const ndx = mag ? dx / mag : 0;
+        const ndy = mag ? dy / mag : 0;
+        
 
-  const release = () => {
-    setDragging(false);
-    setStick({ x: 0, y: 0 });
-    if (center) onRelease?.({ dir: { x: 0, y: 0 }, power: 0, origin: center });
-  };
+        
+        onAimingChanged?.({ origin: centerRef.current, direction: { dx: ndx, dy: ndy }, power });
+      },
+      onPanResponderRelease: (_, g) => {
+        if (!isReady) {
+          return;
+        }
+        const dx = clamp(g.moveX - centerRef.current.x, RADIUS);
+        const dy = clamp(g.moveY - centerRef.current.y, RADIUS);
+        const mag = Math.hypot(dx, dy);
+        const power = Math.min(mag / RADIUS, 1);
+        const ndx = mag ? dx / mag : 0;
+        const ndy = mag ? dy / mag : 0;
+        
 
-  const { width: W } = Dimensions.get("window");
-  const padLeft = W / 2 - radius; // avoid left:"50%"
+        
+        onRelease?.({ origin: centerRef.current, direction: { dx: ndx, dy: ndy }, power });
+        // Don't push a "zero vector" back into the parent—just stop sending updates.
+      },
+    })
+  ).current;
+
+  
 
   return (
     <View
-      ref={ref}
-      onLayout={measureCenter}
-      onStartShouldSetResponder={() => true}
-      onMoveShouldSetResponder={() => true}
-      onResponderGrant={grant}
-      onResponderMove={move}
-      onResponderRelease={release}
-      style={{
-        position: "absolute",
-        left: padLeft,
-        bottom: 24,
-        width: radius * 2,
-        height: radius * 2,
-        borderRadius: radius,
-        borderWidth: 3,
-        borderColor: "rgba(255,255,255,0.7)",
-        backgroundColor: "rgba(0,0,0,0.25)",
-      }}
+      ref={wrapRef}
+      onLayout={onLayout}
+      {...responder.panHandlers}
+      style={{ position: 'absolute', bottom: 24, alignSelf: 'center', width: RADIUS * 2, height: RADIUS * 2 }}
+      pointerEvents="box-only"
     >
-      {/* Power/Direction arrow */}
-      <AimArrow
-        origin={{ x: radius, y: radius }}                        // pad-local center
-        direction={{ dx: stick.x, dy: stick.y }}                 // follow finger; length = power
-        power={Math.hypot(stick.x, stick.y) / radius}            // normalize to 0-1
-        visible={dragging && Math.hypot(stick.x, stick.y) > 4}   // tiny deadzone
-        radius={radius}
-      />
-      
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          left: radius - 14 + stick.x,
-          top:  radius - 14 + stick.y,
-          width: 28, height: 28, borderRadius: 14,
-          backgroundColor: "rgba(255,255,255,0.95)",
-        }}
-      />
+      <Svg width={RADIUS * 2} height={RADIUS * 2}>
+        <Circle cx={RADIUS} cy={RADIUS} r={RADIUS} fill="rgba(0,0,0,0.15)" />
+        <Circle cx={RADIUS} cy={RADIUS} r={10} fill="#fff" />
+      </Svg>
     </View>
   );
-}
+});
+
+export default AimPad;
 
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,11 @@ export default function GameScreen({ route, navigation }) {
   const { gameId, gameMode } = route.params;
   const [showTutorial, setShowTutorial] = useState(false);
   const sheetRef = useRef(null);
+
+  // Create a unique key that forces remount when mode changes
+  const gameKey = useMemo(() => {
+    return `game-${gameMode}-${Date.now()}`;
+  }, [gameMode]);
 
 
   const gameNames = {
@@ -90,12 +95,11 @@ export default function GameScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <ToiletPaperToss 
+        key={gameKey}
         onGameComplete={handleGameComplete}
         gameMode={gameMode}
         sheetRef={sheetRef}
       />
-      
-
     </View>
   );
 }

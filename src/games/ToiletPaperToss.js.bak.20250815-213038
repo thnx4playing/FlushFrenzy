@@ -7,35 +7,26 @@
 // - Touching the ground ends the turn and resets the paper
 // - Tunable physics so the paper actually FLIES
 
-import React, { useRef, useState, useEffect } from "react";
-import {
-  StyleSheet,
-  View,
-  Dimensions,
-  Text,
-  Image,
-  ImageBackground,
-  TouchableOpacity,
-  Modal,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { GameEngine } from "react-native-game-engine";
-import Matter from "matter-js";
-import { Audio } from "expo-av";
-import Svg, { Polygon, Circle as SvgCircle, Rect } from "react-native-svg";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import AxisAimPad from "../components/input/AxisAimPad";
-import TrajectoryOverlay from "../../components/TrajectoryOverlay";
-import GameHUD from "../ui/GameHUD";
-import LevelUpBanner from "../components/LevelUpBanner";
-import PracticeCustomizationModal from "../components/PracticeCustomizationModal";
-import { saveHighScore, loadHighScore } from "../utils/highScore";
+import React, { useRef, useState, useEffect } from 'react';
+import { StyleSheet, View, Dimensions, Text, Image, ImageBackground, TouchableOpacity, Modal } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { GameEngine } from 'react-native-game-engine';
+import Matter from 'matter-js';
+import { Audio } from 'expo-av';
+import Svg, { Polygon, Circle as SvgCircle, Rect } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AxisAimPad from '../components/input/AxisAimPad';
+import TrajectoryOverlay from '../../components/TrajectoryOverlay';
+import GameHUD from '../ui/GameHUD';
+import LevelUpBanner from '../components/LevelUpBanner';
+import PracticeCustomizationModal from '../components/PracticeCustomizationModal';
+import { saveHighScore, loadHighScore } from '../utils/highScore';
 
 // Set up poly-decomp for Matter.js concave shapes
-import decomp from "poly-decomp";
+import decomp from 'poly-decomp';
 Matter.Common.setDecomp(decomp);
 
-const { width: WIDTH, height: HEIGHT } = Dimensions.get("window");
+const { width: WIDTH, height: HEIGHT } = Dimensions.get('window');
 
 // Sound effects
 let dingSound = null;
@@ -44,16 +35,16 @@ let waterDropSound = null;
 const loadSounds = async () => {
   try {
     const { sound: ding } = await Audio.Sound.createAsync(
-      require("../../assets/ding.mp3"),
+      require('../../assets/ding.mp3')
     );
     dingSound = ding;
-
+    
     const { sound: water } = await Audio.Sound.createAsync(
-      require("../../assets/water_drop.mp3"),
+      require('../../assets/water_drop.mp3')
     );
     waterDropSound = water;
   } catch (error) {
-    console.log("Could not load sound effect:", error);
+    console.log('Could not load sound effect:', error);
   }
 };
 
@@ -62,7 +53,7 @@ const playDingSound = async () => {
     try {
       await dingSound.replayAsync();
     } catch (error) {
-      console.log("Could not play sound:", error);
+      console.log('Could not play sound:', error);
     }
   }
 };
@@ -72,44 +63,34 @@ const playWaterDropSound = async () => {
     try {
       await waterDropSound.replayAsync();
     } catch (error) {
-      console.log("Could not play water drop sound:", error);
+      console.log('Could not play water drop sound:', error);
     }
   }
 };
 
 /******************** Utility Renderers ********************/
-const Circle = ({
-  body,
-  color = "#ffffff",
-  radius = 16,
-  imageSource,
-  hidden,
-}) => {
+const Circle = ({ body, color = '#ffffff', radius = 16, imageSource, hidden }) => {
   if (hidden) return null;
   const x = body.position.x - radius;
   const y = body.position.y - radius;
   return (
-    <View
-      style={[
-        {
-          position: "absolute",
-          left: x,
-          top: y,
-          width: radius * 2,
-          height: radius * 2,
-          borderRadius: radius,
-          backgroundColor: color,
-          borderWidth: 2,
-          borderColor: "#222",
-        },
-      ]}
-    >
+    <View style={[{
+      position: 'absolute',
+      left: x,
+      top: y,
+      width: radius * 2,
+      height: radius * 2,
+      borderRadius: radius,
+      backgroundColor: color,
+      borderWidth: 2,
+      borderColor: '#222'
+    }]}>
       {imageSource && (
         <Image
           source={imageSource}
           style={{
-            width: "100%",
-            height: "100%",
+            width: '100%',
+            height: '100%',
             borderRadius: radius,
           }}
           resizeMode="contain"
@@ -119,29 +100,27 @@ const Circle = ({
   );
 };
 
-const Box = ({ body, color = "#888" }) => {
+const Box = ({ body, color = '#888' }) => {
   const { min, max } = body.bounds;
   const w = max.x - min.x;
   const h = max.y - min.y;
   const x = min.x;
   const y = min.y;
   return (
-    <View
-      style={[
-        {
-          position: "absolute",
-          left: x,
-          top: y,
-          width: w,
-          height: h,
-          backgroundColor: color,
-          borderWidth: 1,
-          borderColor: "#333",
-        },
-      ]}
-    />
+    <View style={[{
+      position: 'absolute',
+      left: x,
+      top: y,
+      width: w,
+      height: h,
+      backgroundColor: color,
+      borderWidth: 1,
+      borderColor: '#333'
+    }]} />
   );
 };
+
+
 
 // Toilet sprite bound to physics body
 const ToiletSprite = ({ body }) => {
@@ -151,14 +130,8 @@ const ToiletSprite = ({ body }) => {
   const x = min.x;
   const y = min.y;
   return (
-    <View
-      style={{ position: "absolute", left: x, top: y, width: w, height: h }}
-    >
-      <Image
-        source={require("../../assets/toilet.png")}
-        style={{ width: "100%", height: "100%" }}
-        resizeMode="contain"
-      />
+    <View style={{ position: 'absolute', left: x, top: y, width: w, height: h }}>
+      <Image source={require('../../assets/toilet.png')} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
     </View>
   );
 };
@@ -166,35 +139,24 @@ const ToiletSprite = ({ body }) => {
 // Debug: Visualize static bodies to find invisible walls
 const StaticBodiesOverlay = ({ engine }) => {
   if (!engine) return null;
-  const bodies = Matter.Composite.allBodies(engine.world).filter(
-    (b) => b.isStatic,
-  );
+  const bodies = Matter.Composite.allBodies(engine.world).filter(b => b.isStatic);
   return (
     <>
       {bodies.map((b, i) => {
         const bb = b.bounds;
-        const left = bb.min.x,
-          top = bb.min.y;
-        const width = bb.max.x - bb.min.x,
-          height = bb.max.y - bb.min.y;
+        const left = bb.min.x, top = bb.min.y;
+        const width = bb.max.x - bb.min.x, height = bb.max.y - bb.min.y;
         // Skip huge offscreen parking rects if you have any
-        if (!isFinite(left) || !isFinite(top) || width <= 0 || height <= 0)
-          return null;
+        if (!isFinite(left) || !isFinite(top) || width <= 0 || height <= 0) return null;
         return (
-          <View
-            key={i}
-            style={{
-              position: "absolute",
-              left,
-              top,
-              width,
-              height,
-              borderWidth: 2,
-              borderColor: "rgba(255,0,0,0.8)",
-              backgroundColor: "rgba(255,0,0,0.15)",
-              zIndex: 999,
-            }}
-          />
+          <View key={i} style={{
+            position: "absolute",
+            left, top, width, height,
+            borderWidth: 2,
+            borderColor: "rgba(255,0,0,0.8)",
+            backgroundColor: "rgba(255,0,0,0.15)",
+            zIndex: 999,
+          }} />
         );
       })}
     </>
@@ -204,33 +166,28 @@ const StaticBodiesOverlay = ({ engine }) => {
 // Bowl hitbox debug overlay
 const BowlHitboxOverlay = ({ engine }) => {
   if (!engine) return null;
-
-  const bowlBodies = Matter.Composite.allBodies(engine.world).filter(
-    (b) =>
-      b.label === "BOWL_SIDE_L" ||
-      b.label === "BOWL_SIDE_R" ||
-      b.label === "BOWL_BOTTOM" ||
-      b.label === "BOWL_SENSOR",
+  
+  const bowlBodies = Matter.Composite.allBodies(engine.world).filter(b => 
+    b.label === "BOWL_SIDE_L" || b.label === "BOWL_SIDE_R" || b.label === "BOWL_BOTTOM" || b.label === "BOWL_SENSOR"
   );
-
+  
   // Debug: Log bowl bodies found (only once)
   if (bowlBodies.length === 0) {
-  }
 
+  }
+  
   if (bowlBodies.length === 0) return null;
 
   return (
-    <View
-      style={{
-        position: "absolute",
-        left: 0,
-        top: 0,
-        width: WIDTH,
-        height: HEIGHT,
-        zIndex: 998,
-        pointerEvents: "none", // Allow touch events to pass through
-      }}
-    >
+    <View style={{
+      position: "absolute",
+      left: 0,
+      top: 0,
+      width: WIDTH,
+      height: HEIGHT,
+      zIndex: 998,
+      pointerEvents: "none", // Allow touch events to pass through
+    }}>
       <Svg width={WIDTH} height={HEIGHT}>
         {bowlBodies.map((body, index) => {
           if (body.label === "BOWL_MAIN") {
@@ -276,10 +233,7 @@ const ShootButton = ({ held, onLayoutRect, onPressIn, onDrag, onRelease }) => {
   const viewRef = React.useRef(null);
 
   const reportLayout = () => {
-    if (
-      viewRef.current &&
-      typeof viewRef.current.measureInWindow === "function"
-    ) {
+    if (viewRef.current && typeof viewRef.current.measureInWindow === 'function') {
       viewRef.current.measureInWindow((x, y, width, height) => {
         const rect = { x, y, w: width, h: height };
         const anchor = { x: x + width / 2, y: y }; // top-center of button
@@ -306,11 +260,7 @@ const ShootButton = ({ held, onLayoutRect, onPressIn, onDrag, onRelease }) => {
       onResponderRelease={() => onRelease && onRelease()}
     >
       <Image
-        source={
-          held
-            ? require("../../assets/button_depressed.png")
-            : require("../../assets/button.png")
-        }
+        source={held ? require('../../assets/button_depressed.png') : require('../../assets/button.png')}
         style={{ width: size, height: size }}
         resizeMode="contain"
       />
@@ -321,11 +271,11 @@ const ShootButton = ({ held, onLayoutRect, onPressIn, onDrag, onRelease }) => {
 /******************** Constants ********************/
 const CONSTANTS = {
   TP_RADIUS: 18,
-  START_X: WIDTH * 0.5, // Start center horizontally
+  START_X: WIDTH * 0.50, // Start center horizontally
   START_Y: HEIGHT - 24 - 56 - 50, // Above the AimPad
   MAX_AIM_LEN: 160, // px drag clamp
   MAX_IMPULSE: 0.12, // scale for Matter.applyForce (tune 0.04..0.14)
-  GRAVITY_Y: 0.3, // Light gravity for nice arc
+  GRAVITY_Y: 0.15, // Fine-tuned gravity for optimal travel time
 };
 
 /******************** World Factory ********************/
@@ -335,17 +285,17 @@ const buildArena = (engine, W, H, tpBody) => {
   const world = engine.world;
 
   // Remove all bodies except TP
-  Matter.Composite.allBodies(world).forEach((b) => {
+  Matter.Composite.allBodies(world).forEach(b => {
     if (b !== tpBody) Matter.World.remove(world, b);
   });
 
   // Add floor, ceiling, left wall, right wall
   const wall = { isStatic: true, label: "BOUNDARY" };
   const walls = [
-    Matter.Bodies.rectangle(W / 2, H + 40, W, 80, wall), // floor
-    Matter.Bodies.rectangle(W / 2, -40, W, 80, wall), // ceiling
-    Matter.Bodies.rectangle(-40, H / 2, 80, H, wall), // left
-    Matter.Bodies.rectangle(W + 40, H / 2, 80, H, wall), // right
+    Matter.Bodies.rectangle(W / 2, H + 40, W, 80, wall),   // floor
+    Matter.Bodies.rectangle(W / 2, -40, W, 80, wall),      // ceiling
+    Matter.Bodies.rectangle(-40, H / 2, 80, H, wall),      // left
+    Matter.Bodies.rectangle(W + 40, H / 2, 80, H, wall),   // right
   ];
   Matter.World.add(world, walls);
 };
@@ -353,7 +303,7 @@ const buildArena = (engine, W, H, tpBody) => {
 // Remove any old rim that blocks the opening
 const removeOldRims = (engine) => {
   const world = engine.world;
-  Matter.Composite.allBodies(world).forEach((b) => {
+  Matter.Composite.allBodies(world).forEach(b => {
     if (["BOWL_RIM", "BOWL", "BOWL_RING"].includes(b.label)) {
       Matter.World.remove(world, b);
     }
@@ -363,59 +313,48 @@ const removeOldRims = (engine) => {
 // Add an open-top bowl (left + right + curved bottom + sensor)
 const addOpenBowl = (engine, bx, by, r = 42) => {
   const world = engine.world;
-  const thickness = 16; // wall thickness (px)
-  const tilt = 0.35; // wall inward tilt (radians ~20°)
+  const thickness = 16;               // wall thickness (px)
+  const tilt = 0.35;                  // wall inward tilt (radians ~20°)
 
   // Material tuned to "slide in", not bounce out
-  const mat = {
-    isStatic: true,
-    restitution: 0.05,
-    friction: 0.25,
-    frictionStatic: 0.9,
+  const mat = { 
+    isStatic: true, 
+    restitution: 0.05, 
+    friction: 0.25, 
+    frictionStatic: 0.9 
   };
 
   // Left inner wall (tilted inward)
-  const left = Matter.Bodies.rectangle(
-    bx - r * 0.9,
-    by + r * 0.1,
-    thickness,
-    r * 1.6,
-    {
-      ...mat,
-      angle: -tilt,
-      label: "BOWL_SIDE_L",
-    },
-  );
+  const left = Matter.Bodies.rectangle(bx - r * 0.9, by + r * 0.1, thickness, r * 1.6, {
+    ...mat, 
+    angle: -tilt, 
+    label: "BOWL_SIDE_L"
+  });
 
   // Right inner wall (tilted inward)
-  const right = Matter.Bodies.rectangle(
-    bx + r * 0.9,
-    by + r * 0.1,
-    thickness,
-    r * 1.6,
-    {
-      ...mat,
-      angle: tilt,
-      label: "BOWL_SIDE_R",
-    },
-  );
+  const right = Matter.Bodies.rectangle(bx + r * 0.9, by + r * 0.1, thickness, r * 1.6, {
+    ...mat, 
+    angle: tilt, 
+    label: "BOWL_SIDE_R"
+  });
 
   // Curved bottom (a circle placed below the hole)
   // This gives a smooth slide; top is OPEN because we don't add any top collider.
-  const bottom = Matter.Bodies.circle(bx, by + r * 0.8, r * 0.475, {
-    // Moved up from 0.6 to 0.8 to bring top edge down
-    ...mat,
-    label: "BOWL_BOTTOM",
+  const bottom = Matter.Bodies.circle(bx, by + r * 0.8, r * 0.475, { // Moved up from 0.6 to 0.8 to bring top edge down
+    ...mat, 
+    label: "BOWL_BOTTOM"
   });
 
   // Scoring sensor (no physical push) — smaller than the visual hole
   const sensor = Matter.Bodies.circle(bx, by + r * 0.2, r * 0.55, {
-    isStatic: true,
-    isSensor: true,
-    label: "BOWL_SENSOR",
+    isStatic: true, 
+    isSensor: true, 
+    label: "BOWL_SENSOR"
   });
 
   Matter.World.add(world, [left, right, bottom, sensor]);
+
+
 
   // Return the bowl bodies for movement control
   return { left, right, bottom, sensor, centerX: bx, centerY: by, radius: r };
@@ -425,21 +364,19 @@ const addOpenBowl = (engine, bx, by, r = 42) => {
 const wireScoring = (engine, addScoreCallback) => {
   Matter.Events.on(engine, "collisionStart", (e) => {
     e.pairs.forEach(({ bodyA, bodyB }) => {
-      const a = bodyA.label,
-        b = bodyB.label;
-      if (
-        (a === "BOWL_SENSOR" && b === "TP") ||
-        (b === "BOWL_SENSOR" && a === "TP")
-      ) {
+      const a = bodyA.label, b = bodyB.label;
+      if ((a === "BOWL_SENSOR" && b === "TP") || (b === "BOWL_SENSOR" && a === "TP")) {
         console.log("SCORE! TP entered the bowl!");
-
+        
         // Hide the TP sprite by setting it to off-screen
         const tpBody = a === "TP" ? bodyA : bodyB;
         Matter.Body.setPosition(tpBody, { x: -9999, y: -9999 });
+        
 
+        
         // Play water drop sound effect
         playWaterDropSound();
-
+        
         // Add point
         addScoreCallback();
       }
@@ -459,55 +396,47 @@ const createTP = () => {
   });
 };
 
-const setupWorld = (addScoreCallback) => {
-  const engine = Matter.Engine.create({ enableSleeping: false });
-  const world = engine.world;
-  // Set initial gravity - this should be the only place gravity is set initially
-  world.gravity.x = 0;
-  world.gravity.y = CONSTANTS.GRAVITY_Y;
+ const setupWorld = (addScoreCallback) => {
+   const engine = Matter.Engine.create({ enableSleeping: false });
+   const world = engine.world;
+   // Set initial gravity - this should be the only place gravity is set initially
+   world.gravity.x = 0;
+   world.gravity.y = CONSTANTS.GRAVITY_Y;
 
   // Create TP first
   const tp = createTP();
 
   // Build clean arena
   buildArena(engine, WIDTH, HEIGHT, tp);
-
+  
   // Remove any old rim that blocks the opening
   removeOldRims(engine);
-
+  
   // Add open-top toilet bowl and store the bodies for movement
   const bowlBodies = addOpenBowl(engine, WIDTH / 2, HEIGHT * 0.45, 42); // Physics colliders positioned lower than visual
-
+  
   // Wire up scoring
   wireScoring(engine, addScoreCallback);
 
   // Add TP body to the world
   Matter.World.add(world, tp);
 
+
   // Remove any old debug colliders
-  Matter.Composite.allBodies(engine.world).forEach((b) => {
-    if (
-      ![
-        "BOUNDARY",
-        "BOWL_SIDE_L",
-        "BOWL_SIDE_R",
-        "BOWL_BOTTOM",
-        "BOWL_SENSOR",
-        "TP",
-      ].includes(b.label)
-    ) {
+  Matter.Composite.allBodies(engine.world).forEach(b => {
+    if (!["BOUNDARY", "BOWL_SIDE_L", "BOWL_SIDE_R", "BOWL_BOTTOM", "BOWL_SENSOR", "TP"].includes(b.label)) {
       Matter.World.remove(engine.world, b);
     }
   });
 
   // Ensure boundary walls are always present
-  const boundaryWalls = Matter.Composite.allBodies(engine.world).filter(
-    (b) => b.label === "BOUNDARY",
-  );
+  const boundaryWalls = Matter.Composite.allBodies(engine.world).filter(b => b.label === "BOUNDARY");
   if (boundaryWalls.length < 4) {
     console.warn("Missing boundary walls! Rebuilding arena...");
     buildArena(engine, WIDTH, HEIGHT, tp);
   }
+
+
 
   return { engine, world, bodies: { tp, bowlBodies } };
 };
@@ -520,6 +449,8 @@ const Physics = (entities, { time }) => {
   return entities;
 };
 
+
+
 // Handle end-turn when touching ground
 const CollisionSystem = (entities, { events }) => {
   // We subscribe to Matter collision events once in App; here just read flags from entities.state
@@ -530,11 +461,11 @@ const CollisionSystem = (entities, { events }) => {
 const MovingToiletSystem = (entities, { time }) => {
   const { engine, world, bodies } = entities.physics;
   const bowlBodies = bodies?.bowlBodies;
-
+  
   if (!bowlBodies) {
     return entities;
   }
-
+  
   // Initialize movement state if not exists
   if (!entities.toiletMovement) {
     const centerX = WIDTH / 2; // Start exactly in the center
@@ -544,19 +475,19 @@ const MovingToiletSystem = (entities, { time }) => {
       leftBound: centerX - 150, // 150 pixels left from center
       rightBound: centerX + 150, // 150 pixels right from center
       currentX: centerX,
-      frameCount: 0,
+      frameCount: 0
     };
   }
-
+  
   const movement = entities.toiletMovement;
-
+  
   // Apply speed multiplier for endless plunge
   const speedMul = entities.endlessRef?.current?.toiletSpeedMul || 1;
   const effSpeed = movement.speed * speedMul;
-
+  
   // Update position
   movement.currentX += movement.direction * effSpeed;
-
+  
   // Check bounds and reverse direction
   if (movement.currentX <= movement.leftBound) {
     movement.currentX = movement.leftBound;
@@ -565,51 +496,47 @@ const MovingToiletSystem = (entities, { time }) => {
     movement.currentX = movement.rightBound;
     movement.direction = -1; // start moving left
   }
-
+  
   // Move all bowl bodies together
   const newCenterX = movement.currentX;
   const centerY = bowlBodies.centerY;
   const r = bowlBodies.radius;
-
+  
   // Update left wall position
   Matter.Body.setPosition(bowlBodies.left, {
     x: newCenterX - r * 0.9,
-    y: centerY + r * 0.1,
+    y: centerY + r * 0.1
   });
-
+  
   // Update right wall position
   Matter.Body.setPosition(bowlBodies.right, {
     x: newCenterX + r * 0.9,
-    y: centerY + r * 0.1,
+    y: centerY + r * 0.1
   });
-
+  
   // Update bottom position
   Matter.Body.setPosition(bowlBodies.bottom, {
     x: newCenterX,
-    y: centerY + r * 0.8,
+    y: centerY + r * 0.8
   });
-
+  
   // Update sensor position
   Matter.Body.setPosition(bowlBodies.sensor, {
     x: newCenterX,
-    y: centerY + r * 0.2,
+    y: centerY + r * 0.2
   });
-
+  
   // Update the stored center position
   bowlBodies.centerX = newCenterX;
-
+  
   // Increment frame count
   entities.toiletMovement.frameCount++;
-
+  
   return entities;
 };
 
 /******************** Main Component ********************/
-export default function ToiletPaperToss({
-  onGameComplete,
-  gameMode,
-  sheetRef,
-}) {
+export default function ToiletPaperToss({ onGameComplete, gameMode, sheetRef }) {
   const gameRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [score, setScore] = useState(0);
@@ -623,21 +550,16 @@ export default function ToiletPaperToss({
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [tpPos, setTpPos] = useState({ x: -9999, y: -9999 });
   const [tpVisible, setTpVisible] = useState(false);
-  const [toiletPos, setToiletPos] = useState({ x: WIDTH / 2, y: HEIGHT * 0.4 });
-  // Single Runner/Listener refs to prevent stacking
-  const runnerRef = useRef(null);
-  const afterUpdateRef = useRef(null);
-  // Ref to track tpVisible state to avoid stale closures
-  const tpVisibleRef = useRef(false);
+  const [toiletPos, setToiletPos] = useState({ x: WIDTH / 2, y: HEIGHT * 0.40 });
 
   // ===== Endless Plunge Round State =====
-  const [epRound, setEpRound] = useState(1); // starts at Round 1
-  const [epTimeLeft, setEpTimeLeft] = useState(30); // seconds remaining in current round
-  const [epTarget, setEpTarget] = useState(10); // points required this round
+  const [epRound, setEpRound] = useState(1);           // starts at Round 1
+  const [epTimeLeft, setEpTimeLeft] = useState(30);    // seconds remaining in current round
+  const [epTarget, setEpTarget] = useState(10);        // points required this round
   const [epRoundPoints, setEpRoundPoints] = useState(0);
   const [toiletSpeedMul, setToiletSpeedMul] = useState(1); // 1.0 -> 1.5 (capped)
-  const [tpSkin, setTpSkin] = useState("tp.png");
-
+  const [tpSkin, setTpSkin] = useState('tp.png');
+  
   // ===== Level Up Banner State =====
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [isTimerPaused, setIsTimerPaused] = useState(false);
@@ -645,16 +567,16 @@ export default function ToiletPaperToss({
   const insets = useSafeAreaInsets();
 
   // ===== Practice Mode Customization State =====
-  const [practiceCustomizationVisible, setPracticeCustomizationVisible] =
-    useState(false);
+  const [practiceCustomizationVisible, setPracticeCustomizationVisible] = useState(false);
   const [practiceSettings, setPracticeSettings] = useState({
-    tpSkin: "tp.png",
+    tpSkin: 'tp.png',
     toiletSpeed: 5,
     gravity: 5,
   });
   const [practiceGameStarted, setPracticeGameStarted] = useState(false);
+  
 
-  // Removed dynamic gravity and speed state - using constants only
+     // Removed dynamic gravity and speed state - using constants only
 
   // convenience ref so physics/tickers can read latest values without stale closures
   const endlessRef = useRef({
@@ -663,9 +585,11 @@ export default function ToiletPaperToss({
     target: 10,
     roundPoints: 0,
     toiletSpeedMul: 1,
-    tpSkin: "tp.png",
-    running: false, // is a round currently active
+    tpSkin: 'tp.png',
+    running: false,            // is a round currently active
   });
+  
+
 
   // Use ref to store scoring callback
   const addScoreRef = useRef(null);
@@ -676,7 +600,9 @@ export default function ToiletPaperToss({
         addScoreRef.current();
       }
     });
+    
 
+    
     return worldSetup;
   });
   const { engine, world, bodies } = enginePkg;
@@ -685,37 +611,30 @@ export default function ToiletPaperToss({
   const addScore = () => {
     const newScore = score + 1;
     setScore(newScore);
-
+    
     // Update high score if needed (session only)
     if (newScore > highScore) {
       setHighScore(newScore);
     }
-
+    
     // For endless plunge, save high score periodically to ensure it's tracked
-    if (gameMode === "endless-plunge" && newScore > persistentHighScore) {
-      saveHighScore(newScore)
-        .then(() => {
-          setPersistentHighScore(newScore);
-        })
-        .catch((error) => {
-          console.log("Error saving high score:", error);
-        });
+    if (gameMode === 'endless-plunge' && newScore > persistentHighScore) {
+      saveHighScore(newScore).then(() => {
+        setPersistentHighScore(newScore);
+      }).catch(error => {
+        console.log('Error saving high score:', error);
+      });
     }
 
     // Endless Plunge round scoring
-    if (gameMode === "endless-plunge" && endlessRef.current.running) {
-      setEpRoundPoints((p) => {
+    if (gameMode === 'endless-plunge' && endlessRef.current.running) {
+      setEpRoundPoints(p => {
         const newPoints = p + 1;
-        console.log(
-          "Round points updated:",
-          newPoints,
-          "/",
-          endlessRef.current.target,
-        );
-
+        console.log('Round points updated:', newPoints, '/', endlessRef.current.target);
+        
         // Don't auto-advance - let the level up banner handle it
         // The banner will trigger and pause the game, then advance when complete
-
+        
         return newPoints;
       });
     }
@@ -727,46 +646,27 @@ export default function ToiletPaperToss({
   }, [score, highScore]);
 
   // Keep endless ref in sync with state
-  useEffect(() => {
-    endlessRef.current.round = epRound;
-  }, [epRound]);
-  
-  // Keep tpVisible ref in sync with state
-  useEffect(() => {
-    tpVisibleRef.current = tpVisible;
-  }, [tpVisible]);
-  useEffect(() => {
-    endlessRef.current.timeLeft = epTimeLeft;
-  }, [epTimeLeft]);
-  useEffect(() => {
-    endlessRef.current.target = epTarget;
-  }, [epTarget]);
-  useEffect(() => {
-    endlessRef.current.roundPoints = epRoundPoints;
-  }, [epRoundPoints]);
-  useEffect(() => {
+  useEffect(() => { endlessRef.current.round = epRound; }, [epRound]);
+  useEffect(() => { endlessRef.current.timeLeft = epTimeLeft; }, [epTimeLeft]);
+  useEffect(() => { endlessRef.current.target = epTarget; }, [epTarget]);
+  useEffect(() => { endlessRef.current.roundPoints = epRoundPoints; }, [epRoundPoints]);
+  useEffect(() => { 
     // Pause toilet movement during level up celebration
-    endlessRef.current.toiletSpeedMul = isTimerPaused ? 0 : toiletSpeedMul;
+    endlessRef.current.toiletSpeedMul = isTimerPaused ? 0 : toiletSpeedMul; 
   }, [toiletSpeedMul, isTimerPaused]);
-  useEffect(() => {
-    endlessRef.current.tpSkin = tpSkin;
-  }, [tpSkin]);
+  useEffect(() => { endlessRef.current.tpSkin = tpSkin; }, [tpSkin]);
 
   // Detect when points reach target and trigger level up banner
   const levelUpTriggeredRef = useRef(false);
-
+  
   useEffect(() => {
-    if (
-      epRoundPoints >= epTarget &&
-      epRoundPoints > 0 &&
-      !levelUpTriggeredRef.current
-    ) {
+    if (epRoundPoints >= epTarget && epRoundPoints > 0 && !levelUpTriggeredRef.current) {
       // Points reached target - trigger level up!
       levelUpTriggeredRef.current = true;
       setShowLevelUp(true);
     }
   }, [epRoundPoints, epTarget]);
-
+  
   // Reset trigger when round changes
   useEffect(() => {
     levelUpTriggeredRef.current = false;
@@ -774,25 +674,16 @@ export default function ToiletPaperToss({
 
   // Show practice customization modal when Practice Mode is selected
   useEffect(() => {
-    if (gameMode === "quick-flush" && !practiceGameStarted) {
+    if (gameMode === 'quick-flush' && !practiceGameStarted) {
       setPracticeCustomizationVisible(true);
     }
   }, [gameMode]);
 
   // Round math helpers
-  const TP_SKINS = [
-    "tp.png",
-    "tp-blue.png",
-    "tp-green.png",
-    "tp-pink.png",
-    "tp-purple.png",
-    "tp-red.png",
-    "tp-orange.png",
-    "tp-rainbow.png",
-  ];
+  const TP_SKINS = ['tp.png','tp-blue.png','tp-green.png','tp-pink.png','tp-purple.png','tp-red.png','tp-orange.png','tp-rainbow.png'];
 
   function pickRandomSkin(exclude) {
-    const pool = TP_SKINS.filter((s) => s !== exclude && s !== "tp.png"); // Exclude default skin from random selection
+    const pool = TP_SKINS.filter(s => s !== exclude && s !== 'tp.png'); // Exclude default skin from random selection
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
@@ -802,24 +693,24 @@ export default function ToiletPaperToss({
     if (round === 1) {
       return { time: 30, target: 10, speedMul: 1.0 };
     }
-
+    
     const extraRounds = round - 1;
-    const time = 30 + extraRounds * 5; // 35s at round 2, 40s at round 3, etc.
-    const target = 10 + extraRounds * 2; // 12 at round 2, 14 at round 3, etc.
-
+    const time = 30 + (extraRounds * 5); // 35s at round 2, 40s at round 3, etc.
+    const target = 10 + (extraRounds * 2); // 12 at round 2, 14 at round 3, etc.
+    
     // Speed increases by 5% each round, capped at +50% (1.5x total)
-    const speedIncrease = Math.min(extraRounds * 0.05, 0.5);
+    const speedIncrease = Math.min(extraRounds * 0.05, 0.50);
     const speedMul = 1.0 + speedIncrease;
-
+    
     return { time, target, speedMul };
   }
 
   // Kick off Endless Plunge session (Round 1)
   function startEndlessPlungeSession() {
-    console.log("Starting Endless Plunge session");
+    console.log('Starting Endless Plunge session');
     setEpRound(1);
     const cfg = getRoundConfig(1);
-    console.log("Round 1 config:", cfg);
+    console.log('Round 1 config:', cfg);
     setEpTimeLeft(cfg.time);
     setEpTarget(cfg.target);
     setEpRoundPoints(0);
@@ -829,15 +720,12 @@ export default function ToiletPaperToss({
     // ensure any miss counters stop affecting endless mode; your code may already do this
   }
 
+
+
   // Advance to next round (after win) or end game (after fail)
   async function advanceOrEndRound(won) {
-    console.log(
-      "advanceOrEndRound called with won:",
-      won,
-      "current round:",
-      epRound,
-    );
-
+    console.log('advanceOrEndRound called with won:', won, 'current round:', epRound);
+    
     if (!won) {
       // Show your existing game over modal
       showGameOver();
@@ -848,16 +736,16 @@ export default function ToiletPaperToss({
     // Next round setup
     const next = epRound + 1;
     const cfg = getRoundConfig(next);
-    console.log("Advancing to round", next, "with config:", cfg);
-
+    console.log('Advancing to round', next, 'with config:', cfg);
+    
     setEpRound(next);
     setEpTimeLeft(cfg.time);
     setEpTarget(cfg.target);
     setEpRoundPoints(0);
     setToiletSpeedMul(cfg.speedMul);
-    setTpSkin((prev) => pickRandomSkin(prev));
+    setTpSkin(prev => pickRandomSkin(prev));
     endlessRef.current.running = true;
-
+    
     // Note: The level up celebration will be triggered by the useEffect that watches epRound
   }
 
@@ -866,26 +754,26 @@ export default function ToiletPaperToss({
     setGameOverVisible(true);
   };
 
-  // Use fixed default speed - no dynamic calculations
-  const getAdjustedSpeed = () => {
-    return 19; // Fixed default speed for all modes
-  };
+     // Use fixed default speed - no dynamic calculations
+   const getAdjustedSpeed = () => {
+     return 16.2; // Fixed default speed for all modes
+   };
 
-  // Practice Mode Customization Handlers
-  const handlePracticePlay = (settings) => {
-    setPracticeSettings(settings);
-    setPracticeCustomizationVisible(false);
-    setPracticeGameStarted(true);
-
-    // Apply practice settings
-    setTpSkin(settings.tpSkin);
-
-    // Update toilet speed for practice mode
-    const toiletSpeedMultiplier = settings.toiletSpeed / 5; // Convert 0-10 to 0-2x multiplier
-    setToiletSpeedMul(toiletSpeedMultiplier);
-
-    // Gravity and speed are now fixed constants
-  };
+     // Practice Mode Customization Handlers
+   const handlePracticePlay = (settings) => {
+     setPracticeSettings(settings);
+     setPracticeCustomizationVisible(false);
+     setPracticeGameStarted(true);
+     
+     // Apply practice settings
+     setTpSkin(settings.tpSkin);
+     
+     // Update toilet speed for practice mode
+     const toiletSpeedMultiplier = settings.toiletSpeed / 5; // Convert 0-10 to 0-2x multiplier
+     setToiletSpeedMul(toiletSpeedMultiplier);
+     
+     // Gravity and speed are now fixed constants
+   };
 
   const handlePracticeClose = () => {
     setPracticeCustomizationVisible(false);
@@ -895,15 +783,17 @@ export default function ToiletPaperToss({
     }
   };
 
+
+
+
+
   // Keep last aim from AimPad
   const lastAimRef = useRef(null);
 
   // Bulletproof launch function
   const doLaunch = () => {
     const a = lastAimRef.current;
-    if (!a) {
-      return;
-    }
+    if (!a) { return; }
 
     // Despawn any existing TP first
     if (bodies?.tp) {
@@ -911,14 +801,13 @@ export default function ToiletPaperToss({
       bodies.tp = null;
     }
 
-    // Create a new TP body (not static initially)
+    // Create a new TP body
     const newTp = Matter.Bodies.circle(-9999, -9999, CONSTANTS.TP_RADIUS, {
       restitution: 0.45,
       friction: 0.05,
       frictionAir: 0.012,
       density: 0.0016,
-      label: "TP",
-      isStatic: false, // Make sure it's not static
+      label: 'TP'
     });
 
     // Add to world
@@ -926,9 +815,9 @@ export default function ToiletPaperToss({
     bodies.tp = newTp;
 
     // spawn at the visual center of the aimpad
-    const spawn = {
-      x: WIDTH / 2, // Center horizontally
-      y: HEIGHT - 24 - 74.25, // Bottom: 24, aimpad radius: 74.25
+    const spawn = { 
+      x: WIDTH / 2,  // Center horizontally
+      y: HEIGHT - 24 - 74.25  // Bottom: 24, aimpad radius: 74.25
     };
 
     // Ensure spawn coordinates are valid numbers
@@ -936,38 +825,39 @@ export default function ToiletPaperToss({
       return;
     }
 
-    // Place the TP at spawn position
-    Matter.Body.setPosition(newTp, spawn);
-    
-    // power from AimPad drag distance; add a safe minimum
-    const rawP = a.power || 0;
-    const p = Math.max(0.25, Math.min(1, rawP)); // TEMP min power 25%
-    const SPEED = getAdjustedSpeed(); // Use gravity-adjusted speed
-
-    // Apply velocity - AxisAimPad provides dy where up is negative, so we need to negate it
-    let vx = (a.dir?.x || 0) * SPEED * p;
-    let vy = -(a.dir?.y || 0) * SPEED * p; // Negate dy so up becomes positive
-    
-    // Fallback: if velocity is too small, add a minimum upward velocity
-    if (Math.abs(vx) < 0.1 && Math.abs(vy) < 0.1) {
-      vy = -SPEED * 0.5; // Add some upward velocity
-    }
-
-    // Apply velocity immediately
-    Matter.Body.setVelocity(newTp, { x: vx, y: vy });
-    Matter.Body.setAngularVelocity(newTp, 0.2 * p);
-    
-    // Make sure the body is not static and awake
+    // wake + place
     Matter.Body.setStatic(newTp, false);
     Matter.Sleeping.set(newTp, false);
-    
+    Matter.Body.setPosition(newTp, spawn);
+    Matter.Body.setVelocity(newTp, { x: 0, y: 0 });
+    Matter.Body.setAngularVelocity(newTp, 0);
 
+    // power from AimPad drag distance; add a safe minimum
+    const rawP = a.power || 0;
+    const p = Math.max(0.25, Math.min(1, rawP));     // TEMP min power 25%
+    const SPEED = getAdjustedSpeed();  // Use gravity-adjusted speed
+
+    // Apply velocity - AxisAimPad provides dy where up is negative, so we need to negate it
+    const vx = (a.dir?.x || 0) * SPEED * p;
+    const vy = -(a.dir?.y || 0) * SPEED * p; // Negate dy so up becomes positive
+
+    Matter.Body.setVelocity(newTp, { x: vx, y: vy });
+    Matter.Body.setAngularVelocity(newTp, 0.2 * p);
+
+         // Debug logging (commented out to prevent performance issues)
+     // console.log('Launch:', { 
+     //   spawn, 
+     //   velocity: { x: vx, y: vy }, 
+     //   power: p, 
+     //   speed: SPEED,
+     //   dir: a.dir 
+     // });
 
     // FIRST-FRAME SYNC + show sprite in the SAME component that renders it
     // Force immediate sync to prevent afterUpdate from overwriting
     setTpPos(spawn);
     setTpVisible(true);
-
+    
     // Reset turn state for new TP roll
     stateRef.current.turnOver = false;
     stateRef.current.missCounted = false;
@@ -985,6 +875,8 @@ export default function ToiletPaperToss({
     padVel: null,
   });
 
+
+
   // Load sounds
   useEffect(() => {
     loadSounds();
@@ -994,6 +886,8 @@ export default function ToiletPaperToss({
       }
     };
   }, []);
+
+
 
   // Load persistent high score on mount
   useEffect(() => {
@@ -1005,7 +899,7 @@ export default function ToiletPaperToss({
           setHighScore(highScoreRecord.highScore); // Also set session high score
         }
       } catch (error) {
-        console.log("Error loading high score:", error);
+        console.log('Error loading high score:', error);
       }
     };
     loadHighScoreData();
@@ -1013,10 +907,12 @@ export default function ToiletPaperToss({
 
   // Initialize endless plunge session when game mode changes
   useEffect(() => {
-    if (gameMode === "endless-plunge") {
+    if (gameMode === 'endless-plunge') {
       startEndlessPlungeSession();
     }
   }, [gameMode]);
+
+
 
   // Handle game completion and save high score
   const handleGameComplete = async (finalScore) => {
@@ -1028,9 +924,9 @@ export default function ToiletPaperToss({
         setHighScore(finalScore);
       }
     } catch (error) {
-      console.log("Error saving high score:", error);
+      console.log('Error saving high score:', error);
     }
-
+    
     // Call the original onGameComplete callback
     if (onGameComplete) {
       onGameComplete(finalScore);
@@ -1058,24 +954,17 @@ export default function ToiletPaperToss({
 
   // Endless Plunge timer ticker (1 Hz)
   useEffect(() => {
-    if (gameMode !== "endless-plunge") return;
+    if (gameMode !== 'endless-plunge') return;
     let id = null;
 
     const tick = () => {
       if (!endlessRef.current.running || isTimerPaused) return; // Don't tick when paused
-      setEpTimeLeft((t) => {
+      setEpTimeLeft(t => {
         if (t <= 1) {
           // time is up -> win if target met, else lose
           // Use current state values instead of ref to avoid stale closure issues
           const won = epRoundPoints >= epTarget;
-          console.log(
-            "Time up! Round points:",
-            epRoundPoints,
-            "Target:",
-            epTarget,
-            "Won:",
-            won,
-          );
+          console.log('Time up! Round points:', epRoundPoints, 'Target:', epTarget, 'Won:', won);
           // stop this round before advancing
           endlessRef.current.running = false;
           // small delay so UI can show 0
@@ -1087,9 +976,7 @@ export default function ToiletPaperToss({
     };
 
     id = setInterval(tick, 1000);
-    return () => {
-      if (id) clearInterval(id);
-    };
+    return () => { if (id) clearInterval(id); };
   }, [gameMode, epRoundPoints, epTarget, isTimerPaused]); // Include dependencies to avoid stale closures
 
   // Collision handling: if tp hits ground, mark turn over
@@ -1098,13 +985,13 @@ export default function ToiletPaperToss({
       const pairs = e.pairs || [];
       for (const p of pairs) {
         const labels = [p.bodyA.label, p.bodyB.label];
-
+        
         // Note: Bowl scoring is handled by wireScoring function, so we don't duplicate it here
         // Miss detection is now handled in afterUpdate loop for more precise control
       }
     };
-    Matter.Events.on(engine, "collisionStart", onCollide);
-    return () => Matter.Events.off(engine, "collisionStart", onCollide);
+    Matter.Events.on(engine, 'collisionStart', onCollide);
+    return () => Matter.Events.off(engine, 'collisionStart', onCollide);
   }, [engine, bodies.tp, tpVisible, gameMode]);
 
   // Reset turn state when a new TP roll is launched
@@ -1115,95 +1002,64 @@ export default function ToiletPaperToss({
     }
   }, [stateRef.current.turnOver]);
 
-  // Physics runner and position mirroring
-  useEffect(() => {
-    const engine = enginePkg.engine;
+     // Physics runner and position mirroring
+   useEffect(() => {
+     const engine = enginePkg.engine;
 
-    // Stop any previous runner and afterUpdate listener
-    if (runnerRef.current) {
-      try {
-        Matter.Runner.stop(runnerRef.current);
-      } catch {}
-      runnerRef.current = null;
-    }
-    if (afterUpdateRef.current) {
-      try {
-        Matter.Events.off(engine, "afterUpdate", afterUpdateRef.current);
-      } catch {}
-      afterUpdateRef.current = null;
-    }
+     
+     const runner = Matter.Runner.create();
+     Matter.Runner.run(runner, engine);
 
-    // Create and start one runner
-    runnerRef.current = Matter.Runner.create();
-    Matter.Runner.run(runnerRef.current, engine);
-
-         // afterUpdate handler (preserving your existing logic)
-     let updateCount = 0;
-     const handleAfterUpdate = (evt) => {
-       updateCount++;
-
+           // Gravity is now handled by the separate useEffect
+    
+        let updateCount = 0;
+    Matter.Events.on(engine, "afterUpdate", () => {
+      updateCount++;
+      
       const tp = bodies?.tp;
       if (!tp) {
         return;
       }
       const p = tp.position;
       
-
-
-      // Always update tpPos if TP is visible
-      if (tpVisibleRef.current) {
+      // Always update tpPos if TP is visible and position is valid
+      if (tpVisible && Number.isFinite(p.x) && Number.isFinite(p.y)) {
         setTpPos({ x: p.x, y: p.y });
       }
-
-      // Hide and despawn TP if it falls below the aimpad or too far below the screen
-      if (
-        tpVisibleRef.current &&
-        (tp.position.y > HEIGHT - 24 || tp.position.y > HEIGHT + 100)
-      ) {
-        setTpVisible(false);
-        // Remove the TP body from the world
-        if (bodies?.tp) {
-          Matter.World.remove(world, bodies.tp);
-          bodies.tp = null;
-        }
-      }
-
+      
+             // Hide and despawn TP if it falls below the aimpad or too far below the screen
+       if (tpVisible && (tp.position.y > HEIGHT - 24 || tp.position.y > HEIGHT + 100)) {
+         setTpVisible(false);
+         // Remove the TP body from the world
+         if (bodies?.tp) {
+           Matter.World.remove(world, bodies.tp);
+           bodies.tp = null;
+         }
+       }
+      
       // Update toilet position to match bowl colliders (only if bowlBodies exists)
       const bowlBodies = bodies?.bowlBodies;
       if (bowlBodies && Number.isFinite(bowlBodies.centerX)) {
-        setToiletPos({
-          x: bowlBodies.centerX,
-          y: HEIGHT * 0.4,
+        setToiletPos({ 
+          x: bowlBodies.centerX, 
+          y: HEIGHT * 0.40 
         });
       }
-    };
-    afterUpdateRef.current = handleAfterUpdate;
-    Matter.Events.on(engine, "afterUpdate", handleAfterUpdate);
+    });
 
     return () => {
-      if (afterUpdateRef.current) {
-        try {
-          Matter.Events.off(engine, "afterUpdate", afterUpdateRef.current);
-        } catch {}
-        afterUpdateRef.current = null;
-      }
-      if (runnerRef.current) {
-        try {
-          Matter.Runner.stop(runnerRef.current);
-        } catch {}
-        runnerRef.current = null;
-      }
-      // Do not Engine.clear here; engine is shared across renders
+      Matter.Events.off(engine, "afterUpdate");
+      Matter.Engine.clear(engine);
     };
-  }, [enginePkg]);
+     }, [enginePkg, bodies.tp, gameMode, tpVisible]);
 
-  // Set gravity once and keep it fixed
-  useEffect(() => {
-    if (engine) {
-      engine.world.gravity.x = 0;
-      engine.world.gravity.y = CONSTANTS.GRAVITY_Y; // Always use the constant
-    }
-  }, [engine]);
+   // Set gravity once and keep it fixed
+   useEffect(() => {
+     if (engine) {
+       engine.world.gravity.x = 0;
+       engine.world.gravity.y = CONSTANTS.GRAVITY_Y; // Always use the constant
+     }
+   }, [engine]);
 
   // Input handled via AimPad
   const systems = [Physics, CollisionSystem, MovingToiletSystem];
@@ -1213,7 +1069,7 @@ export default function ToiletPaperToss({
     // Force a slow UI refresh for HUD ~30fps without spamming state
     const id = setInterval(() => setTick((t) => t + 1), 33);
     setReady(true);
-
+    
     return () => clearInterval(id);
   }, []);
 
@@ -1222,13 +1078,14 @@ export default function ToiletPaperToss({
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
     <View style={styles.container}>
+
       {/* New GameHUD Component */}
-      {gameMode === "endless-plunge" && (
+      {gameMode === 'endless-plunge' && (
         <GameHUD
           gameMode={gameMode}
           round={epRound}
@@ -1238,7 +1095,7 @@ export default function ToiletPaperToss({
           totalScore={score}
           roundTarget={epTarget}
           isMuted={isMuted}
-          onToggleMute={() => setIsMuted((m) => !m)}
+          onToggleMute={() => setIsMuted(m => !m)}
           onOpenSettings={() => setSettingsVisible(true)}
           onEndGame={() => {
             endlessRef.current.running = false;
@@ -1248,7 +1105,7 @@ export default function ToiletPaperToss({
       )}
 
       {/* Level Up Banner */}
-      {gameMode === "endless-plunge" && (
+      {gameMode === 'endless-plunge' && (
         <LevelUpBanner
           visible={showLevelUp}
           round={epRound + 1} // Show the round we're advancing to
@@ -1261,9 +1118,9 @@ export default function ToiletPaperToss({
           }}
         />
       )}
-
+      
       {/* Quick Flush HUD - simplified version */}
-      {gameMode === "quick-flush" && (
+      {gameMode === 'quick-flush' && (
         <GameHUD
           gameMode={gameMode}
           round={1}
@@ -1273,17 +1130,19 @@ export default function ToiletPaperToss({
           totalScore={score}
           roundTarget={0}
           isMuted={isMuted}
-          onToggleMute={() => setIsMuted((m) => !m)}
+          onToggleMute={() => setIsMuted(m => !m)}
           onOpenSettings={() => setSettingsVisible(true)}
           onEndGame={() => {
             showGameOver();
           }}
         />
       )}
+      
+
 
       {/* Game Area */}
-      <ImageBackground
-        source={require("../../assets/game_background.png")}
+      <ImageBackground 
+        source={require('../../assets/game_background.png')} 
         style={styles.gameArea}
         resizeMode="stretch"
       >
@@ -1308,41 +1167,39 @@ export default function ToiletPaperToss({
           gravityY={CONSTANTS.GRAVITY_Y}
           visible={!!state.padActive}
           steps={26}
-          dt={1 / 30}
+          dt={1/30}
         />
 
-        <View
-          style={{
-            position: "absolute",
-            bottom: 24,
-            left: 0,
-            right: 0,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+        <View style={{
+          position: 'absolute',
+          bottom: 24,
+          left: 0,
+          right: 0,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
           <AxisAimPad
-            size={148.5} // AxisPad takes diameter (74.25 * 2)
-            deadZone={0.08} // matches your previous dead zone
-            powerCurve={1.0} // linear like the Snack
-            snapBackOnRelease // center stick on release (Snack behavior)
-            showPowerBar // enable the built-in aim/power bar
+            size={148.5}          // AxisPad takes diameter (74.25 * 2)
+            deadZone={0.08}       // matches your previous dead zone
+            powerCurve={1.0}      // linear like the Snack
+            snapBackOnRelease     // center stick on release (Snack behavior)
+            showPowerBar          // enable the built-in aim/power bar
             onVector={({ dx, dy, power, angle, origin }) => {
               // keep all your existing state logic intact
               stateRef.current.padActive = true;
               stateRef.current.padPower = power;
-              stateRef.current.padOrigin = origin; // keep origin for trajectory overlay
-              const PAD_SPEED = 12; // your existing constant
+              stateRef.current.padOrigin = origin;          // keep origin for trajectory overlay
+              const PAD_SPEED = 12;                          // your existing constant
               stateRef.current.padVel = {
                 x: dx * PAD_SPEED,
                 y: dy * PAD_SPEED,
               };
-
+              
               // Update lastAimRef for doLaunch
-              lastAimRef.current = {
-                dir: { x: dx, y: dy },
-                power,
-                origin,
+              lastAimRef.current = { 
+                dir: { x: dx, y: dy }, 
+                power, 
+                origin 
               };
             }}
             onLaunch={({ dx, dy, power, angle, origin }) => {
@@ -1350,20 +1207,17 @@ export default function ToiletPaperToss({
               // Your doLaunch() uses stateRef.current.padVel/power already,
               // so just ensure those are final before calling.
               const PAD_SPEED = 12;
-              stateRef.current.padVel = {
-                x: dx * PAD_SPEED,
-                y: dy * PAD_SPEED,
-              };
+              stateRef.current.padVel = { x: dx * PAD_SPEED, y: dy * PAD_SPEED };
               stateRef.current.padPower = power;
               stateRef.current.padOrigin = origin;
-
+              
               // Update lastAimRef for doLaunch
-              lastAimRef.current = {
-                dir: { x: dx, y: dy },
-                power,
-                origin,
+              lastAimRef.current = { 
+                dir: { x: dx, y: dy }, 
+                power, 
+                origin 
               };
-
+              
               doLaunch();
             }}
           />
@@ -1371,69 +1225,60 @@ export default function ToiletPaperToss({
 
         {/* Debug: Visualize static bodies (temporarily disabled) */}
         {/* <StaticBodiesOverlay engine={engine} /> */}
-
+        
         {/* Debug: Show bowl hitbox (temporarily disabled) */}
         {/* <BowlHitboxOverlay engine={engine} /> */}
 
         {/* Toilet sprite (visual only, no physics) */}
-        <View
-          style={{
-            position: "absolute",
-            left: toiletPos.x - 160,
-            top: toiletPos.y - 160,
-            width: 320,
-            height: 320,
-            zIndex: 10,
-          }}
-        >
+        <View style={{
+          position: 'absolute',
+          left: toiletPos.x - 160,
+          top: toiletPos.y - 160,
+          width: 320,
+          height: 320,
+          zIndex: 10,
+        }}>
           <Image
-            source={require("../../assets/toilet.png")}
-            style={{ width: "100%", height: "100%" }}
+            source={require('../../assets/toilet.png')}
+            style={{ width: '100%', height: '100%' }}
             resizeMode="contain"
           />
         </View>
 
-
-        
         {/* TP sprite — bulletproof rendering with rotation */}
-        {tpVisible &&
-          bodies.tp &&
-          Number.isFinite(tpPos.x) &&
-          Number.isFinite(tpPos.y) && (
-            <Image
-              source={(() => {
-                const skinMap = {
-                  "tp.png": require("../../assets/tp.png"),
-                  "tp-blue.png": require("../../assets/tp-blue.png"),
-                  "tp-green.png": require("../../assets/tp-green.png"),
-                  "tp-pink.png": require("../../assets/tp-pink.png"),
-                  "tp-purple.png": require("../../assets/tp-purple.png"),
-                  "tp-red.png": require("../../assets/tp-red.png"),
-                  "tp-orange.png": require("../../assets/tp-orange.png"),
-                  "tp-rainbow.png": require("../../assets/tp-rainbow.png"),
-                };
-                return skinMap[tpSkin] || skinMap["tp.png"];
-              })()}
-              style={{
-                position: "absolute",
-                left: tpPos.x - 28,
-                top: tpPos.y - 28,
-                width: 56,
-                height: 56,
-                zIndex: 20,
-                transform: [
-                  { rotate: `${bodies.tp?.angle * (180 / Math.PI) || 0}deg` },
-                ], // Convert radians to degrees
-              }}
-              resizeMode="contain"
-              onLoad={() => {}}
-              onError={(error) => {
-                console.error("TP image failed to load:", error);
-                // Only show red circle if image fails to load
-              }}
-            />
-          )}
-
+        {tpVisible && bodies.tp && Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) && (
+          <Image
+            source={(() => {
+              const skinMap = {
+                'tp.png':        require('../../assets/tp.png'),
+                'tp-blue.png':   require('../../assets/tp-blue.png'),
+                'tp-green.png':  require('../../assets/tp-green.png'),
+                'tp-pink.png':   require('../../assets/tp-pink.png'),
+                'tp-purple.png': require('../../assets/tp-purple.png'),
+                'tp-red.png':    require('../../assets/tp-red.png'),
+                'tp-orange.png': require('../../assets/tp-orange.png'),
+                'tp-rainbow.png': require('../../assets/tp-rainbow.png'),
+              };
+              return skinMap[tpSkin] || skinMap['tp.png'];
+            })()}
+            style={{ 
+              position:'absolute', 
+              left: tpPos.x - 28, 
+              top: tpPos.y - 28, 
+              width:56, 
+              height:56, 
+              zIndex:20,
+              transform: [{ rotate: `${bodies.tp?.angle * (180 / Math.PI) || 0}deg` }] // Convert radians to degrees
+            }}
+            resizeMode="contain"
+            onLoad={() => {}}
+            onError={(error) => {
+              console.error('TP image failed to load:', error);
+              // Only show red circle if image fails to load
+            }}
+          />
+        )}
+        
         {/* Debug: Show TP position as a simple colored circle ONLY if image fails */}
         {/* {tpVisible && Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) && (
           <View
@@ -1451,6 +1296,8 @@ export default function ToiletPaperToss({
             }}
           />
         )} */}
+
+
       </ImageBackground>
 
       <Modal
@@ -1463,15 +1310,12 @@ export default function ToiletPaperToss({
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Settings</Text>
             <Text style={styles.modalText}>Coming soon.</Text>
-            <TouchableOpacity
-              onPress={() => setSettingsVisible(false)}
-              style={styles.modalButton}
-            >
+            <TouchableOpacity onPress={() => setSettingsVisible(false)} style={styles.modalButton}>
               <Text style={styles.modalButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+                      </Modal>
 
       {/* Practice Customization Modal */}
       <PracticeCustomizationModal
@@ -1492,39 +1336,27 @@ export default function ToiletPaperToss({
           <View style={styles.gameOverModalCard}>
             {/* Background gradient effect */}
             <View style={styles.modalBackgroundGradient} />
-
+            
             {/* Header with game mode icon */}
             <View style={styles.gameOverHeader}>
               <View style={styles.headerIconContainer}>
-                <Ionicons
-                  name={
-                    gameMode === "quick-flush" ? "flash" : "game-controller"
-                  }
-                  size={14}
-                  color="#3B82F6"
+                <Ionicons 
+                  name={gameMode === 'quick-flush' ? 'flash' : 'game-controller'} 
+                  size={14} 
+                  color="#3B82F6" 
                 />
               </View>
               <Text style={styles.gameOverTitle}>
-                {gameMode === "endless-plunge"
-                  ? "Plunge Complete!"
-                  : "Game Complete!"}
+                {gameMode === 'endless-plunge' ? 'Plunge Complete!' : 'Game Complete!'}
               </Text>
             </View>
-
+            
             {/* Endless Plunge specific stats */}
-            {gameMode === "endless-plunge" ? (
+            {gameMode === 'endless-plunge' ? (
               <View style={styles.endlessStatsSection}>
                 {/* Round reached */}
                 <View style={styles.statCard}>
-                  <View
-                    style={[
-                      styles.statIconContainer,
-                      {
-                        backgroundColor: "rgba(59, 130, 246, 0.15)",
-                        borderColor: "#3B82F6",
-                      },
-                    ]}
-                  >
+                  <View style={[styles.statIconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.15)', borderColor: '#3B82F6' }]}>
                     <Ionicons name="infinite" size={14} color="#3B82F6" />
                   </View>
                   <View style={styles.statContent}>
@@ -1532,18 +1364,10 @@ export default function ToiletPaperToss({
                     <Text style={styles.statValue}>{epRound}</Text>
                   </View>
                 </View>
-
+                
                 {/* Total score */}
                 <View style={styles.statCard}>
-                  <View
-                    style={[
-                      styles.statIconContainer,
-                      {
-                        backgroundColor: "rgba(245, 158, 11, 0.15)",
-                        borderColor: "#F59E0B",
-                      },
-                    ]}
-                  >
+                  <View style={[styles.statIconContainer, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: '#F59E0B' }]}>
                     <Ionicons name="star" size={14} color="#F59E0B" />
                   </View>
                   <View style={styles.statContent}>
@@ -1551,18 +1375,10 @@ export default function ToiletPaperToss({
                     <Text style={styles.statValue}>{score}</Text>
                   </View>
                 </View>
-
+                
                 {/* High score */}
                 <View style={styles.statCard}>
-                  <View
-                    style={[
-                      styles.statIconContainer,
-                      {
-                        backgroundColor: "rgba(239, 68, 68, 0.15)",
-                        borderColor: "#EF4444",
-                      },
-                    ]}
-                  >
+                  <View style={[styles.statIconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: '#EF4444' }]}>
                     <Ionicons name="trophy" size={14} color="#EF4444" />
                   </View>
                   <View style={styles.statContent}>
@@ -1581,19 +1397,17 @@ export default function ToiletPaperToss({
                   </View>
                   <Text style={styles.finalScoreValue}>{score}</Text>
                 </View>
-
+                
                 <View style={styles.scoreCard}>
                   <View style={styles.scoreCardHeader}>
                     <Ionicons name="trophy" size={14} color="#E91E63" />
                     <Text style={styles.scoreCardTitle}>Best Score</Text>
                   </View>
-                  <Text style={styles.highScoreValue}>
-                    {persistentHighScore}
-                  </Text>
+                  <Text style={styles.highScoreValue}>{persistentHighScore}</Text>
                 </View>
               </View>
             )}
-
+            
             {/* New record celebration */}
             {score === persistentHighScore && score > 0 && (
               <View style={styles.newRecordContainer}>
@@ -1602,27 +1416,27 @@ export default function ToiletPaperToss({
                 <Ionicons name="sparkles" size={14} color="#E91E63" />
               </View>
             )}
-
+            
             {/* Action buttons */}
             <View style={styles.actionButtonsContainer}>
-              <TouchableOpacity
+              <TouchableOpacity 
                 onPress={() => {
                   setGameOverVisible(false);
                   // Restart the same game mode
                   onGameComplete && onGameComplete(score, true);
-                }}
+                }} 
                 style={styles.playAgainButton}
               >
                 <Ionicons name="play" size={14} color="#FFFFFF" />
                 <Text style={styles.playAgainButtonText}>Play Again</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
+              
+              <TouchableOpacity 
                 onPress={() => {
                   setGameOverVisible(false);
                   // Go to main menu
                   onGameComplete && onGameComplete(score, false);
-                }}
+                }} 
                 style={styles.menuButton}
               >
                 <Ionicons name="home" size={14} color="#4A5568" />
@@ -1638,124 +1452,131 @@ export default function ToiletPaperToss({
 
 /******************** Styles ********************/
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8fafc",
+  container: { 
+    flex: 1, 
+    backgroundColor: '#f8fafc' 
   },
+
+
+
+
+
+
+
 
   gameArea: {
     flex: 1,
-    position: "relative",
+    position: 'relative',
   },
-  game: {
-    flex: 1,
-    backgroundColor: "transparent",
+  game: { 
+    flex: 1, 
+    backgroundColor: 'transparent' 
   },
   shootWrap: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
     bottom: 24,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   shootButton: {
     width: 110,
     height: 110,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   toiletContainer: {
-    position: "absolute",
+    position: 'absolute',
     width: 270,
     height: 240,
     zIndex: 10,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   toiletImage: {
     width: 270,
     height: 240,
   },
-  titleWrap: {
-    position: "absolute",
-    top: 20,
-    width: "100%",
-    alignItems: "center",
+  titleWrap: { 
+    position: 'absolute', 
+    top: 20, 
+    width: '100%', 
+    alignItems: 'center' 
   },
-  title: {
-    color: "#fff",
-    fontSize: 22,
-    fontWeight: "700",
+  title: { 
+    color: '#fff', 
+    fontSize: 22, 
+    fontWeight: '700' 
   },
-  subtitle: {
-    color: "#9aa3b2",
-    fontSize: 12,
-    marginTop: 4,
+  subtitle: { 
+    color: '#9aa3b2', 
+    fontSize: 12, 
+    marginTop: 4 
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalCard: {
-    width: "80%",
-    backgroundColor: "#fff",
+    width: '80%',
+    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
-    alignItems: "center",
+    alignItems: 'center',
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: '700',
     marginBottom: 8,
-    color: "#212529",
+    color: '#212529',
   },
   modalText: {
     fontSize: 14,
-    color: "#495057",
+    color: '#495057',
     marginBottom: 16,
   },
   modalButton: {
-    backgroundColor: "#4ECDC4",
+    backgroundColor: '#4ECDC4',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   modalButtonText: {
-    color: "#fff",
-    fontWeight: "600",
+    color: '#fff',
+    fontWeight: '600',
   },
   // Game Over Modal Styles
   gameOverModalCard: {
-    width: "85%",
-    backgroundColor: "#FFFFFF",
+    width: '85%',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    alignItems: "center",
+    alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    shadowColor: "#000",
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 8,
-    position: "relative",
-    overflow: "hidden",
+    position: 'relative',
+    overflow: 'hidden',
   },
   modalBackgroundGradient: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(74, 85, 104, 0.1)",
+    backgroundColor: 'rgba(74, 85, 104, 0.1)',
     borderRadius: 24,
   },
   gameOverHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 12,
     gap: 8,
   },
@@ -1763,43 +1584,43 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "rgba(59, 130, 246, 0.2)",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: "#3B82F6",
+    borderColor: '#3B82F6',
   },
   gameOverTitle: {
     fontSize: 16,
-    fontWeight: "900",
-    color: "#2D3748",
-    textTransform: "uppercase",
+    fontWeight: '900',
+    color: '#2D3748',
+    textTransform: 'uppercase',
     letterSpacing: 0.3,
-    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
     textShadowOffset: { width: 0.5, height: 0.5 },
     textShadowRadius: 1,
   },
   scoreSection: {
-    width: "100%",
+    width: '100%',
     marginBottom: 16,
     gap: 8,
   },
   endlessStatsSection: {
-    width: "100%",
+    width: '100%',
     marginBottom: 12,
     gap: 8,
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   statCard: {
     flex: 1,
-    alignItems: "center",
-    backgroundColor: "#F7FAFC",
+    alignItems: 'center',
+    backgroundColor: '#F7FAFC',
     borderRadius: 8,
     padding: 8,
     borderWidth: 2,
-    borderColor: "#000000",
-    shadowColor: "#000",
+    borderColor: '#000000',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -1810,115 +1631,115 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "rgba(74, 144, 226, 0.1)",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'rgba(74, 144, 226, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: "#4A90E2",
+    borderColor: '#4A90E2',
   },
   statContent: {
-    alignItems: "center",
+    alignItems: 'center',
     marginTop: 4,
   },
   statLabel: {
     fontSize: 8,
-    fontWeight: "700",
-    color: "#4A5568",
-    textTransform: "uppercase",
+    fontWeight: '700',
+    color: '#4A5568',
+    textTransform: 'uppercase',
     letterSpacing: 0.2,
     marginBottom: 1,
   },
   statValue: {
     fontSize: 16,
-    fontWeight: "900",
-    color: "#2D3748",
-    textShadowColor: "rgba(0, 0, 0, 0.05)",
+    fontWeight: '900',
+    color: '#2D3748',
+    textShadowColor: 'rgba(0, 0, 0, 0.05)',
     textShadowOffset: { width: 0.25, height: 0.25 },
     textShadowRadius: 0.5,
   },
   scoreCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 10,
     padding: 12,
     borderWidth: 2,
-    borderColor: "#E2E8F0",
-    shadowColor: "#000",
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
   },
   scoreCardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
     gap: 4,
   },
   scoreCardTitle: {
     fontSize: 10,
-    fontWeight: "700",
-    color: "#4A5568",
-    textTransform: "uppercase",
+    fontWeight: '700',
+    color: '#4A5568',
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   finalScoreValue: {
     fontSize: 20,
-    fontWeight: "900",
-    color: "#4A90E2",
-    textAlign: "center",
-    textShadowColor: "rgba(0, 0, 0, 0.2)",
+    fontWeight: '900',
+    color: '#4A90E2',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
   highScoreValue: {
     fontSize: 20,
-    fontWeight: "900",
-    color: "#E91E63",
-    textAlign: "center",
-    textShadowColor: "rgba(0, 0, 0, 0.2)",
+    fontWeight: '900',
+    color: '#E91E63',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
   newRecordContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(233, 30, 99, 0.15)",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(233, 30, 99, 0.15)',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: "#E91E63",
+    borderColor: '#E91E63',
     gap: 4,
   },
   newRecordText: {
-    color: "#E91E63",
+    color: '#E91E63',
     fontSize: 12,
-    fontWeight: "800",
-    textAlign: "center",
-    textTransform: "uppercase",
+    fontWeight: '800',
+    textAlign: 'center',
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
-    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
   actionButtonsContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
-    width: "100%",
+    width: '100%',
   },
   playAgainButton: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#4ECDC4",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4ECDC4',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 2,
-    borderColor: "#2d3748",
-    shadowColor: "#000",
+    borderColor: '#2d3748',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
@@ -1926,24 +1747,24 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   playAgainButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
+    color: '#FFFFFF',
+    fontWeight: '700',
     fontSize: 12,
-    textTransform: "uppercase",
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   menuButton: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 2,
-    borderColor: "#4a5568",
-    shadowColor: "#000",
+    borderColor: '#4a5568',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
@@ -1951,10 +1772,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   menuButtonText: {
-    color: "#4A5568",
-    fontWeight: "700",
+    color: '#4A5568',
+    fontWeight: '700',
     fontSize: 12,
-    textTransform: "uppercase",
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   // Old aim styles removed - now using imported components

@@ -21,10 +21,16 @@ export default function AimArrow({
   origin,
   radius = 60,
 }) {
-  if (!visible || !origin) return null;
+
+
+  if (!visible || !origin) {
+    return null;
+  }
 
   const picked = pickDirection(direction);
-  if (!picked) return null;
+  if (!picked) {
+    return null;
+  }
 
   // Normalize
   const { vx, vy } = picked;
@@ -35,7 +41,9 @@ export default function AimArrow({
   const sy =  vy;
 
   const mag = Math.hypot(sx, sy);
-  if (mag === 0) return null;
+  if (mag === 0) {
+    return null;
+  }
   const ux = sx / mag;
   const uy = sy / mag;
 
@@ -54,9 +62,11 @@ export default function AimArrow({
 
   const { x: ox, y: oy } = origin;
 
-    // Calculate the end point of the line based on direction and power
+  // Calculate the end point of the line based on direction and power
   const endX = ox + (ux * shaftLen);
   const endY = oy + (uy * shaftLen);
+
+
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>

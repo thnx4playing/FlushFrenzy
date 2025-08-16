@@ -23,12 +23,10 @@ const TPSkinSheet = forwardRef<TPSkinSheetRef, Props>(
     const modalRef = React.useRef<BottomSheetModal>(null);
     React.useImperativeHandle(ref, () => ({
       present: () => {
-        console.log('🔍 [DEBUG] TPSkinSheet present() called');
         setTemp(value);
         modalRef.current?.present();
       },
       dismiss: () => {
-        console.log('🔍 [DEBUG] TPSkinSheet dismiss() called');
         modalRef.current?.dismiss();
       },
     }), [value]);
@@ -38,8 +36,7 @@ const TPSkinSheet = forwardRef<TPSkinSheetRef, Props>(
          ref={modalRef}
          snapPoints={snapPoints}
          enablePanDownToClose
-         onPresent={() => console.log('🔍 [DEBUG] BottomSheetModal onPresent called')}
-         onDismiss={() => console.log('🔍 [DEBUG] BottomSheetModal onDismiss called')}
+
          backdropComponent={(p) => (
            <BottomSheetBackdrop {...p} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
          )}
