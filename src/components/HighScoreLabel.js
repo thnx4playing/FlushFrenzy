@@ -8,7 +8,7 @@ export function HighScoreLabel({ mode = 'default', style }) {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const rec = await loadHighScore();
+      const rec = await loadHighScore(mode);
       if (mounted) setScore(rec?.highScore ?? 0);
     })();
     return () => { mounted = false; };

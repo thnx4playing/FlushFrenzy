@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
+import { useFocusEffect } from '@react-navigation/native';
 import { HighScoreLabel } from '../components/HighScoreLabel';
 
 const { width, height } = Dimensions.get('window');
@@ -37,6 +38,7 @@ const GAME_MODES = [
 export default function HomeScreen({ navigation }) {
   const [isMuted, setIsMuted] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   
   // Hidden menu state
   const [hiddenMenuVisible, setHiddenMenuVisible] = useState(false);
@@ -54,6 +56,13 @@ export default function HomeScreen({ navigation }) {
       } catch {}
     })();
   }, [isMuted]);
+
+  // Refresh high scores when returning to home screen
+  useFocusEffect(
+    React.useCallback(() => {
+      setRefreshKey(prev => prev + 1);
+    }, [])
+  );
   const navigateToGame = (gameMode) => {
     navigation.navigate('Game', { 
       gameId: 'toilet-paper-toss',
@@ -214,7 +223,7 @@ export default function HomeScreen({ navigation }) {
               />
               <View style={styles.highScoreContainer}>
                 <Ionicons name="trophy" size={16} color="#FF6B35" style={styles.trophyIcon} />
-                <HighScoreLabel mode={mode.id} style={styles.highScoreText} />
+                <HighScoreLabel key={`${mode.id}-${refreshKey}`} mode={mode.id} style={styles.highScoreText} />
               </View>
             </TouchableOpacity>
           ))}

@@ -8,6 +8,7 @@ export type PracticeConfig = {
   gravity: number;
   toiletSpeed: number;
   tpSkin: string;
+  tpTrail: string;
   // add any others you use…
 };
 
@@ -15,6 +16,7 @@ export const DEFAULT_PRACTICE: PracticeConfig = {
   gravity: 5, // Default to middle of slider
   toiletSpeed: 5, // Default to middle of slider
   tpSkin: 'tp.png',
+  tpTrail: 'none',
 };
 
 export async function loadPracticeConfig(): Promise<PracticeConfig> {

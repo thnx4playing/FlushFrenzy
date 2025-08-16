@@ -17,22 +17,22 @@ export const TRAIL_PRESETS: Record<TPTrail, TrailConfig> = {
     colors: [], fadeOut: true, scaleOut: true, maxParticles: 1,
   },
   sparkles: {
-    spawnMs: 25, lifeMs: 450, size: 6, jitter: 4,
-    colors: ['#ffffff','#fff9c4','#ffe082'], fadeOut: true, scaleOut: true, maxParticles: 100,
+    spawnMs: 15, lifeMs: 400, size: 4, jitter: 2,
+    colors: ['#ffffff','#ffff00','#ffd700'], fadeOut: true, scaleOut: true, maxParticles: 80,
   },
   rainbow: {
-    spawnMs: 22, lifeMs: 520, size: 7, jitter: 3,
+    spawnMs: 20, lifeMs: 600, size: 6, jitter: 3,
     colors: ['#ff3b30','#ff9500','#ffcc00','#34c759','#007aff','#af52de'],
-    fadeOut: true, scaleOut: true, maxParticles: 120,
+    fadeOut: true, scaleOut: true, maxParticles: 100,
   },
   bubbles: {
     spawnMs: 35, lifeMs: 650, size: 10, jitter: 6,
     colors: ['rgba(255,255,255,0.85)'], fadeOut: true, scaleOut: false, maxParticles: 90,
   },
   confetti: {
-    spawnMs: 30, lifeMs: 600, size: 8, jitter: 5,
-    colors: ['#ff3b30','#ff9500','#ffcc00','#34c759','#007aff','#af52de'],
-    fadeOut: true, scaleOut: true, maxParticles: 120,
+    spawnMs: 40, lifeMs: 800, size: 12, jitter: 8,
+    colors: ['#ff3b30','#ff9500','#ffcc00','#34c759','#007aff','#af52de','#ff69b4','#00ced1'],
+    fadeOut: true, scaleOut: false, maxParticles: 60,
   },
   glow: {
     spawnMs: 28, lifeMs: 500, size: 9, jitter: 2,

@@ -30,6 +30,10 @@ import GameHUD from "../ui/GameHUD";
 import LevelUpBanner from "../components/LevelUpBanner";
 import PracticeCustomizationModal from "../components/PracticeCustomizationModal";
 import { saveHighScore, loadHighScore } from "../utils/highScore";
+import { freshConfig } from "../game/gameModeConfig";
+import { makeModeConfig } from "../game/mode-config";
+import TrailRenderer from "../game/TrailRenderer";
+import { loadPracticeConfig, savePracticeConfig } from "../state/practiceConfig";
 
 // Set up poly-decomp for Matter.js concave shapes
 import decomp from "poly-decomp";
@@ -328,6 +332,20 @@ const CONSTANTS = {
   GRAVITY_Y: 0.3, // Light gravity for nice arc
 };
 
+// Mode-specific configuration system
+const getModeConstants = (gameMode) => {
+  const baseConfig = freshConfig(gameMode);
+  const modeConfig = makeModeConfig(gameMode);
+  
+  return {
+    ...CONSTANTS,
+    // Override with mode-specific settings
+    GRAVITY_Y: baseConfig.gravityY,
+    // Add mode-specific speed
+    SPEED: gameMode === 'endless-plunge' ? 19 : 19, // Both modes use same speed for now
+  };
+};
+
 /******************** World Factory ********************/
 
 // Clean arena builder
@@ -459,12 +477,12 @@ const createTP = () => {
   });
 };
 
-const setupWorld = (addScoreCallback) => {
+const setupWorld = (addScoreCallback, modeConstants = CONSTANTS) => {
   const engine = Matter.Engine.create({ enableSleeping: false });
   const world = engine.world;
   // Set initial gravity - this should be the only place gravity is set initially
   world.gravity.x = 0;
-  world.gravity.y = CONSTANTS.GRAVITY_Y;
+  world.gravity.y = modeConstants.GRAVITY_Y;
 
   // Create TP first
   const tp = createTP();
@@ -610,6 +628,8 @@ export default function ToiletPaperToss({
   gameMode,
   sheetRef,
 }) {
+  // Get mode-specific configuration
+  const modeConstants = getModeConstants(gameMode);
   const gameRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [score, setScore] = useState(0);
@@ -651,8 +671,22 @@ export default function ToiletPaperToss({
     tpSkin: "tp.png",
     toiletSpeed: 5,
     gravity: 5,
+    tpTrail: "none",
   });
+  
+
   const [practiceGameStarted, setPracticeGameStarted] = useState(false);
+
+  // Load practice settings from storage
+  useEffect(() => {
+    if (gameMode === "quick-flush") {
+      loadPracticeConfig().then((config) => {
+        setPracticeSettings(config);
+      }).catch((error) => {
+        // Silent fallback to defaults
+      });
+    }
+  }, [gameMode]);
 
   // Removed dynamic gravity and speed state - using constants only
 
@@ -669,13 +703,16 @@ export default function ToiletPaperToss({
 
   // Use ref to store scoring callback
   const addScoreRef = useRef(null);
+  
+  // Trail renderer ref for practice mode
+  const trailRendererRef = useRef(null);
 
   const [enginePkg] = useState(() => {
     const worldSetup = setupWorld(() => {
       if (addScoreRef.current) {
         addScoreRef.current();
       }
-    });
+    }, modeConstants);
 
     return worldSetup;
   });
@@ -691,9 +728,9 @@ export default function ToiletPaperToss({
       setHighScore(newScore);
     }
 
-    // For endless plunge, save high score periodically to ensure it's tracked
-    if (gameMode === "endless-plunge" && newScore > persistentHighScore) {
-      saveHighScore(newScore)
+    // Save high score periodically to ensure it's tracked
+    if (newScore > persistentHighScore) {
+      saveHighScore(newScore, gameMode)
         .then(() => {
           setPersistentHighScore(newScore);
         })
@@ -866,16 +903,22 @@ export default function ToiletPaperToss({
     setGameOverVisible(true);
   };
 
-  // Use fixed default speed - no dynamic calculations
+  // Use mode-specific speed
   const getAdjustedSpeed = () => {
-    return 19; // Fixed default speed for all modes
+    return modeConstants.SPEED;
   };
 
   // Practice Mode Customization Handlers
   const handlePracticePlay = (settings) => {
+
     setPracticeSettings(settings);
     setPracticeCustomizationVisible(false);
     setPracticeGameStarted(true);
+
+    // Save practice settings to storage
+    savePracticeConfig(settings).catch((error) => {
+      console.log("Error saving practice config:", error);
+    });
 
     // Apply practice settings
     setTpSkin(settings.tpSkin);
@@ -889,6 +932,18 @@ export default function ToiletPaperToss({
 
   const handlePracticeClose = () => {
     setPracticeCustomizationVisible(false);
+    
+    // Save high score for practice mode when closing
+    if (gameMode === "quick-flush" && score > persistentHighScore) {
+      saveHighScore(score, gameMode)
+        .then(() => {
+          setPersistentHighScore(score);
+        })
+        .catch((error) => {
+          console.log("Error saving practice high score:", error);
+        });
+    }
+    
     // Navigate back to home screen or handle as needed
     if (onGameComplete) {
       onGameComplete();
@@ -909,6 +964,11 @@ export default function ToiletPaperToss({
     if (bodies?.tp) {
       Matter.World.remove(world, bodies.tp);
       bodies.tp = null;
+    }
+    
+    // Clear trails when launching new TP
+    if (gameMode === "quick-flush" && trailRendererRef.current) {
+      trailRendererRef.current.clear();
     }
 
     // Create a new TP body (not static initially)
@@ -999,7 +1059,7 @@ export default function ToiletPaperToss({
   useEffect(() => {
     const loadHighScoreData = async () => {
       try {
-        const highScoreRecord = await loadHighScore();
+        const highScoreRecord = await loadHighScore(gameMode);
         if (highScoreRecord && highScoreRecord.highScore > 0) {
           setPersistentHighScore(highScoreRecord.highScore);
           setHighScore(highScoreRecord.highScore); // Also set session high score
@@ -1023,7 +1083,7 @@ export default function ToiletPaperToss({
     try {
       if (finalScore > persistentHighScore) {
         // New high score achieved!
-        await saveHighScore(finalScore);
+        await saveHighScore(finalScore, gameMode);
         setPersistentHighScore(finalScore);
         setHighScore(finalScore);
       }
@@ -1148,11 +1208,17 @@ export default function ToiletPaperToss({
       }
       const p = tp.position;
       
+      
 
 
       // Always update tpPos if TP is visible
       if (tpVisibleRef.current) {
         setTpPos({ x: p.x, y: p.y });
+        
+                       // Emit trail particles for practice mode
+               if (gameMode === "quick-flush" && trailRendererRef.current && practiceSettings.tpTrail !== "none") {
+                 trailRendererRef.current.emit(p.x, p.y);
+               }
       }
 
       // Hide and despawn TP if it falls below the aimpad or too far below the screen
@@ -1165,6 +1231,11 @@ export default function ToiletPaperToss({
         if (bodies?.tp) {
           Matter.World.remove(world, bodies.tp);
           bodies.tp = null;
+        }
+        
+        // Clear trails when TP despawns
+        if (gameMode === "quick-flush" && trailRendererRef.current) {
+          trailRendererRef.current.clear();
         }
       }
 
@@ -1195,15 +1266,29 @@ export default function ToiletPaperToss({
       }
       // Do not Engine.clear here; engine is shared across renders
     };
-  }, [enginePkg]);
+           }, [enginePkg, practiceSettings]);
 
   // Set gravity once and keep it fixed
   useEffect(() => {
     if (engine) {
       engine.world.gravity.x = 0;
-      engine.world.gravity.y = CONSTANTS.GRAVITY_Y; // Always use the constant
+      engine.world.gravity.y = modeConstants.GRAVITY_Y; // Use mode-specific gravity
     }
-  }, [engine]);
+  }, [engine, modeConstants.GRAVITY_Y]);
+
+           // Configure trail renderer when practice settings change
+         useEffect(() => {
+           if (gameMode === "quick-flush" && trailRendererRef.current && practiceSettings.tpTrail) {
+             trailRendererRef.current.configure(practiceSettings.tpTrail);
+           }
+         }, [gameMode, practiceSettings.tpTrail]);
+
+           // Configure trail renderer when it's first mounted
+         useEffect(() => {
+           if (gameMode === "quick-flush" && trailRendererRef.current) {
+             trailRendererRef.current.configure(practiceSettings.tpTrail);
+           }
+         }, [gameMode, trailRendererRef.current]);
 
   // Input handled via AimPad
   const systems = [Physics, CollisionSystem, MovingToiletSystem];
@@ -1305,7 +1390,7 @@ export default function ToiletPaperToss({
         <TrajectoryOverlay
           origin={state.padOrigin || { x: WIDTH / 2, y: HEIGHT - 24 - 56 }}
           vel={state.padVel || null}
-          gravityY={CONSTANTS.GRAVITY_Y}
+                      gravityY={modeConstants.GRAVITY_Y}
           visible={!!state.padActive}
           steps={26}
           dt={1 / 30}
@@ -1433,6 +1518,16 @@ export default function ToiletPaperToss({
               }}
             />
           )}
+
+        {/* Trail Renderer for Practice Mode */}
+        {gameMode === "quick-flush" && practiceSettings.tpTrail && (
+          <TrailRenderer
+                               ref={(ref) => {
+                     trailRendererRef.current = ref;
+                   }}
+            initialType={practiceSettings.tpTrail}
+          />
+        )}
 
         {/* Debug: Show TP position as a simple colored circle ONLY if image fails */}
         {/* {tpVisible && Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) && (

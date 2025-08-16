@@ -28,6 +28,7 @@ export type PracticeSettings = {
   tpSkin: string;
   toiletSpeed: number;
   gravity: number;
+  tpTrail: string;
 };
 
 const PracticeCustomizationModal: React.FC<Props> = ({
@@ -40,10 +41,14 @@ const PracticeCustomizationModal: React.FC<Props> = ({
     tpSkin: 'tp.png',
     toiletSpeed: 5,
     gravity: 5,
+    tpTrail: 'none',
   });
   
   const [skinPickerOpen, setSkinPickerOpen] = useState(false);
+  const [trailPickerOpen, setTrailPickerOpen] = useState(false);
   const [tempSkin, setTempSkin] = useState(settings.tpSkin);
+  const [tempTrail, setTempTrail] = useState(settings.tpTrail);
+  const [pickerType, setPickerType] = useState<'skin' | 'trail'>('skin');
   
   
 
@@ -52,6 +57,7 @@ const PracticeCustomizationModal: React.FC<Props> = ({
       tpSkin: 'tp.png',
       toiletSpeed: 5,
       gravity: 5,
+      tpTrail: 'none',
     });
   };
 
@@ -80,6 +86,27 @@ const PracticeCustomizationModal: React.FC<Props> = ({
     'tp-orange.png': 'Sunset Orange',
     'tp-rainbow.png': 'Rainbow',
   };
+
+  const trailNames: { [key: string]: string } = {
+    'none': 'No Trail',
+    'sparkles': 'Sparkles',
+    'rainbow': 'Rainbow',
+    'bubbles': 'Bubbles',
+    'confetti': 'Confetti',
+    'glow': 'Glow',
+  };
+
+  const trailColors: { [key: string]: string } = {
+    'none': '#E0E0E0',
+    'sparkles': '#FFD700',
+    'rainbow': '#FF6B6B',
+    'bubbles': '#87CEEB',
+    'confetti': '#FF69B4',
+    'glow': '#4DA8FF',
+  };
+
+  const getTrailName = (trail: string) => trailNames[trail] || trail;
+  const getTrailColor = (trail: string) => trailColors[trail] || '#E0E0E0';
 
   return (
     <>
@@ -114,6 +141,7 @@ const PracticeCustomizationModal: React.FC<Props> = ({
                   activeOpacity={0.85}
                   onPress={() => {
                     setTempSkin(settings.tpSkin);
+                    setPickerType('skin');
                     setSkinPickerOpen(true);
                   }}
                 >
@@ -174,6 +202,28 @@ const PracticeCustomizationModal: React.FC<Props> = ({
                   </View>
                 </View>
               </View>
+
+              {/* Trail Effect Section */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Trail Effect</Text>
+                <TouchableOpacity
+                  style={styles.selectorRow}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setTempTrail(settings.tpTrail);
+                    setPickerType('trail');
+                    setTrailPickerOpen(true);
+                  }}
+                >
+                  <View style={styles.selectorLeft}>
+                    <View style={[styles.trailPreview, { backgroundColor: getTrailColor(settings.tpTrail) }]} />
+                    <Text style={styles.selectorText}>
+                      {getTrailName(settings.tpTrail)}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#2C3E50" />
+                </TouchableOpacity>
+              </View>
             </ScrollView>
 
             {/* Buttons */}
@@ -228,6 +278,58 @@ const PracticeCustomizationModal: React.FC<Props> = ({
                       onPress={() => {
                         setSettings({ ...settings, tpSkin: tempSkin });
                         setSkinPickerOpen(false);
+                      }}
+                      style={styles.btnPrimary}
+                    >
+                      <Text style={styles.btnPrimaryText}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Trail Picker Overlay */}
+            {trailPickerOpen && (
+              <View style={styles.overlay}>
+                <View style={styles.sheet}>
+                  <Text style={styles.sheetTitle}>Choose Trail Effect</Text>
+
+                  {/* Live preview */}
+                  <View style={styles.previewRow}>
+                    <View style={[styles.trailPreview, { backgroundColor: getTrailColor(tempTrail) }]} />
+                    <Text style={styles.previewName}>{getTrailName(tempTrail)}</Text>
+                  </View>
+
+                  {/* Compact scrollable list */}
+                  <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+                    {Object.keys(trailNames).map((trail) => {
+                      const selected = tempTrail === trail;
+                      return (
+                        <TouchableOpacity
+                          key={trail}
+                          style={[styles.listRow, selected && styles.listRowSelected]}
+                          onPress={() => setTempTrail(trail)}
+                          activeOpacity={0.8}
+                        >
+                          <View style={styles.rowLeft}>
+                            <View style={[styles.trailPreview, { backgroundColor: getTrailColor(trail) }]} />
+                            <Text style={styles.rowText}>{getTrailName(trail)}</Text>
+                          </View>
+                          {selected && <Ionicons name="checkmark-circle" size={18} color="#0EA5E9" />}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+
+                  {/* Actions */}
+                  <View style={styles.sheetButtons}>
+                    <TouchableOpacity onPress={() => setTrailPickerOpen(false)} style={styles.btnSecondary}>
+                      <Text style={styles.btnSecondaryText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSettings({ ...settings, tpTrail: tempTrail });
+                        setTrailPickerOpen(false);
                       }}
                       style={styles.btnPrimary}
                     >
@@ -449,6 +551,13 @@ const styles = StyleSheet.create({
   selectorLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   selectorThumb: { width: 36, height: 36 },
   selectorText: { fontSize: 16, fontWeight: '600', color: '#2C3E50' },
+  trailPreview: { 
+    width: 36, 
+    height: 36, 
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: '#2C3E50',
+  },
 
   overlay: {
     position: 'absolute',

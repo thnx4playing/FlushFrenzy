@@ -141,6 +141,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     pointerEvents: 'none',
+    zIndex: 15, // Make sure it's above the background but below UI elements
   },
   dot: {
     position: 'absolute',

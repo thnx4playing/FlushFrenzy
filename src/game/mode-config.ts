@@ -1,5 +1,5 @@
 // src/game/mode-config.ts
-export type GameMode = 'endless-plunge' | 'practice';
+export type GameMode = 'endless-plunge' | 'quick-flush';
 
 export type ModeConfig = {
   // physics
@@ -39,9 +39,9 @@ export const PRESETS: Record<GameMode, ModeConfig> = {
     pointsToAdvance: 10,
     movingToiletSpeed: 1.0,
   },
-  practice: {
+  'quick-flush': {
     ...BASE,
-    // practice ignores round timer by default and allows UI sliders to mutate these:
+    // quick-flush ignores round timer by default and allows UI sliders to mutate these:
     roundTimeSec: undefined,
     pointsToAdvance: undefined,
     movingToiletSpeed: 1.0,

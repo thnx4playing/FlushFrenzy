@@ -1,5 +1,5 @@
 // Make config per mode immutable and never mutate these at runtime.
-export type GameMode = 'endless-plunge' | 'practice';
+export type GameMode = 'endless-plunge' | 'quick-flush';
 
 export type ModeConfig = {
   gravityY: number;
@@ -18,11 +18,11 @@ export const CONFIG: Readonly<Record<GameMode, Readonly<ModeConfig>>> = {
     timerSecs: 5, // Temporarily reduced for testing
     aimPad: { radius: 90, bottomInset: 24 },
   }),
-  'practice': Object.freeze({
+  'quick-flush': Object.freeze({
     gravityY: 0.3, // Light gravity for nice arc
     walls: true,
     movingToilet: true,
-    timerSecs: 0, // no round timer
+    timerSecs: 60, // 60 second challenge
     aimPad: { radius: 90, bottomInset: 24 },
   }),
 };
