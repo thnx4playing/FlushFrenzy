@@ -33,6 +33,7 @@ import { saveHighScore, loadHighScore } from "../utils/highScore";
 import { freshConfig } from "../game/gameModeConfig";
 import { makeModeConfig } from "../game/mode-config";
 import TrailRenderer from "../game/TrailRenderer";
+import { useAudioStore } from '../audio/AudioStore';
 import { loadPracticeConfig, savePracticeConfig } from "../state/practiceConfig";
 
 // Set up poly-decomp for Matter.js concave shapes
@@ -44,16 +45,19 @@ const { width: WIDTH, height: HEIGHT } = Dimensions.get("window");
 // Sound effects
 let dingSound = null;
 let waterDropSound = null;
+let soundEffectsVolume = 1.0; // Default volume
 
 const loadSounds = async () => {
   try {
     const { sound: ding } = await Audio.Sound.createAsync(
       require("../../assets/ding.mp3"),
+      { shouldPlay: false, isLooping: false }
     );
     dingSound = ding;
 
     const { sound: water } = await Audio.Sound.createAsync(
       require("../../assets/water_drop.mp3"),
+      { shouldPlay: false, isLooping: false }
     );
     waterDropSound = water;
   } catch (error) {
@@ -64,7 +68,12 @@ const loadSounds = async () => {
 const playDingSound = async () => {
   if (dingSound) {
     try {
-      await dingSound.replayAsync();
+      const { sfxMuted, sfxVolume } = useAudioStore.getState();
+      if (!sfxMuted) {
+        console.log('Playing ding sound with volume:', sfxVolume);
+        await dingSound.setVolumeAsync(sfxVolume);
+        await dingSound.replayAsync();
+      }
     } catch (error) {
       console.log("Could not play sound:", error);
     }
@@ -74,7 +83,12 @@ const playDingSound = async () => {
 const playWaterDropSound = async () => {
   if (waterDropSound) {
     try {
-      await waterDropSound.replayAsync();
+      const { sfxMuted, sfxVolume } = useAudioStore.getState();
+      if (!sfxMuted) {
+        console.log('Playing water drop sound with volume:', sfxVolume);
+        await waterDropSound.setVolumeAsync(sfxVolume);
+        await waterDropSound.replayAsync();
+      }
     } catch (error) {
       console.log("Could not play water drop sound:", error);
     }
@@ -456,7 +470,8 @@ const wireScoring = (engine, addScoreCallback) => {
         Matter.Body.setPosition(tpBody, { x: -9999, y: -9999 });
 
         // Play water drop sound effect
-        playWaterDropSound();
+        console.log('Scoring! Playing sound effect');
+        playWaterDropSound(1);
 
         // Add point
         addScoreCallback();
@@ -639,7 +654,6 @@ export default function ToiletPaperToss({
   const [timeLeft, setTimeLeft] = useState(0);
   const [gameOverVisible, setGameOverVisible] = useState(false);
 
-  const [isMuted, setIsMuted] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [tpPos, setTpPos] = useState({ x: -9999, y: -9999 });
   const [tpVisible, setTpVisible] = useState(false);
@@ -649,6 +663,9 @@ export default function ToiletPaperToss({
   const afterUpdateRef = useRef(null);
   // Ref to track tpVisible state to avoid stale closures
   const tpVisibleRef = useRef(false);
+  
+  // Get audio state from global store
+  const { sfxMuted, sfxVolume } = useAudioStore();
 
   // ===== Endless Plunge Round State =====
   const [epRound, setEpRound] = useState(1); // starts at Round 1
@@ -677,6 +694,10 @@ export default function ToiletPaperToss({
 
   const [practiceGameStarted, setPracticeGameStarted] = useState(false);
 
+
+
+
+
   // Load practice settings from storage
   useEffect(() => {
     if (gameMode === "quick-flush") {
@@ -687,6 +708,9 @@ export default function ToiletPaperToss({
       });
     }
   }, [gameMode]);
+
+  // Note: Jingle is only loaded and played on the splash screen (HomeScreen)
+  // Game modes don't need to load the jingle since it's not used here
 
   // Removed dynamic gravity and speed state - using constants only
 
@@ -706,6 +730,8 @@ export default function ToiletPaperToss({
   
   // Trail renderer ref for practice mode
   const trailRendererRef = useRef(null);
+
+
 
   const [enginePkg] = useState(() => {
     const worldSetup = setupWorld(() => {
@@ -1099,20 +1125,21 @@ export default function ToiletPaperToss({
 
   // Apply mute state to loaded sounds
   useEffect(() => {
-    const applyVolume = async () => {
-      if (dingSound) {
-        try {
-          await dingSound.setVolumeAsync(isMuted ? 0 : 1);
-        } catch (e) {
-          // ignore
-        }
-      }
+    const setupAudio = async () => {
       try {
-        await Audio.setIsEnabledAsync(!isMuted);
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: false,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+          interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+          interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+        });
       } catch {}
     };
-    applyVolume();
-  }, [isMuted]);
+    setupAudio();
+  }, []);
 
   // Game timer (removed for Practice Mode - game only ends on user action)
 
@@ -1322,8 +1349,6 @@ export default function ToiletPaperToss({
           pointsRemaining={Math.max(0, epTarget - epRoundPoints)}
           totalScore={score}
           roundTarget={epTarget}
-          isMuted={isMuted}
-          onToggleMute={() => setIsMuted((m) => !m)}
           onOpenSettings={() => setSettingsVisible(true)}
           onEndGame={() => {
             endlessRef.current.running = false;
@@ -1357,8 +1382,6 @@ export default function ToiletPaperToss({
           pointsRemaining={0}
           totalScore={score}
           roundTarget={0}
-          isMuted={isMuted}
-          onToggleMute={() => setIsMuted((m) => !m)}
           onOpenSettings={() => setSettingsVisible(true)}
           onEndGame={() => {
             showGameOver();
