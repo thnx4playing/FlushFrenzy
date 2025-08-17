@@ -41,16 +41,10 @@ export default function HomeScreen({ navigation }) {
   const [volumeModalVisible, setVolumeModalVisible] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   
-  // Hidden menu state
-  const [hiddenMenuVisible, setHiddenMenuVisible] = useState(false);
-  const [holdTimer, setHoldTimer] = useState(null);
-  const [isHolding, setIsHolding] = useState(false);
-  const [longPressDetected, setLongPressDetected] = useState(false);
-  const [discordWebhook, setDiscordWebhook] = useState('https://discord.com/api/webhooks/REDACTED/REDACTED');
+  // Settings and Discord state
+  const [settingsVisible, setSettingsVisible] = useState(false);
   const [discordMessage, setDiscordMessage] = useState('');
   const [showDiscordModal, setShowDiscordModal] = useState(false);
-
-
 
   // Play menu music when HomeScreen is focused, stop when blurred
   useFocusEffect(
@@ -67,7 +61,7 @@ export default function HomeScreen({ navigation }) {
   // Navigate to game mode
   const handleGameModeSelect = (mode) => {
     navigation.navigate('Game', { 
-      gameId: 'toilet-paper-toss',
+      gameId: 'flush-frenzy',
       gameMode: mode 
     });
   };
@@ -83,111 +77,42 @@ export default function HomeScreen({ navigation }) {
     return 'volume-high';
   };
 
-  // Hidden menu functions
-  const handleLongPressStart = () => {
-    setIsHolding(true);
-    setLongPressDetected(false);
-    const timer = setTimeout(() => {
-      setHiddenMenuVisible(true);
-      setIsHolding(false);
-      setLongPressDetected(true);
-    }, 6000); // 6 seconds
-    setHoldTimer(timer);
+  // Settings and Discord functions
+  const handleSubmitBugReport = () => {
+    setSettingsVisible(false);
+    setShowDiscordModal(true);
   };
 
-  const handleLongPressEnd = () => {
-    if (holdTimer) {
-      clearTimeout(holdTimer);
-      setHoldTimer(null);
-    }
-    setIsHolding(false);
-    // Reset the long press flag after a short delay
-    setTimeout(() => setLongPressDetected(false), 100);
-  };
 
-  const handleMenuItemPress = (itemNumber) => {
-    switch(itemNumber) {
-      case 1:
-        sendAutoDiscordMessage('Hi!');
-        break;
-      case 2:
-        sendAutoDiscordMessage('Can I have a gift please?');
-        break;
-      case 3:
-        sendAutoDiscordMessage('Can I have candy please?');
-        break;
-      case 4:
-        sendAutoDiscordMessage('Can you get on roblox?');
-        break;
-      case 5:
-        sendAutoDiscordMessage('IMYJALB');
-        break;
-      case 6:
-        setShowDiscordModal(true);
-        break;
-    }
-    setHiddenMenuVisible(false);
-  };
-
-  const sendAutoDiscordMessage = async (message) => {
-    try {
-      const response = await fetch(discordWebhook, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: message,
-          username: 'Toilet Paper Toss Bot',
-          avatar_url: 'https://em-content.zobj.net/source/microsoft-teams/363/roll-of-paper_1f9fb.png',
-        }),
-      });
-
-      if (response.ok) {
-        Alert.alert('Success', 'You have generated one Ad View - Thank you!');
-      } else {
-        Alert.alert('Error', 'Failed to send message to Discord');
-      }
-    } catch (error) {
-      console.error('Discord webhook error:', error);
-      Alert.alert('Error', 'Failed to send message to Discord');
-    }
-  };
 
   const sendDiscordMessage = async () => {
-    if (!discordWebhook.trim()) {
-      Alert.alert('Error', 'Please enter a Discord webhook URL');
-      return;
-    }
-
     if (!discordMessage.trim()) {
       Alert.alert('Error', 'Please enter a message to send');
       return;
     }
 
     try {
-      const response = await fetch(discordWebhook, {
-        method: 'POST',
+      const response = await fetch("https://7w2qi2iizkwhlpua3yoatym3xe0xdvnz.lambda-url.us-east-1.on.aws/", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
+          "x-bug-report-key": "wT0y9E-AppKey-2025",
         },
         body: JSON.stringify({
-          content: discordMessage,
-          username: 'Toilet Paper Toss Bot',
-          avatar_url: 'https://em-content.zobj.net/source/microsoft-teams/363/roll-of-paper_1f9fb.png',
+          message: discordMessage,
         }),
       });
 
       if (response.ok) {
-        Alert.alert('Success', 'You have generated one Ad View - Thank you!');
+        Alert.alert('Success', 'Bug report submitted successfully!');
         setDiscordMessage('');
         setShowDiscordModal(false);
       } else {
-        Alert.alert('Error', 'Failed to send message to Discord');
+        Alert.alert('Error', 'Failed to submit bug report');
       }
     } catch (error) {
-      console.error('Discord webhook error:', error);
-      Alert.alert('Error', 'Failed to send message to Discord');
+      console.error('Bug report error:', error);
+      Alert.alert('Error', 'Failed to submit bug report');
     }
   };
 
@@ -199,17 +124,13 @@ export default function HomeScreen({ navigation }) {
     >
       <View style={styles.content}>
         {/* Header moved to top with increased size */}
-        <Pressable 
-          style={styles.header}
-          onPressIn={handleLongPressStart}
-          onPressOut={handleLongPressEnd}
-        >
+        <View style={styles.header}>
           <Image 
             source={require('../../assets/header.png')} 
             style={styles.headerImage}
             resizeMode="contain"
           />
-        </Pressable>
+        </View>
 
         {/* Under header image */}
         <View style={styles.underHeaderContainer}>
@@ -242,10 +163,13 @@ export default function HomeScreen({ navigation }) {
           ))}
         </View>
 
-        {/* Bottom corner actions */}
-        <View style={styles.bottomBar} pointerEvents="box-none">
-          <TouchableOpacity style={styles.bottomLeft} onPress={() => setVolumeModalVisible(true)}>
+        {/* Top corner actions */}
+        <View style={styles.topBar} pointerEvents="box-none">
+          <TouchableOpacity style={styles.topLeft} onPress={() => setVolumeModalVisible(true)}>
             <Ionicons name={getVolumeIcon()} size={26} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.topRight} onPress={() => setSettingsVisible(true)}>
+            <Ionicons name="settings-sharp" size={26} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
@@ -255,60 +179,25 @@ export default function HomeScreen({ navigation }) {
           onClose={() => setVolumeModalVisible(false)}
         />
 
-
-
-        {/* Hidden Menu Modal */}
+        {/* Settings Modal */}
         <Modal
           animationType="slide"
           transparent={true}
-          visible={hiddenMenuVisible}
-          onRequestClose={() => setHiddenMenuVisible(false)}
+          visible={settingsVisible}
+          onRequestClose={() => setSettingsVisible(false)}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>How Did You Find This?!</Text>
-              <Text style={styles.modalSubtitle}>Help support small creators, each "Donate" generates one ad view!</Text>
-              <View style={styles.menuItems}>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(1)}
-                >
-                  <Text style={styles.menuItemText}>Say Hi!</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(2)}
-                >
-                  <Text style={styles.menuItemText}>Donate: Gift!</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(3)}
-                >
-                  <Text style={styles.menuItemText}>Donate: Candy!</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(4)}
-                >
-                  <Text style={styles.menuItemText}>Donate: Roblox!</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(5)}
-                >
-                  <Text style={styles.menuItemText}>Donate: IMYJALB</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(6)}
-                >
-                  <Text style={styles.menuItemText}>Custom Message</Text>
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.modalTitle}>Settings</Text>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={handleSubmitBugReport}
+              >
+                <Text style={styles.menuItemText}>Submit Bug Report</Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={() => setHiddenMenuVisible(false)}
+                onPress={() => setSettingsVisible(false)}
               >
                 <Text style={styles.closeButtonText}>Close</Text>
               </TouchableOpacity>
@@ -324,34 +213,37 @@ export default function HomeScreen({ navigation }) {
           onRequestClose={() => setShowDiscordModal(false)}
         >
           <View style={styles.modalOverlay}>
-                      <View style={styles.modalContent}>
-            {/* Buttons at the top */}
-            <View style={styles.buttonRow}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setShowDiscordModal(false)}
-              >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.sendButton]}
-                onPress={sendDiscordMessage}
-              >
-                <Text style={styles.modalButtonText}>Send</Text>
-              </TouchableOpacity>
+            <View style={styles.modalContent}>
+              {/* Buttons at the top */}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowDiscordModal(false)}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.sendButton]}
+                  onPress={sendDiscordMessage}
+                >
+                  <Text style={styles.modalButtonText}>Send</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={styles.inputLabel}>Message:</Text>
+              <TextInput
+                style={[styles.textInput, styles.messageInput]}
+                placeholder="Send any bug reports or just a thumbs up if you enjoyed Flush Frenzy!"
+                placeholderTextColor="#666"
+                value={discordMessage}
+                onChangeText={setDiscordMessage}
+                multiline
+                numberOfLines={3}
+              />
+              <Text style={styles.disclaimerText}>
+                We don't collect your name, email, device ID, or location. Messages are proxied through our server and delivered to our inbox. We don't log IP addresses or metadata. Please don't include personal information. See our Privacy Policy for details.
+              </Text>
             </View>
-            
-            <Text style={styles.inputLabel}>Message:</Text>
-            <TextInput
-              style={[styles.textInput, styles.messageInput]}
-              placeholder="🧻💨 Check out this awesome toilet paper toss game!"
-              placeholderTextColor="#666"
-              value={discordMessage}
-              onChangeText={setDiscordMessage}
-              multiline
-              numberOfLines={3}
-            />
-          </View>
           </View>
         </Modal>
       </View>
@@ -373,16 +265,15 @@ const styles = StyleSheet.create({
     height: height * 0.25,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 120,
-    paddingLeft: 25,
+    paddingTop: 160,
   },
   headerImage: {
-    width: width * 0.9,
-    height: height * 0.3,
+    width: width * 1.397, // Increased by 15% from 1.215
+    height: height * 0.466, // Increased by 15% from 0.405
   },
   underHeaderContainer: {
     alignItems: 'center',
-    marginTop: 25,
+    marginTop: 45,
     marginBottom: 5,
   },
   underHeaderImage: {
@@ -440,22 +331,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000000',
   },
-  bottomBar: {
+  topBar: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 20,
+    top: 20,
     height: 40,
   },
-  bottomLeft: {
+  topLeft: {
     position: 'absolute',
     left: 20,
-    bottom: 0,
+    top: 0,
   },
-  bottomRight: {
+  topRight: {
     position: 'absolute',
     right: 20,
-    bottom: 0,
+    top: 0,
   },
   modalOverlay: {
     position: 'absolute',
@@ -499,9 +390,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-  // Hidden menu styles
+  // Modal styles
   modalContent: {
-    backgroundColor: '#ff8107', // New orange background
+    backgroundColor: '#ff8107', // Orange background
     borderRadius: 25,
     padding: 35,
     width: width * 0.85,
@@ -515,21 +406,6 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 10,
     marginTop: -180, // Move the modal up closer to the top
-  },
-  modalSubtitle: {
-    fontSize: 15,
-    color: '#FFFFFF', // White text for contrast
-    textAlign: 'center',
-    marginBottom: 15,
-    fontStyle: 'italic',
-    lineHeight: 20,
-    fontWeight: '600',
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  menuItems: {
-    width: '100%',
   },
   menuItem: {
     backgroundColor: '#3B82F6', // Darker blue buttons
@@ -636,5 +512,14 @@ const styles = StyleSheet.create({
   sendButton: {
     backgroundColor: '#3B82F6', // Darker blue send button
     borderColor: '#000000', // Black border
+  },
+  disclaimerText: {
+    fontSize: 11,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginTop: 15,
+    lineHeight: 14,
+    fontStyle: 'italic',
+    opacity: 0.8,
   },
 });

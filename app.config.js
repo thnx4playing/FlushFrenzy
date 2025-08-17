@@ -2,21 +2,18 @@ const path = require('path');
 
 module.exports = {
   expo: {
-    name: "ToiletOlympicsGameV2",
-    slug: "ToiletOlympicsGameV2",
-    version: "1.9.0",
+    owner: "thnx4playing",
+    name: "Flush Frenzy",
+    slug: "FlushFrenzy",
+    version: "1.0.0",
     orientation: "portrait",
-    icon: path.resolve(__dirname, 'assets/icon.png'),
+    icon: path.resolve(__dirname, 'assets/app-icon.png'),
     userInterfaceStyle: "light",
-    splash: {
-      image: path.resolve(__dirname, 'assets/splash-icon.png'),
-      resizeMode: "contain",
-      backgroundColor: "#ffffff"
-    },
+
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.thnx4playing.ToiletOlympicsGameV2",
-      buildNumber: "65",
+      bundleIdentifier: "com.thnx4playing.FlushFrenzy",
+      buildNumber: "1",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false
       }
@@ -32,9 +29,10 @@ module.exports = {
     },
     extra: {
       eas: {
-        projectId: "1ecbd8c5-1539-4fa1-b58e-0591783b6203"
+        projectId: "3305a902-de48-4658-8acd-97ef7dca15c4"
       }
     },
+
     // Enable native development
     experiments: {
       tsconfigPaths: true

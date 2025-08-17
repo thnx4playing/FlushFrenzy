@@ -1,9 +1,9 @@
-// ToiletPaperToss.js
-// Expo React Native + react-native-game-engine + matter-js starter for the Toilet Paper Toss game
+// FlushFrenzy.js
+// Expo React Native + react-native-game-engine + matter-js starter for the Flush Frenzy game
 // Features:
 // - Slingshot-style aiming (drag back like Angry Birds)
 
-// - Toilet paper (circle body) bounces off walls/ceiling/toilet
+// - TP roll (circle body) bounces off walls/ceiling/toilet
 // - Touching the ground ends the turn and resets the paper
 // - Tunable physics so the paper actually FLIES
 

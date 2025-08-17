@@ -54,7 +54,7 @@ export default function GameScreen({ route, navigation }) {
     if (playAgain) {
       // For Play Again, navigate back to the same game mode
       navigation.replace('Game', { 
-        gameId: 'toilet-paper-toss',
+        gameId: 'flush-frenzy',
         gameMode: gameMode 
       });
     } else {
