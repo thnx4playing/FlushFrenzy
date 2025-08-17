@@ -8,9 +8,11 @@ import {
   SafeAreaView,
   ImageBackground,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
 // Import individual game components
 import ToiletPaperToss from '../games/ToiletPaperToss';
+import { AudioManager } from '../audio/AudioManager';
 
 
 export default function GameScreen({ route, navigation }) {
@@ -22,6 +24,17 @@ export default function GameScreen({ route, navigation }) {
   const gameKey = useMemo(() => {
     return `game-${gameMode}-${Date.now()}`;
   }, [gameMode]);
+
+  // Play game music when GameScreen is focused, stop when blurred
+  useFocusEffect(
+    React.useCallback(() => {
+      AudioManager.playGameMusic({ loop: true });
+      
+      return () => {
+        AudioManager.stopMusic();
+      };
+    }, [])
+  );
 
 
   const gameNames = {

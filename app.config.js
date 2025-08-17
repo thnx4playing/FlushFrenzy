@@ -16,7 +16,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.thnx4playing.ToiletOlympicsGameV2",
-      buildNumber: "64",
+      buildNumber: "65",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false
       }

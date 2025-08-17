@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, Pressable, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import HUDBar from '../components/HUDBar';
 import PracticeHUD from '../components/PracticeHUD';
+import VolumeControlModal from '../components/VolumeControlModal';
+import { useAudioStore } from '../audio/AudioStore';
 
 type Props = {
   gameMode: 'endless-plunge' | 'quick-flush';
@@ -13,8 +15,6 @@ type Props = {
   pointsRemaining: number;   // target - points (clamped >= 0)
   totalScore?: number;       // cumulative score for the entire game
   roundTarget?: number;      // target points for current round
-  isMuted: boolean;
-  onToggleMute: () => void;
   onOpenSettings: () => void;
   onEndGame: () => void;
   containerStyle?: ViewStyle;
@@ -28,18 +28,33 @@ export default function GameHUD({
   pointsRemaining,
   totalScore,
   roundTarget,
-  isMuted,
-  onToggleMute,
   onOpenSettings,
   onEndGame,
   containerStyle,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const [volumeModalVisible, setVolumeModalVisible] = useState(false);
+
+  const getVolumeIcon = () => {
+    const { musicMuted, sfxMuted } = useAudioStore.getState();
+    
+    if (musicMuted && sfxMuted) return 'volume-mute';
+    if (musicMuted || sfxMuted) return 'volume-low';
+    return 'volume-high';
+  };
 
   return (
     <View
       pointerEvents="box-none"
-      style={[styles.hudRoot, { paddingTop: insets.top + 6 }, containerStyle]}
+      style={[
+        styles.hudRoot, 
+        { 
+          paddingTop: gameMode === 'endless-plunge' 
+            ? insets.top - 10  // Move HUD up by 16px for endless plunge
+            : insets.top + 6 
+        }, 
+        containerStyle
+      ]}
     >
       {/* Top center HUD - different based on game mode */}
       <View style={[
@@ -61,8 +76,15 @@ export default function GameHUD({
         )}
       </View>
 
-      {/* Bottom horizontal buttons */}
-      <View style={[styles.bottomButtonsWrap, { marginTop: insets.top + 90 }]}>
+      {/* Right side vertical buttons */}
+      <View style={[
+        styles.rightButtonsWrap, 
+        { 
+          top: gameMode === 'endless-plunge' 
+            ? insets.top + 80  // Position right below HUD for endless plunge
+            : insets.top + 96  // Position right below HUD for quick flush
+        }
+      ]}>
         <CircleButton
           onPress={onOpenSettings}
           icon={<Ionicons name="settings" size={22} color="#FFFFFF" />}
@@ -70,14 +92,8 @@ export default function GameHUD({
           label="Settings"
         />
         <CircleButton
-          onPress={onToggleMute}
-          icon={
-            isMuted ? (
-              <Ionicons name="volume-mute" size={22} color="#FFFFFF" />
-            ) : (
-              <Ionicons name="volume-high" size={22} color="#FFFFFF" />
-            )
-          }
+          onPress={() => setVolumeModalVisible(true)}
+          icon={<Ionicons name={getVolumeIcon()} size={22} color="#FFFFFF" />}
           bg="#4DA8FF"
           label="Audio"
         />
@@ -89,6 +105,12 @@ export default function GameHUD({
           label="End"
         />
       </View>
+
+      {/* Volume Control Modal */}
+              <VolumeControlModal
+          visible={volumeModalVisible}
+          onClose={() => setVolumeModalVisible(false)}
+        />
     </View>
   );
 }
@@ -132,13 +154,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'visible',
   },
-  bottomButtonsWrap: {
+  rightButtonsWrap: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 20,
+    right: 16,
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
+    gap: 12,
     overflow: 'visible',
   },
   circleBtn: {

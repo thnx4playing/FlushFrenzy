@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,9 +14,11 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
 import { useFocusEffect } from '@react-navigation/native';
 import { HighScoreLabel } from '../components/HighScoreLabel';
+import VolumeControlModal from '../components/VolumeControlModal';
+import { AudioManager } from '../audio/AudioManager';
+import { useAudioStore } from '../audio/AudioStore';
 
 const { width, height } = Dimensions.get('window');
 
@@ -36,7 +38,7 @@ const GAME_MODES = [
 ];
 
 export default function HomeScreen({ navigation }) {
-  const [isMuted, setIsMuted] = useState(false);
+  const [volumeModalVisible, setVolumeModalVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   
@@ -49,25 +51,37 @@ export default function HomeScreen({ navigation }) {
   const [discordMessage, setDiscordMessage] = useState('');
   const [showDiscordModal, setShowDiscordModal] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        await Audio.setIsEnabledAsync(!isMuted);
-      } catch {}
-    })();
-  }, [isMuted]);
 
-  // Refresh high scores when returning to home screen
+
+  // Play menu music when HomeScreen is focused, stop when blurred
   useFocusEffect(
     React.useCallback(() => {
       setRefreshKey(prev => prev + 1);
+      AudioManager.playMenuMusic();
+      
+      return () => {
+        AudioManager.stopMusic();
+      };
     }, [])
   );
-  const navigateToGame = (gameMode) => {
+
+  // Navigate to game mode
+  const handleGameModeSelect = (mode) => {
     navigation.navigate('Game', { 
       gameId: 'toilet-paper-toss',
-      gameMode: gameMode 
+      gameMode: mode 
     });
+  };
+  const navigateToGame = (gameMode) => {
+    handleGameModeSelect(gameMode);
+  };
+
+  const getVolumeIcon = () => {
+    const { musicMuted, sfxMuted } = useAudioStore.getState();
+    
+    if (musicMuted && sfxMuted) return 'volume-mute';
+    if (musicMuted || sfxMuted) return 'volume-low';
+    return 'volume-high';
   };
 
   // Hidden menu functions
@@ -234,10 +248,16 @@ export default function HomeScreen({ navigation }) {
           <TouchableOpacity style={styles.bottomLeft} onPress={() => setSettingsVisible(true)}>
             <Ionicons name="settings-sharp" size={26} color="#FFFFFF" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.bottomRight} onPress={() => setIsMuted(m => !m)}>
-            <Ionicons name={isMuted ? 'volume-mute' : 'volume-high'} size={26} color="#FFFFFF" />
+          <TouchableOpacity style={styles.bottomRight} onPress={() => setVolumeModalVisible(true)}>
+            <Ionicons name={getVolumeIcon()} size={26} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
+
+        {/* Volume Control Modal */}
+        <VolumeControlModal
+          visible={volumeModalVisible}
+          onClose={() => setVolumeModalVisible(false)}
+        />
 
         {/* Settings Modal */}
         <View>
@@ -384,7 +404,8 @@ const styles = StyleSheet.create({
     height: height * 0.25,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 80,
+    paddingTop: 75,
+    paddingLeft: 25,
   },
   headerImage: {
     width: width * 0.9,
@@ -392,7 +413,7 @@ const styles = StyleSheet.create({
   },
   underHeaderContainer: {
     alignItems: 'center',
-    marginTop: -20,
+    marginTop: 10,
     marginBottom: 16,
   },
   underHeaderImage: {
