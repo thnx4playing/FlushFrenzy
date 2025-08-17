@@ -39,7 +39,6 @@ const GAME_MODES = [
 
 export default function HomeScreen({ navigation }) {
   const [volumeModalVisible, setVolumeModalVisible] = useState(false);
-  const [settingsVisible, setSettingsVisible] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   
   // Hidden menu state
@@ -245,10 +244,7 @@ export default function HomeScreen({ navigation }) {
 
         {/* Bottom corner actions */}
         <View style={styles.bottomBar} pointerEvents="box-none">
-          <TouchableOpacity style={styles.bottomLeft} onPress={() => setSettingsVisible(true)}>
-            <Ionicons name="settings-sharp" size={26} color="#FFFFFF" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.bottomRight} onPress={() => setVolumeModalVisible(true)}>
+          <TouchableOpacity style={styles.bottomLeft} onPress={() => setVolumeModalVisible(true)}>
             <Ionicons name={getVolumeIcon()} size={26} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
@@ -259,21 +255,7 @@ export default function HomeScreen({ navigation }) {
           onClose={() => setVolumeModalVisible(false)}
         />
 
-        {/* Settings Modal */}
-        <View>
-          <></>
-        </View>
-        {settingsVisible && (
-          <View pointerEvents="auto" style={styles.modalOverlay}>
-            <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Settings</Text>
-              <Text style={styles.modalText}>Coming soon.</Text>
-              <TouchableOpacity onPress={() => setSettingsVisible(false)} style={styles.modalButton}>
-                <Text style={styles.modalButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+
 
         {/* Hidden Menu Modal */}
         <Modal
@@ -342,47 +324,34 @@ export default function HomeScreen({ navigation }) {
           onRequestClose={() => setShowDiscordModal(false)}
         >
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>💬 Send Discord Message</Text>
-              
-              {/* Buttons at the top */}
-              <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => setShowDiscordModal(false)}
-                >
-                  <Text style={styles.modalButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.sendButton]}
-                  onPress={sendDiscordMessage}
-                >
-                  <Text style={styles.modalButtonText}>Send</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <Text style={styles.inputLabel}>Discord Webhook URL:</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="https://discord.com/api/webhooks/..."
-                placeholderTextColor="#666"
-                value={discordWebhook}
-                onChangeText={setDiscordWebhook}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              
-              <Text style={styles.inputLabel}>Message:</Text>
-              <TextInput
-                style={[styles.textInput, styles.messageInput]}
-                placeholder="🧻💨 Check out this awesome toilet paper toss game!"
-                placeholderTextColor="#666"
-                value={discordMessage}
-                onChangeText={setDiscordMessage}
-                multiline
-                numberOfLines={3}
-              />
+                      <View style={styles.modalContent}>
+            {/* Buttons at the top */}
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowDiscordModal(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.sendButton]}
+                onPress={sendDiscordMessage}
+              >
+                <Text style={styles.modalButtonText}>Send</Text>
+              </TouchableOpacity>
             </View>
+            
+            <Text style={styles.inputLabel}>Message:</Text>
+            <TextInput
+              style={[styles.textInput, styles.messageInput]}
+              placeholder="🧻💨 Check out this awesome toilet paper toss game!"
+              placeholderTextColor="#666"
+              value={discordMessage}
+              onChangeText={setDiscordMessage}
+              multiline
+              numberOfLines={3}
+            />
+          </View>
           </View>
         </Modal>
       </View>
@@ -404,7 +373,7 @@ const styles = StyleSheet.create({
     height: height * 0.25,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 75,
+    paddingTop: 120,
     paddingLeft: 25,
   },
   headerImage: {
@@ -413,8 +382,8 @@ const styles = StyleSheet.create({
   },
   underHeaderContainer: {
     alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 16,
+    marginTop: 25,
+    marginBottom: 5,
   },
   underHeaderImage: {
     width: width * 0.75,
@@ -424,7 +393,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingTop: 15,
+    paddingTop: 0,
   },
   gameModeCard: {
     alignItems: 'center',
@@ -545,6 +514,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 15,
     elevation: 10,
+    marginTop: -180, // Move the modal up closer to the top
   },
   modalSubtitle: {
     fontSize: 15,

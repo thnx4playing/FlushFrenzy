@@ -28,7 +28,7 @@ class AudioManagerClass {
       // NOTE: Replace these with different tracks if you have them
       const { sound: menu } = await Audio.Sound.createAsync(
         require('../../assets/jingle.m4a'),
-        { shouldPlay: false, isLooping: false }
+        { shouldPlay: false, isLooping: true }
       );
       this._music = menu;
       this._musicKind = 'menu';
@@ -112,7 +112,7 @@ class AudioManagerClass {
       if (this._music) await this._music.unloadAsync().catch(() => {});
       const { sound } = await Audio.Sound.createAsync(
         require('../../assets/jingle.m4a'),
-        { shouldPlay: false, isLooping: false }
+        { shouldPlay: false, isLooping: true }
       );
       this._music = sound;
       this._musicKind = 'menu';
