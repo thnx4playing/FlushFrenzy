@@ -654,7 +654,7 @@ export default function ToiletPaperToss({
   const [timeLeft, setTimeLeft] = useState(0);
   const [gameOverVisible, setGameOverVisible] = useState(false);
 
-  const [settingsVisible, setSettingsVisible] = useState(false);
+
   const [tpPos, setTpPos] = useState({ x: -9999, y: -9999 });
   const [tpVisible, setTpVisible] = useState(false);
   const [toiletPos, setToiletPos] = useState({ x: WIDTH / 2, y: HEIGHT * 0.4 });
@@ -1349,7 +1349,6 @@ export default function ToiletPaperToss({
           pointsRemaining={Math.max(0, epTarget - epRoundPoints)}
           totalScore={score}
           roundTarget={epTarget}
-          onOpenSettings={() => setSettingsVisible(true)}
           onEndGame={() => {
             endlessRef.current.running = false;
             showGameOver();
@@ -1382,7 +1381,6 @@ export default function ToiletPaperToss({
           pointsRemaining={0}
           totalScore={score}
           roundTarget={0}
-          onOpenSettings={() => setSettingsVisible(true)}
           onEndGame={() => {
             showGameOver();
           }}
@@ -1571,25 +1569,7 @@ export default function ToiletPaperToss({
         )} */}
       </ImageBackground>
 
-      <Modal
-        transparent
-        animationType="fade"
-        visible={settingsVisible}
-        onRequestClose={() => setSettingsVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Settings</Text>
-            <Text style={styles.modalText}>Coming soon.</Text>
-            <TouchableOpacity
-              onPress={() => setSettingsVisible(false)}
-              style={styles.modalButton}
-            >
-              <Text style={styles.modalButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+
 
       {/* Practice Customization Modal */}
       <PracticeCustomizationModal

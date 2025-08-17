@@ -15,7 +15,6 @@ type Props = {
   pointsRemaining: number;   // target - points (clamped >= 0)
   totalScore?: number;       // cumulative score for the entire game
   roundTarget?: number;      // target points for current round
-  onOpenSettings: () => void;
   onEndGame: () => void;
   containerStyle?: ViewStyle;
 };
@@ -28,7 +27,6 @@ export default function GameHUD({
   pointsRemaining,
   totalScore,
   roundTarget,
-  onOpenSettings,
   onEndGame,
   containerStyle,
 }: Props) {
@@ -85,12 +83,6 @@ export default function GameHUD({
             : insets.top + 96  // Position right below HUD for quick flush
         }
       ]}>
-        <CircleButton
-          onPress={onOpenSettings}
-          icon={<Ionicons name="settings" size={22} color="#FFFFFF" />}
-          bg="#4DA8FF"
-          label="Settings"
-        />
         <CircleButton
           onPress={() => setVolumeModalVisible(true)}
           icon={<Ionicons name={getVolumeIcon()} size={22} color="#FFFFFF" />}
