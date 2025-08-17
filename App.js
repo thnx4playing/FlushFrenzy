@@ -52,7 +52,7 @@ export default function App() {
               name="Home" 
               component={HomeScreen}
               options={{
-                title: 'Toilet Olympics',
+                title: 'Flush Frenzy',
               }}
             />
             <Stack.Screen 
