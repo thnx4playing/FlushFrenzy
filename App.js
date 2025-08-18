@@ -32,6 +32,14 @@ export default function App() {
     };
     
     resetAudioOnStartup();
+    
+    // Cleanup audio resources when app unmounts
+    return () => {
+      console.log('App: Cleaning up audio resources');
+      AudioManager.dispose().catch(error => {
+        console.log('App: Error disposing audio manager:', error);
+      });
+    };
   }, []);
 
   return (

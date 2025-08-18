@@ -39,7 +39,7 @@ class AudioManagerClass {
         { shouldPlay: false, isLooping: false }
       );
       const { sound: water } = await Audio.Sound.createAsync(
-        require('../../assets/water_drop.mp3'),
+        require('../../assets/water-drop.caf'),
         { shouldPlay: false, isLooping: false }
       );
       this._sfx.ding = ding;
@@ -66,25 +66,32 @@ class AudioManagerClass {
     console.log('AudioManager: Applying state:', state);
     // Music volume/mute
     if (this._music) {
-      const mv = state.musicMuted ? 0 : state.musicVolume ?? 1;
-      console.log('AudioManager: Setting music volume to:', mv);
-      this._music.setVolumeAsync(mv).catch((e) => console.log('AudioManager: Volume set error:', e));
-      if (state.musicMuted) {
-        console.log('AudioManager: Muting music');
-        this._music.setIsMutedAsync(true).catch((e) => console.log('AudioManager: Mute set error:', e));
-        this._music.stopAsync().catch((e) => console.log('AudioManager: Stop error:', e));
-      } else {
-        console.log('AudioManager: Unmuting music');
-        this._music.setIsMutedAsync(false).catch((e) => console.log('AudioManager: Unmute set error:', e));
-        
-        // If we're unmuting and have music loaded, start playing based on current music kind
-        if (this._musicKind === 'menu') {
-          console.log('AudioManager: Restarting menu music after unmute');
-          this._music.replayAsync().catch((e) => console.log('AudioManager: Replay error:', e));
-        } else if (this._musicKind === 'game') {
-          console.log('AudioManager: Restarting game music after unmute');
-          this._music.playAsync().catch((e) => console.log('AudioManager: Play error:', e));
+      try {
+        const mv = state.musicMuted ? 0 : state.musicVolume ?? 1;
+        console.log('AudioManager: Setting music volume to:', mv);
+        this._music.setVolumeAsync(mv).catch((e) => console.log('AudioManager: Volume set error:', e));
+        if (state.musicMuted) {
+          console.log('AudioManager: Muting music');
+          this._music.setIsMutedAsync(true).catch((e) => console.log('AudioManager: Mute set error:', e));
+          this._music.stopAsync().catch((e) => console.log('AudioManager: Stop error:', e));
+        } else {
+          console.log('AudioManager: Unmuting music');
+          this._music.setIsMutedAsync(false).catch((e) => console.log('AudioManager: Unmute set error:', e));
+          
+          // If we're unmuting and have music loaded, start playing based on current music kind
+          if (this._musicKind === 'menu') {
+            console.log('AudioManager: Restarting menu music after unmute');
+            this._music.replayAsync().catch((e) => console.log('AudioManager: Replay error:', e));
+          } else if (this._musicKind === 'game') {
+            console.log('AudioManager: Restarting game music after unmute');
+            this._music.playAsync().catch((e) => console.log('AudioManager: Play error:', e));
+          }
         }
+      } catch (error) {
+        console.log('AudioManager: Error in _applyState for music:', error);
+        // Reset music instance if there's an error
+        this._music = null;
+        this._musicKind = null;
       }
     } else {
       console.log('AudioManager: No music instance available');
@@ -93,7 +100,15 @@ class AudioManagerClass {
     const sv = state.sfxMuted ? 0 : state.sfxVolume ?? 1;
     for (const key of Object.keys(this._sfx)) {
       const snd = this._sfx[key];
-      snd && snd.setVolumeAsync(sv).catch(() => {});
+      if (snd) {
+        try {
+          snd.setVolumeAsync(sv).catch(() => {});
+        } catch (error) {
+          console.log('AudioManager: Error setting SFX volume for', key, ':', error);
+          // Remove problematic SFX instance
+          this._sfx[key] = null;
+        }
+      }
     }
   }
 
@@ -108,22 +123,33 @@ class AudioManagerClass {
     console.log('AudioManager: musicMuted state:', musicMuted);
     if (!this._music || this._musicKind !== 'menu') {
       console.log('AudioManager: Loading menu music');
-      // unload previous and load menu track (using jingle as menu here)
-      if (this._music) await this._music.unloadAsync().catch(() => {});
-      const { sound } = await Audio.Sound.createAsync(
-        require('../../assets/jingle.m4a'),
-        { shouldPlay: false, isLooping: true }
-      );
-      this._music = sound;
-      this._musicKind = 'menu';
-      this._applyState(useAudioStore.getState());
+      try {
+        // unload previous and load menu track (using jingle as menu here)
+        if (this._music) await this._music.unloadAsync().catch(() => {});
+        const { sound } = await Audio.Sound.createAsync(
+          require('../../assets/jingle.m4a'),
+          { shouldPlay: false, isLooping: true }
+        );
+        this._music = sound;
+        this._musicKind = 'menu';
+        this._applyState(useAudioStore.getState());
+      } catch (error) {
+        console.log('AudioManager: Error loading menu music:', error);
+        this._music = null;
+        this._musicKind = null;
+        return;
+      }
     }
-    if (!musicMuted) {
+    if (!musicMuted && this._music) {
       console.log('AudioManager: Playing menu music');
-      // Ensure mute flag is cleared before playing
-      await this._music.setIsMutedAsync(false).catch(() => {});
-      await this._music.stopAsync().catch(() => {});
-      await this._music.replayAsync().catch(() => {});
+      try {
+        // Ensure mute flag is cleared before playing
+        await this._music.setIsMutedAsync(false).catch(() => {});
+        await this._music.stopAsync().catch(() => {});
+        await this._music.replayAsync().catch(() => {});
+      } catch (error) {
+        console.log('AudioManager: Error playing menu music:', error);
+      }
     } else {
       console.log('AudioManager: Menu music muted, not playing');
     }

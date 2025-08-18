@@ -13,7 +13,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.thnx4playing.FlushFrenzy",
-      buildNumber: "1",
+      buildNumber: "3",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false
       }
@@ -36,6 +36,11 @@ module.exports = {
     // Enable native development
     experiments: {
       tsconfigPaths: true
-    }
+    },
+    
+    // Plugins
+    plugins: [
+      "expo-web-browser"
+    ]
   }
 };

@@ -13,6 +13,7 @@ import {
   Pressable,
   TextInput,
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { HighScoreLabel } from '../components/HighScoreLabel';
@@ -83,6 +84,14 @@ export default function HomeScreen({ navigation }) {
     setShowDiscordModal(true);
   };
 
+  const handlePrivacyPolicy = async () => {
+    try {
+      await WebBrowser.openBrowserAsync('https://virtuixtech.com/privacy.html');
+    } catch (error) {
+      Alert.alert('Error', 'Could not open Privacy Policy. Please check your internet connection.');
+    }
+  };
+
 
 
   const sendDiscordMessage = async () => {
@@ -96,7 +105,7 @@ export default function HomeScreen({ navigation }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-bug-report-key": "wT0y9E-AppKey-2025",
+          "x-bug-report-key": process.env.EXPO_PUBLIC_BUG_REPORT_KEY,
         },
         body: JSON.stringify({
           message: discordMessage,
@@ -111,7 +120,6 @@ export default function HomeScreen({ navigation }) {
         Alert.alert('Error', 'Failed to submit bug report');
       }
     } catch (error) {
-      console.error('Bug report error:', error);
       Alert.alert('Error', 'Failed to submit bug report');
     }
   };
@@ -196,6 +204,12 @@ export default function HomeScreen({ navigation }) {
                 <Text style={styles.menuItemText}>Submit Bug Report</Text>
               </TouchableOpacity>
               <TouchableOpacity
+                style={styles.menuItem}
+                onPress={handlePrivacyPolicy}
+              >
+                <Text style={styles.menuItemText}>Privacy Policy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setSettingsVisible(false)}
               >
@@ -240,9 +254,17 @@ export default function HomeScreen({ navigation }) {
                 multiline
                 numberOfLines={3}
               />
-              <Text style={styles.disclaimerText}>
-                We don't collect your name, email, device ID, or location. Messages are proxied through our server and delivered to our inbox. We don't log IP addresses or metadata. Please don't include personal information. See our Privacy Policy for details.
-              </Text>
+              <View style={styles.disclaimerContainer}>
+                <Text style={styles.disclaimerText}>
+                  We do not collect personal information such as your name, email, device ID, or location. Messages are securely transmitted through our server and delivered to our support inbox. We do not log IP addresses or metadata. Please do not include personal information in your message. For complete details, please review our{' '}
+                </Text>
+                <TouchableOpacity onPress={handlePrivacyPolicy}>
+                  <Text style={[styles.disclaimerText, styles.privacyPolicyLink]}>
+                    Privacy Policy
+                  </Text>
+                </TouchableOpacity>
+                <Text style={styles.disclaimerText}>.</Text>
+              </View>
             </View>
           </View>
         </Modal>
@@ -265,7 +287,7 @@ const styles = StyleSheet.create({
     height: height * 0.25,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 160,
+    paddingTop: 200,
   },
   headerImage: {
     width: width * 1.397, // Increased by 15% from 1.215
@@ -273,7 +295,7 @@ const styles = StyleSheet.create({
   },
   underHeaderContainer: {
     alignItems: 'center',
-    marginTop: 45,
+    marginTop: 65,
     marginBottom: 5,
   },
   underHeaderImage: {
@@ -513,13 +535,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#3B82F6', // Darker blue send button
     borderColor: '#000000', // Black border
   },
+  disclaimerContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 15,
+  },
   disclaimerText: {
     fontSize: 11,
     color: '#FFFFFF',
     textAlign: 'center',
-    marginTop: 15,
     lineHeight: 14,
     fontStyle: 'italic',
     opacity: 0.8,
+  },
+  privacyPolicyLink: {
+    textDecorationLine: 'underline',
+    color: '#4da3ff',
   },
 });

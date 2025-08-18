@@ -21,9 +21,9 @@ export const TRAIL_PRESETS: Record<TPTrail, TrailConfig> = {
     colors: ['#ffffff','#ffff00','#ffd700'], fadeOut: true, scaleOut: true, maxParticles: 80,
   },
   rainbow: {
-    spawnMs: 20, lifeMs: 600, size: 6, jitter: 3,
+    spawnMs: 50, lifeMs: 600, size: 6, jitter: 3,
     colors: ['#ff3b30','#ff9500','#ffcc00','#34c759','#007aff','#af52de'],
-    fadeOut: true, scaleOut: true, maxParticles: 100,
+    fadeOut: true, scaleOut: true, maxParticles: 60,
   },
   bubbles: {
     spawnMs: 35, lifeMs: 650, size: 10, jitter: 6,
