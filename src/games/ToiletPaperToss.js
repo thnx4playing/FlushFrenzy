@@ -17,7 +17,9 @@ import {
   ImageBackground,
   TouchableOpacity,
   Modal,
+  Animated,
 } from "react-native";
+import { Easing } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { GameEngine } from "react-native-game-engine";
 import Matter from "matter-js";
@@ -42,9 +44,19 @@ Matter.Common.setDecomp(decomp);
 
 const { width: WIDTH, height: HEIGHT } = Dimensions.get("window");
 
+
+
+// Perk system constants
+const PERK_TYPES = {
+  CLOCK: 'clock',
+  RAINBOW: 'rainbow',
+  BUBBLE: 'bubble'
+};
+
 // Sound effects
 let dingSound = null;
 let waterDropSound = null;
+let perkSound = null;
 let soundEffectsVolume = 1.0; // Default volume
 
 const loadSounds = async () => {
@@ -56,10 +68,16 @@ const loadSounds = async () => {
     dingSound = ding;
 
     const { sound: water } = await Audio.Sound.createAsync(
-      require("../../assets/water_drop.mp3"),
+      require("../../assets/water-drop.caf"),
       { shouldPlay: false, isLooping: false }
     );
     waterDropSound = water;
+
+    const { sound: perk } = await Audio.Sound.createAsync(
+      require("../../assets/perk-sound.caf"),
+      { shouldPlay: false, isLooping: false }
+    );
+    perkSound = perk;
   } catch (error) {
     console.log("Could not load sound effect:", error);
   }
@@ -87,10 +105,59 @@ const playWaterDropSound = async () => {
       if (!sfxMuted) {
         console.log('Playing water drop sound with volume:', sfxVolume);
         await waterDropSound.setVolumeAsync(sfxVolume);
+        
+        // Check if sound is already playing and stop it first
+        const status = await waterDropSound.getStatusAsync();
+        if (status.isLoaded && status.isPlaying) {
+          await waterDropSound.stopAsync();
+        }
+        
         await waterDropSound.replayAsync();
       }
     } catch (error) {
       console.log("Could not play water drop sound:", error);
+      // Try to reload the sound if it's in a bad state
+      try {
+        const { sound: newWater } = await Audio.Sound.createAsync(
+          require("../../assets/water-drop.caf"),
+          { shouldPlay: false, isLooping: false }
+        );
+        waterDropSound = newWater;
+      } catch (reloadError) {
+        console.log("Could not reload water drop sound:", reloadError);
+      }
+    }
+  }
+};
+
+const playPerkSound = async () => {
+  if (perkSound) {
+    try {
+      const { sfxMuted, sfxVolume } = useAudioStore.getState();
+      if (!sfxMuted) {
+        console.log('Playing perk sound with volume:', sfxVolume);
+        await perkSound.setVolumeAsync(sfxVolume);
+        
+        // Check if sound is already playing and stop it first
+        const status = await perkSound.getStatusAsync();
+        if (status.isLoaded && status.isPlaying) {
+          await perkSound.stopAsync();
+        }
+        
+        await perkSound.replayAsync();
+      }
+    } catch (error) {
+      console.log("Could not play perk sound:", error);
+      // Try to reload the sound if it's in a bad state
+      try {
+        const { sound: newPerk } = await Audio.Sound.createAsync(
+          require("../../assets/perk-sound.caf"),
+          { shouldPlay: false, isLooping: false }
+        );
+        perkSound = newPerk;
+      } catch (reloadError) {
+        console.log("Could not reload perk sound:", reloadError);
+      }
     }
   }
 };
@@ -181,7 +248,7 @@ const ToiletSprite = ({ body }) => {
   );
 };
 
-// Debug: Visualize static bodies to find invisible walls
+
 const StaticBodiesOverlay = ({ engine }) => {
   if (!engine) return null;
   const bodies = Matter.Composite.allBodies(engine.world).filter(
@@ -219,7 +286,7 @@ const StaticBodiesOverlay = ({ engine }) => {
   );
 };
 
-// Bowl hitbox debug overlay
+
 const BowlHitboxOverlay = ({ engine }) => {
   if (!engine) return null;
 
@@ -231,7 +298,7 @@ const BowlHitboxOverlay = ({ engine }) => {
       b.label === "BOWL_SENSOR",
   );
 
-  // Debug: Log bowl bodies found (only once)
+  
   if (bowlBodies.length === 0) {
   }
 
@@ -463,14 +530,14 @@ const wireScoring = (engine, addScoreCallback) => {
         (a === "BOWL_SENSOR" && b === "TP") ||
         (b === "BOWL_SENSOR" && a === "TP")
       ) {
-        console.log("SCORE! TP entered the bowl!");
+    
 
         // Hide the TP sprite by setting it to off-screen
         const tpBody = a === "TP" ? bodyA : bodyB;
         Matter.Body.setPosition(tpBody, { x: -9999, y: -9999 });
 
         // Play water drop sound effect
-        console.log('Scoring! Playing sound effect');
+
         playWaterDropSound(1);
 
         // Add point
@@ -517,7 +584,7 @@ const setupWorld = (addScoreCallback, modeConstants = CONSTANTS) => {
   // Add TP body to the world
   Matter.World.add(world, tp);
 
-  // Remove any old debug colliders
+  
   Matter.Composite.allBodies(engine.world).forEach((b) => {
     if (
       ![
@@ -553,8 +620,51 @@ const Physics = (entities, { time }) => {
   return entities;
 };
 
-// Handle end-turn when touching ground
+// Handle end-turn when touching ground and perk collection
 const CollisionSystem = (entities, { events }) => {
+  const { state, physics, gameMode } = entities;
+  
+  // Check for perk collection
+  if (state.perks && state.perks.length > 0 && physics.bodies.tp) {
+    const tpBody = physics.bodies.tp;
+    const tpPos = tpBody.position;
+    
+    state.perks.forEach((perk, index) => {
+      if (!perk.collected) {
+        // Simple distance-based collision detection
+        const distance = Math.sqrt(
+          Math.pow(tpPos.x - perk.x, 2) + Math.pow(tpPos.y - perk.y, 2)
+        );
+        
+        if (distance < 30) { // 30px collision radius
+          // Collect the perk
+          perk.collected = true;
+          
+          // Play perk sound
+          playPerkSound();
+          
+          // Apply perk effect
+          switch (perk.type) {
+            case PERK_TYPES.CLOCK:
+              if (state.onClockPerk) state.onClockPerk();
+              break;
+              
+            case PERK_TYPES.RAINBOW:
+              if (state.onRainbowPerk) state.onRainbowPerk();
+              break;
+              
+            case PERK_TYPES.BUBBLE:
+              if (state.onBubblePerk) state.onBubblePerk();
+              break;
+          }
+          
+          // Remove the perk from the array
+          state.perks.splice(index, 1);
+        }
+      }
+    });
+  }
+  
   // We subscribe to Matter collision events once in App; here just read flags from entities.state
   return entities;
 };
@@ -637,6 +747,126 @@ const MovingToiletSystem = (entities, { time }) => {
   return entities;
 };
 
+// === Gold Outline Perk (drop-in replacement) ===
+
+// === Gold Outline Perk (drop-in replacement) ===
+const GoldOutline = ({ size = 52 }) => {
+  const rot = React.useRef(new Animated.Value(0)).current;
+  const pulse = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.loop(
+      Animated.timing(rot, { toValue: 1, duration: 6000, easing: Easing.linear, useNativeDriver: true })
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 750, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 900, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  const rotate = rot.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
+  const glowScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1.0, 1.06] });
+  // Use a static opacity since native driver doesn't support opacity animations
+  const glowOpacity = 0.29; // Average of 0.18 and 0.40
+
+  const ring = size * 1.1;       // outer ring diameter (much tighter)
+  const glowSize = size * 0.95;  // soft glow diameter (inside the ring)
+
+  return (
+    <>
+      {/* Soft breathing gold glow (behind) - Separate Animated.View for JS driver */}
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          left: (size - glowSize) / 2,
+          top: (size - glowSize) / 2,
+          width: glowSize,
+          height: glowSize,
+          borderRadius: glowSize / 2,
+          backgroundColor: "#FFD54A", // warm gold
+          opacity: glowOpacity,
+          transform: [{ scale: glowScale }],
+        }}
+      />
+
+      {/* Solid crisp gold ring */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          left: (size - ring) / 2,
+          top: (size - ring) / 2,
+          width: ring,
+          height: ring,
+          borderRadius: ring / 2,
+          borderWidth: 3,
+          borderColor: "#FFC107", // amber
+          shadowColor: "#FFD54A",  // iOS soft bloom
+          shadowOpacity: 0.9,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 0 },
+        }}
+      />
+
+      {/* Rotating dashed ring for subtle "flow" - Separate Animated.View for native driver */}
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          left: (size - ring) / 2,
+          top: (size - ring) / 2,
+          width: ring,
+          height: ring,
+          borderRadius: ring / 2,
+          borderWidth: 2,
+          borderStyle: "dashed",
+          borderColor: "rgba(255, 234, 0, 0.95)", // brighter gold
+          transform: [{ rotate: rotate }],
+          opacity: 0.95,
+        }}
+      />
+    </>
+  );
+};
+
+const PerkSprite = ({ x, y, type, size = 52 }) => {
+  let src;
+  if (type === "clock") {
+    src = require("../../assets/clock-perk.png");
+  } else if (type === "rainbow") {
+    src = require("../../assets/rainbow-perk.png");
+  } else if (type === "bubble") {
+    src = require("../../assets/bubble-perk.png");
+  } else {
+    // Fallback
+    src = null;
+  }
+
+  return (
+    <View style={{ position: "absolute", left: x - size / 2, top: y - size / 2, width: size, height: size }}>
+      <GoldOutline size={size} />
+      {src ? (
+        <Image source={src} style={{ width: size, height: size }} resizeMode="contain" />
+      ) : (
+        <View
+          style={{
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: "rgba(173, 216, 230, 0.92)",
+            borderWidth: 2,
+            borderColor: "rgba(255,255,255,0.95)",
+          }}
+        />
+      )}
+    </View>
+  );
+};
+
 /******************** Main Component ********************/
 export default function ToiletPaperToss({
   onGameComplete,
@@ -680,6 +910,9 @@ export default function ToiletPaperToss({
   const [isTimerPaused, setIsTimerPaused] = useState(false);
   const prevRound = useRef(1);
   const insets = useSafeAreaInsets();
+
+  // ===== Time Flash State =====
+  const [timeFlash, setTimeFlash] = useState(false);
 
   // ===== Practice Mode Customization State =====
   const [practiceCustomizationVisible, setPracticeCustomizationVisible] =
@@ -879,10 +1112,10 @@ export default function ToiletPaperToss({
 
   // Kick off Endless Plunge session (Round 1)
   function startEndlessPlungeSession() {
-    console.log("Starting Endless Plunge session");
+
     setEpRound(1);
     const cfg = getRoundConfig(1);
-    console.log("Round 1 config:", cfg);
+
     setEpTimeLeft(cfg.time);
     setEpTarget(cfg.target);
     setEpRoundPoints(0);
@@ -911,7 +1144,7 @@ export default function ToiletPaperToss({
     // Next round setup
     const next = epRound + 1;
     const cfg = getRoundConfig(next);
-    console.log("Advancing to round", next, "with config:", cfg);
+
 
     setEpRound(next);
     setEpTimeLeft(cfg.time);
@@ -921,10 +1154,30 @@ export default function ToiletPaperToss({
     setTpSkin((prev) => pickRandomSkin(prev));
     endlessRef.current.running = true;
 
+    // Clear perks and trails at round end
+    state.perks = [];
+    state.activeTrails.rainbow = false;
+    state.activeTrails.bubble = false;
+    
+    // Clear trail renderer
+    if (trailRendererRef.current) {
+      trailRendererRef.current.clear();
+    }
+
     // Note: The level up celebration will be triggered by the useEffect that watches epRound
   }
 
   const showGameOver = () => {
+    // Clear perks and trails when game ends
+    state.perks = [];
+    state.activeTrails.rainbow = false;
+    state.activeTrails.bubble = false;
+    
+    // Clear trail renderer
+    if (trailRendererRef.current) {
+      trailRendererRef.current.clear();
+    }
+    
     // Just show the game over modal - let the buttons handle navigation
     setGameOverVisible(true);
   };
@@ -1027,7 +1280,7 @@ export default function ToiletPaperToss({
     
     // power from AimPad drag distance; add a safe minimum
     const rawP = a.power || 0;
-    const p = Math.max(0.25, Math.min(1, rawP)); // TEMP min power 25%
+    const p = Math.max(0.25, Math.min(1, rawP));
     const SPEED = getAdjustedSpeed(); // Use gravity-adjusted speed
 
     // Apply velocity - AxisAimPad provides dy where up is negative, so we need to negate it
@@ -1069,6 +1322,16 @@ export default function ToiletPaperToss({
     padPower: 0,
     padOrigin: null,
     padVel: null,
+    // Perk system state
+    perks: [],
+    activeTrails: {
+      rainbow: false,
+      bubble: false
+    },
+    // Perk callbacks
+    onClockPerk: null,
+    onRainbowPerk: null,
+    onBubblePerk: null
   });
 
   // Load sounds
@@ -1077,6 +1340,12 @@ export default function ToiletPaperToss({
     return () => {
       if (dingSound) {
         dingSound.unloadAsync();
+      }
+      if (waterDropSound) {
+        waterDropSound.unloadAsync();
+      }
+      if (perkSound) {
+        perkSound.unloadAsync();
       }
     };
   }, []);
@@ -1242,10 +1511,24 @@ export default function ToiletPaperToss({
       if (tpVisibleRef.current) {
         setTpPos({ x: p.x, y: p.y });
         
-                       // Emit trail particles for practice mode
-               if (gameMode === "quick-flush" && trailRendererRef.current && practiceSettings.tpTrail !== "none") {
-                 trailRendererRef.current.emit(p.x, p.y);
-               }
+        // Emit trail particles for practice mode
+        if (gameMode === "quick-flush" && trailRendererRef.current && practiceSettings.tpTrail !== "none") {
+          trailRendererRef.current.emit(p.x, p.y);
+        }
+        
+        // Emit trail particles for endless plunge perks
+        if (gameMode === "endless-plunge" && trailRendererRef.current) {
+          if (state.activeTrails.rainbow || state.activeTrails.bubble) {
+            // Frame rate limiting: only emit every 3 frames (20 times per second instead of 60)
+            if (!state.trailFrameCounter) state.trailFrameCounter = 0;
+            state.trailFrameCounter++;
+            
+            if (state.trailFrameCounter >= 3) {
+              state.trailFrameCounter = 0;
+              trailRendererRef.current.emit(p.x, p.y);
+            }
+          }
+        }
       }
 
       // Hide and despawn TP if it falls below the aimpad or too far below the screen
@@ -1261,7 +1544,7 @@ export default function ToiletPaperToss({
         }
         
         // Clear trails when TP despawns
-        if (gameMode === "quick-flush" && trailRendererRef.current) {
+        if (trailRendererRef.current) {
           trailRendererRef.current.clear();
         }
       }
@@ -1317,8 +1600,87 @@ export default function ToiletPaperToss({
            }
          }, [gameMode, trailRendererRef.current]);
 
+  // Perk system for endless plunge
+  const PerkSystem = (entities, { time }) => {
+    const { state, gameMode } = entities;
+    
+    // Only spawn perks in endless plunge mode
+    if (gameMode !== 'endless-plunge') {
+      return entities;
+    }
+
+    // Initialize spawn timer if not exists
+    if (!state.perkSpawnTimer) {
+      state.perkSpawnTimer = 0;
+    }
+    
+    // Only spawn if no perks currently exist
+    if (state.perks && state.perks.length === 0) {
+      state.perkSpawnTimer += time.delta;
+      
+      if (state.perkSpawnTimer > (5000 + Math.random() * 3000)) { // 5-8 seconds
+        state.perkSpawnTimer = 0;
+        
+        // 35% chance to spawn a perk
+        if (Math.random() < 0.35) {
+          // Weighted spawn chance: Clock (75%), Rainbow (12.5%), Bubble (12.5%)
+          const rand = Math.random();
+          let randomType;
+          
+          if (rand < 0.75) {
+            randomType = PERK_TYPES.CLOCK; // 75% chance
+          } else if (rand < 0.875) {
+            randomType = PERK_TYPES.RAINBOW; // 12.5% chance
+          } else {
+            randomType = PERK_TYPES.BUBBLE; // 12.5% chance
+          }
+          
+          // Spawn from bottom of HUD to above aimpad, avoiding right side buttons and toilet area
+          const hudBottom = 120; // Approximate bottom of HUD
+          const aimpadTop = HEIGHT - 24 - 56 - 148.5; // Above aimpad (bottom - padding - aimpad size)
+          const rightPadding = 80; // Keep away from right side buttons
+          
+          // Toilet exclusion zone (toilet is 320x320, centered at toiletPos)
+          const toiletLeft = toiletPos.x - 160;
+          const toiletRight = toiletPos.x + 160;
+          const toiletTop = toiletPos.y - 160;
+          const toiletBottom = toiletPos.y + 160;
+          
+          // Generate random position, but exclude toilet area
+          let x, y;
+          let attempts = 0;
+          const maxAttempts = 50;
+          
+          do {
+            x = Math.random() * (WIDTH - rightPadding - 40) + 20; // 20px from left, rightPadding from right
+            y = hudBottom + Math.random() * (aimpadTop - hudBottom - 40); // Between HUD and aimpad
+            attempts++;
+          } while (
+            attempts < maxAttempts && 
+            x >= toiletLeft && x <= toiletRight && 
+            y >= toiletTop && y <= toiletBottom
+          );
+          
+          const newPerk = {
+            id: Date.now() + Math.random(),
+            type: randomType,
+            x: x,
+            y: y,
+            collected: false
+          };
+          
+          state.perks.push(newPerk);
+        }
+      }
+    }
+    
+
+    
+    return entities;
+  };
+
   // Input handled via AimPad
-  const systems = [Physics, CollisionSystem, MovingToiletSystem];
+  const systems = [Physics, CollisionSystem, MovingToiletSystem, PerkSystem];
 
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -1330,12 +1692,38 @@ export default function ToiletPaperToss({
   }, []);
 
   const state = stateRef.current;
+  
+  // Set up perk callbacks
+  state.onClockPerk = () => {
+    if (gameMode === 'endless-plunge') {
+      setEpTimeLeft(prev => Math.min(prev + 5, 60)); // Cap at 60 seconds
+      // Trigger green flash effect
+      setTimeFlash(true);
+      setTimeout(() => setTimeFlash(false), 1200); // Reset after animation completes
+    }
+  };
+  state.onRainbowPerk = () => {
+    state.activeTrails.rainbow = true;
+    // Configure trail renderer for rainbow effect
+    if (trailRendererRef.current) {
+      trailRendererRef.current.configure('rainbow');
+    }
+  };
+  state.onBubblePerk = () => {
+    state.activeTrails.bubble = true;
+    // Configure trail renderer for bubble effect
+    if (trailRendererRef.current) {
+      trailRendererRef.current.configure('bubbles');
+    }
+  };
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
+
+
 
   return (
     <View style={styles.container}>
@@ -1353,6 +1741,7 @@ export default function ToiletPaperToss({
             endlessRef.current.running = false;
             showGameOver();
           }}
+          timeFlash={timeFlash}
         />
       )}
 
@@ -1402,6 +1791,7 @@ export default function ToiletPaperToss({
             state,
             endlessRef, // Pass the ref so systems can access endless plunge state
             tp: { body: bodies.tp, renderer: null }, // TP now rendered separately
+            gameMode, // Pass game mode to systems
           }}
         >
           {/* HUD removed: old trajectory indicator */}
@@ -1475,10 +1865,10 @@ export default function ToiletPaperToss({
           />
         </View>
 
-        {/* Debug: Visualize static bodies (temporarily disabled) */}
+
         {/* <StaticBodiesOverlay engine={engine} /> */}
 
-        {/* Debug: Show bowl hitbox (temporarily disabled) */}
+
         {/* <BowlHitboxOverlay engine={engine} /> */}
 
         {/* Toilet sprite (visual only, no physics) */}
@@ -1540,6 +1930,17 @@ export default function ToiletPaperToss({
             />
           )}
 
+        {/* === Sparkly Perk Visuals (drop-in replacement) === */}
+        {gameMode === "endless-plunge" && state.perks && state.perks.map((perk) => (
+          <PerkSprite
+            key={perk.id}
+            x={perk.x}
+            y={perk.y}
+            type={perk.type}
+            size={52}
+          />
+        ))}
+
         {/* Trail Renderer for Practice Mode */}
         {gameMode === "quick-flush" && practiceSettings.tpTrail && (
           <TrailRenderer
@@ -1550,7 +1951,17 @@ export default function ToiletPaperToss({
           />
         )}
 
-        {/* Debug: Show TP position as a simple colored circle ONLY if image fails */}
+        {/* Trail Renderer for Endless Plunge Perks */}
+        {gameMode === "endless-plunge" && (
+          <TrailRenderer
+            ref={(ref) => {
+              trailRendererRef.current = ref;
+            }}
+            initialType="none"
+          />
+        )}
+
+
         {/* {tpVisible && Number.isFinite(tpPos.x) && Number.isFinite(tpPos.y) && (
           <View
             style={{

@@ -24,11 +24,11 @@ export default function LevelUpBanner({ visible, onComplete, onStart, round }: P
         if (soundRef.current) {
           await soundRef.current.unloadAsync();
         }
-        soundRef.current = new Audio.Sound();
-        await soundRef.current.loadAsync(require('../../assets/win.mp3'));
+        const { sound } = await Audio.Sound.createAsync(require('../../assets/win.caf'));
+        soundRef.current = sound;
         await soundRef.current.playAsync();
       } catch (err) {
-        console.warn('Error playing win.mp3', err);
+        console.warn('Error playing win.caf', err);
       }
     };
 

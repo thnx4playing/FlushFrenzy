@@ -57,9 +57,10 @@ const TrailRenderer = forwardRef<TrailRendererRef, { initialType?: TPTrail }>(
         if (now - lastSpawnRef.current < cfg.spawnMs) return;
 
         lastSpawnRef.current = now;
-        // cap particles
+        // cap particles - more efficient cleanup
         if (particlesRef.current.length >= cfg.maxParticles) {
-          const removed = particlesRef.current.splice(0, particlesRef.current.length - cfg.maxParticles + 1);
+          const toRemove = particlesRef.current.length - cfg.maxParticles + 1;
+          const removed = particlesRef.current.splice(0, toRemove);
           removed.forEach(p => {
             p.fade.stopAnimation();
             p.scale.stopAnimation();
@@ -98,6 +99,15 @@ const TrailRenderer = forwardRef<TrailRendererRef, { initialType?: TPTrail }>(
             particlesRef.current.splice(idx, 1);
           }
         });
+        
+        // Force cleanup after animation duration to prevent memory leaks
+        setTimeout(() => {
+          if (!mountedRef.current) return;
+          const idx = particlesRef.current.findIndex(q => q.id === p.id);
+          if (idx !== -1) {
+            particlesRef.current.splice(idx, 1);
+          }
+        }, cfg.lifeMs + 100);
       },
       clear: () => {
         if (!mountedRef.current) return;
@@ -111,7 +121,7 @@ const TrailRenderer = forwardRef<TrailRendererRef, { initialType?: TPTrail }>(
 
     return (
       <View pointerEvents="none" style={styles.container}>
-        {particlesRef.current.map(p => (
+        {particlesRef.current.slice(-50).map(p => ( // Only render last 50 particles for performance
           <Animated.View
             key={p.id}
             style={[
