@@ -1206,7 +1206,7 @@ export default function ToiletPaperToss({
     const toiletSpeedMultiplier = settings.toiletSpeed / 5; // Convert 0-10 to 0-2x multiplier
     setToiletSpeedMul(toiletSpeedMultiplier);
 
-    // Gravity and speed are now fixed constants
+    // Gravity is now configurable in practice mode
   };
 
   const handlePracticeClose = () => {
@@ -1582,9 +1582,13 @@ export default function ToiletPaperToss({
   useEffect(() => {
     if (engine) {
       engine.world.gravity.x = 0;
-      engine.world.gravity.y = modeConstants.GRAVITY_Y; // Use mode-specific gravity
+      // Use practice settings gravity for practice mode, otherwise use mode-specific gravity
+      const gravityY = gameMode === "quick-flush" && practiceSettings.gravity 
+        ? practiceSettings.gravity / 10 * 0.6 // Convert 1-10 slider to 0.06-0.6 gravity range
+        : modeConstants.GRAVITY_Y;
+      engine.world.gravity.y = gravityY;
     }
-  }, [engine, modeConstants.GRAVITY_Y]);
+  }, [engine, modeConstants.GRAVITY_Y, gameMode, practiceSettings.gravity]);
 
            // Configure trail renderer when practice settings change
          useEffect(() => {
@@ -1801,7 +1805,9 @@ export default function ToiletPaperToss({
         <TrajectoryOverlay
           origin={state.padOrigin || { x: WIDTH / 2, y: HEIGHT - 24 - 56 }}
           vel={state.padVel || null}
-                      gravityY={modeConstants.GRAVITY_Y}
+          gravityY={gameMode === "quick-flush" && practiceSettings.gravity 
+            ? practiceSettings.gravity / 10 * 0.6 // Convert 1-10 slider to 0.06-0.6 gravity range
+            : modeConstants.GRAVITY_Y}
           visible={!!state.padActive}
           steps={26}
           dt={1 / 30}
