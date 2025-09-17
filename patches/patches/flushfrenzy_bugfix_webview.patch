@@ -1,0 +1,188 @@
+--- src/screens/HomeScreen.js.orig
++++ src/screens/HomeScreen.js
+@@ -12,8 +12,9 @@
+   Alert,
+   Pressable,
+   TextInput,
+-} from 'react-native';
++, AppState } from 'react-native';
+ import * as WebBrowser from 'expo-web-browser';
++import { WebView } from 'react-native-webview';
+ import { Ionicons } from '@expo/vector-icons';
+ import { useFocusEffect } from '@react-navigation/native';
+ import { HighScoreLabel } from '../components/HighScoreLabel';
+@@ -46,6 +47,51 @@
+   const [settingsVisible, setSettingsVisible] = useState(false);
+   const [discordMessage, setDiscordMessage] = useState('');
+   const [showDiscordModal, setShowDiscordModal] = useState(false);
++  // Built-in bugfix browser modal
++  const [showBugfixWebView, setShowBugfixWebView] = useState(false);
++  const BUGFIX_URL = 'https://virtuixtech.com/apps/flushfrenzy/bugfix.html';
++
++  // Inactivity timeout for Settings / Discord / Bugfix browser
++  const INACTIVITY_MS = 60 * 1000;
++  const [inactivityTimer, setInactivityTimer] = useState(null);
++
++  const resetInactivityTimer = React.useCallback(() => {
++    if (inactivityTimer) {
++      clearTimeout(inactivityTimer);
++    }
++    const id = setTimeout(() => {
++      // Auto-close any open modals after 60s
++      setSettingsVisible(false);
++      setShowDiscordModal(false);
++      setShowBugfixWebView(false);
++    }, INACTIVITY_MS);
++    setInactivityTimer(id);
++  }, [inactivityTimer]);
++
++  // Start/clear timer when relevant modals are shown
++  useEffect(() => {
++    const anyModal = settingsVisible || showDiscordModal || showBugfixWebView;
++    if (anyModal) {
++      resetInactivityTimer();
++    } else if (inactivityTimer) {
++      clearTimeout(inactivityTimer);
++      setInactivityTimer(null);
++    }
++    return () => {};
++  }, [settingsVisible, showDiscordModal, showBugfixWebView]);
++
++  // Close settings / browser if app is minimized or locked
++  useEffect(() => {
++    const sub = AppState.addEventListener('change', (state) => {
++      if (state !== 'active') {
++        setSettingsVisible(false);
++        setShowDiscordModal(false);
++        setShowBugfixWebView(false);
++      }
++    });
++    return () => sub.remove();
++  }, []);
++
+ 
+   // Play menu music when HomeScreen is focused, stop when blurred
+   useFocusEffect(
+@@ -80,6 +126,14 @@
+ 
+   // Settings and Discord functions
+   const handleSubmitBugReport = () => {
++    setSettingsVisible(false);
++    setShowDiscordModal(true);
++  };
++
++  const handleReviewBugfixes = () => {
++    setShowBugfixWebView(true);
++    resetInactivityTimer();
++  };
+     setSettingsVisible(false);
+     setShowDiscordModal(true);
+   };
+@@ -194,7 +248,7 @@
+           visible={settingsVisible}
+           onRequestClose={() => setSettingsVisible(false)}
+         >
+-          <View style={styles.modalOverlay}>
++          <View style={styles.modalOverlay} onTouchStart={resetInactivityTimer}>
+             <View style={styles.modalContent}>
+               <Text style={styles.modalTitle}>Settings</Text>
+               <TouchableOpacity
+@@ -226,7 +280,7 @@
+           visible={showDiscordModal}
+           onRequestClose={() => setShowDiscordModal(false)}
+         >
+-          <View style={styles.modalOverlay}>
++          <View style={styles.modalOverlay} onTouchStart={resetInactivityTimer}>
+             <View style={styles.modalContent}>
+               {/* Buttons at the top */}
+               <View style={styles.buttonRow}>
+@@ -243,6 +297,14 @@
+                   <Text style={styles.modalButtonText}>Send</Text>
+                 </TouchableOpacity>
+               </View>
++              {/* Review Bug Fixes - full width */}
++              <TouchableOpacity
++                style={[styles.fullWidthButton, styles.infoButton]}
++                onPress={handleReviewBugfixes}
++              >
++                <Text style={styles.fullWidthButtonText}>Review Bug Fixes</Text>
++              </TouchableOpacity>
++
+               
+               <Text style={styles.inputLabel}>Message:</Text>
+               <TextInput
+@@ -267,6 +329,49 @@
+               </View>
+             </View>
+           </View>
++
++        {/* Bugfix WebView Modal */}
++        <Modal
++          animationType="slide"
++          transparent={true}
++          visible={showBugfixWebView}
++          onRequestClose={() => setShowBugfixWebView(false)}
++        >
++          <View style={styles.modalOverlay} onTouchStart={resetInactivityTimer}>
++            <View style={[styles.modalContent, {padding: 0, overflow: 'hidden'}]}>
++              <View style={styles.buttonRow}>
++                <TouchableOpacity
++                  style={[styles.modalButton, styles.cancelButton]}
++                  onPress={() => setShowBugfixWebView(false)}
++                >
++                  <Text style={styles.modalButtonText}>Close</Text>
++                </TouchableOpacity>
++                <View style={{flex:1}} />
++                <TouchableOpacity
++                  style={[styles.modalButton, styles.sendButton]}
++                  onPress={() => {
++                    // reload webview by toggling key
++                    setShowBugfixWebView(false);
++                    setTimeout(() => setShowBugfixWebView(true), 0);
++                  }}
++                >
++                  <Text style={styles.modalButtonText}>Reload</Text>
++                </TouchableOpacity>
++              </View>
++              <View style={{flex:1, width:'100%', height: '80%'}}>
++                <WebView
++                  source={{ uri: BUGFIX_URL }}
++                  onLoad={resetInactivityTimer}
++                  onScroll={resetInactivityTimer}
++                  onNavigationStateChange={resetInactivityTimer}
++                  startInLoadingState
++                  javaScriptEnabled
++                  domStorageEnabled
++                />
++              </View>
++            </View>
++          </View>
++        </Modal>
+         </Modal>
+       </View>
+     </ImageBackground>
+@@ -274,6 +379,24 @@
+ }
+ 
+ const styles = StyleSheet.create({
++
++  fullWidthButton: {
++    width: '100%',
++    paddingVertical: 12,
++    borderRadius: 12,
++    alignItems: 'center',
++    justifyContent: 'center',
++    marginTop: 10,
++  },
++  infoButton: {
++    backgroundColor: '#2563EB', // blue
++  },
++  fullWidthButtonText: {
++    color: '#fff',
++    fontWeight: 'bold',
++    fontSize: 16,
++  },
++
+   container: {
+     flex: 1,
+   },
