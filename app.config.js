@@ -11,9 +11,10 @@ module.exports = {
     userInterfaceStyle: "light",
 
     ios: {
-      supportsTablet: true,
+      supportsTablet: false,
       bundleIdentifier: "com.thnx4playing.FlushFrenzy",
-      buildNumber: "3",
+      buildNumber: "6",
+      icon: path.resolve(__dirname, 'assets/app-icon.png'),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false
       }

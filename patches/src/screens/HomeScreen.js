@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,9 +12,9 @@ import {
   Alert,
   Pressable,
   TextInput,
-  AppState,
-} from 'react-native';
+, AppState } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
+import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { HighScoreLabel } from '../components/HighScoreLabel';
@@ -47,37 +47,51 @@ export default function HomeScreen({ navigation }) {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [discordMessage, setDiscordMessage] = useState('');
   const [showDiscordModal, setShowDiscordModal] = useState(false);
-
-  // Bug fixes session timeout
+  // Built-in bugfix browser modal
+  const [showBugfixWebView, setShowBugfixWebView] = useState(false);
   const BUGFIX_URL = 'https://virtuixtech.com/apps/flushfrenzy/bugfix.html';
-  const SESSION_TIMEOUT_MS = 60_000;
 
-  const sessionTimerRef = useRef(null);
-  const browserOpenRef = useRef(false);
+  // Inactivity timeout for Settings / Discord / Bugfix browser
+  const INACTIVITY_MS = 60 * 1000;
+  const [inactivityTimer, setInactivityTimer] = useState(null);
 
-  const stopSessionTimer = () => {
-    if (sessionTimerRef.current) {
-      clearTimeout(sessionTimerRef.current);
-      sessionTimerRef.current = null;
+  const resetInactivityTimer = React.useCallback(() => {
+    if (inactivityTimer) {
+      clearTimeout(inactivityTimer);
     }
-  };
+    const id = setTimeout(() => {
+      // Auto-close any open modals after 60s
+      setSettingsVisible(false);
+      setShowDiscordModal(false);
+      setShowBugfixWebView(false);
+    }, INACTIVITY_MS);
+    setInactivityTimer(id);
+  }, [inactivityTimer]);
 
-  const closeAllOverlays = () => {
-    setShowDiscordModal(false);   // Bug report modal
-    setSettingsVisible(false);    // Settings root/modal
-  };
+  // Start/clear timer when relevant modals are shown
+  useEffect(() => {
+    const anyModal = settingsVisible || showDiscordModal || showBugfixWebView;
+    if (anyModal) {
+      resetInactivityTimer();
+    } else if (inactivityTimer) {
+      clearTimeout(inactivityTimer);
+      setInactivityTimer(null);
+    }
+    return () => {};
+  }, [settingsVisible, showDiscordModal, showBugfixWebView]);
 
-  const startSessionTimer = () => {
-    stopSessionTimer();
-    sessionTimerRef.current = setTimeout(() => {
-      // Time's up: dismiss browser and close settings/bug report
-      if (browserOpenRef.current) {
-        WebBrowser.dismissBrowser();
-        browserOpenRef.current = false;
+  // Close settings / browser if app is minimized or locked
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') {
+        setSettingsVisible(false);
+        setShowDiscordModal(false);
+        setShowBugfixWebView(false);
       }
-      closeAllOverlays();
-    }, SESSION_TIMEOUT_MS);
-  };
+    });
+    return () => sub.remove();
+  }, []);
+
 
   // Play menu music when HomeScreen is focused, stop when blurred
   useFocusEffect(
@@ -90,31 +104,6 @@ export default function HomeScreen({ navigation }) {
       };
     }, [])
   );
-
-  // Close on app background/lock
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (next) => {
-      if (next !== 'active') {
-        // If app goes to background/lock, immediately kill browser + overlays
-        if (browserOpenRef.current) {
-          WebBrowser.dismissBrowser();
-          browserOpenRef.current = false;
-        }
-        stopSessionTimer();
-        closeAllOverlays();
-      }
-    });
-    return () => sub.remove();
-  }, []);
-
-  // Start/stop the timer when Settings/Bug Report are visible
-  useEffect(() => {
-    const sessionActive =
-      Boolean(settingsVisible) || Boolean(showDiscordModal) || browserOpenRef.current;
-    if (sessionActive) startSessionTimer();
-    else stopSessionTimer();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settingsVisible, showDiscordModal]);
 
   // Navigate to game mode
   const handleGameModeSelect = (mode) => {
@@ -141,30 +130,19 @@ export default function HomeScreen({ navigation }) {
     setShowDiscordModal(true);
   };
 
+  const handleReviewBugfixes = () => {
+    setShowBugfixWebView(true);
+    resetInactivityTimer();
+  };
+    setSettingsVisible(false);
+    setShowDiscordModal(true);
+  };
+
   const handlePrivacyPolicy = async () => {
     try {
       await WebBrowser.openBrowserAsync('https://virtuixtech.com/privacy.html');
     } catch (error) {
       Alert.alert('Error', 'Could not open Privacy Policy. Please check your internet connection.');
-    }
-  };
-
-  const openBugfixes = async () => {
-    try {
-      browserOpenRef.current = true;
-      // Make sure a session timer is running while the browser is up
-      startSessionTimer();
-      await WebBrowser.openBrowserAsync(BUGFIX_URL, {
-        // keep options minimal for broad compatibility
-        showTitle: true,
-        enableBarCollapsing: true,
-        dismissButtonStyle: 'done',
-      });
-    } finally {
-      // Whether user closed it or we dismissed it, clean up and close settings
-      browserOpenRef.current = false;
-      stopSessionTimer();
-      closeAllOverlays();
     }
   };
 
@@ -270,7 +248,7 @@ export default function HomeScreen({ navigation }) {
           visible={settingsVisible}
           onRequestClose={() => setSettingsVisible(false)}
         >
-          <View style={styles.modalOverlay}>
+          <View style={styles.modalOverlay} onTouchStart={resetInactivityTimer}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Settings</Text>
               <TouchableOpacity
@@ -302,7 +280,7 @@ export default function HomeScreen({ navigation }) {
           visible={showDiscordModal}
           onRequestClose={() => setShowDiscordModal(false)}
         >
-          <View style={styles.modalOverlay}>
+          <View style={styles.modalOverlay} onTouchStart={resetInactivityTimer}>
             <View style={styles.modalContent}>
               {/* Buttons at the top */}
               <View style={styles.buttonRow}>
@@ -319,24 +297,14 @@ export default function HomeScreen({ navigation }) {
                   <Text style={styles.modalButtonText}>Send</Text>
                 </TouchableOpacity>
               </View>
-              
+              {/* Review Bug Fixes - full width */}
               <TouchableOpacity
-                onPress={openBugfixes}
-                activeOpacity={0.85}
-                style={{
-                  marginTop: 12,
-                  width: '100%',
-                  paddingVertical: 14,
-                  borderRadius: 10,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: '#2F80ED', // or your primary color
-                }}
+                style={[styles.fullWidthButton, styles.infoButton]}
+                onPress={handleReviewBugfixes}
               >
-                <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>
-                  Review Bug Fixes
-                </Text>
+                <Text style={styles.fullWidthButtonText}>Review Bug Fixes</Text>
               </TouchableOpacity>
+
               
               <Text style={styles.inputLabel}>Message:</Text>
               <TextInput
@@ -361,6 +329,49 @@ export default function HomeScreen({ navigation }) {
               </View>
             </View>
           </View>
+
+        {/* Bugfix WebView Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showBugfixWebView}
+          onRequestClose={() => setShowBugfixWebView(false)}
+        >
+          <View style={styles.modalOverlay} onTouchStart={resetInactivityTimer}>
+            <View style={[styles.modalContent, {padding: 0, overflow: 'hidden'}]}>
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowBugfixWebView(false)}
+                >
+                  <Text style={styles.modalButtonText}>Close</Text>
+                </TouchableOpacity>
+                <View style={{flex:1}} />
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.sendButton]}
+                  onPress={() => {
+                    // reload webview by toggling key
+                    setShowBugfixWebView(false);
+                    setTimeout(() => setShowBugfixWebView(true), 0);
+                  }}
+                >
+                  <Text style={styles.modalButtonText}>Reload</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={{flex:1, width:'100%', height: '80%'}}>
+                <WebView
+                  source={{ uri: BUGFIX_URL }}
+                  onLoad={resetInactivityTimer}
+                  onScroll={resetInactivityTimer}
+                  onNavigationStateChange={resetInactivityTimer}
+                  startInLoadingState
+                  javaScriptEnabled
+                  domStorageEnabled
+                />
+              </View>
+            </View>
+          </View>
+        </Modal>
         </Modal>
       </View>
     </ImageBackground>
@@ -368,6 +379,24 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+
+  fullWidthButton: {
+    width: '100%',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  infoButton: {
+    backgroundColor: '#2563EB', // blue
+  },
+  fullWidthButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+
   container: {
     flex: 1,
   },
