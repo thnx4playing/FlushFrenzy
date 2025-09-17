@@ -15,8 +15,31 @@ module.exports = {
       bundleIdentifier: "com.thnx4playing.FlushFrenzy",
       buildNumber: "6",
       icon: path.resolve(__dirname, 'assets/app-icon.png'),
+      splash: {
+        image: path.resolve(__dirname, 'assets/splash-icon.png'),
+        resizeMode: "contain",
+        backgroundColor: "#ffffff"
+      },
       infoPlist: {
-        ITSAppUsesNonExemptEncryption: false
+        ITSAppUsesNonExemptEncryption: false,
+        NSAppTransportSecurity: {
+          NSAllowsArbitraryLoads: true,
+          NSExceptionDomains: {
+            "virtuixtech.com": {
+              NSExceptionAllowsInsecureHTTPLoads: true,
+              NSExceptionMinimumTLSVersion: "1.0",
+              NSIncludesSubdomains: true
+            }
+          }
+        },
+        UIBackgroundModes: ["audio"],
+        NSMicrophoneUsageDescription: "This app does not use the microphone.",
+        NSCameraUsageDescription: "This app does not use the camera.",
+        UIRequiresFullScreen: true,
+        UISupportedInterfaceOrientations: ["UIInterfaceOrientationPortrait"]
+      },
+      config: {
+        usesNonExemptEncryption: false
       }
     },
     android: {
@@ -41,7 +64,20 @@ module.exports = {
     
     // Plugins
     plugins: [
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-dev-client",
+      [
+        "expo-av",
+        {
+          microphonePermission: false
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          microphonePermission: false
+        }
+      ]
     ]
   }
 };

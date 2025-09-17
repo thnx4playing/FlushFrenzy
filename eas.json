@@ -5,13 +5,22 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "ios": {
+        "resourceClass": "m-medium",
+        "simulator": true
+      }
     },
     "preview": {
-      "distribution": "store"
+      "distribution": "store",
+      "ios": {
+        "resourceClass": "m-medium"
+      }
     },
     "production": {
-      
+      "ios": {
+        "resourceClass": "m-medium"
+      }
     }
   },
   "submit": {
