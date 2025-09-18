@@ -42,7 +42,7 @@ const GAME_MODES = [
   },
 ];
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen({ navigation, registerCleanup }) {
   const [volumeModalVisible, setVolumeModalVisible] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   
@@ -110,9 +110,25 @@ export default function HomeScreen({ navigation }) {
     }, [])
   );
 
-  // REMOVED: HomeScreen AppState listener - let app-level handler manage everything
-  // The APP-LEVEL remount in App.js handles resetting the entire component tree,
-  // which closes modals and resets touch handling properly without conflicts
+  // Register cleanup with App-level handler
+  useEffect(() => {
+    if (!registerCleanup) return;
+    
+    const cleanup = () => {
+      console.log('📱 HomeScreen: Executing registered cleanup');
+      // Immediate cleanup when app backgrounds
+      if (browserOpenRef.current) {
+        console.log('📱 HomeScreen: Dismissing browser');
+        WebBrowser.dismissBrowser();
+        browserOpenRef.current = false;
+      }
+      stopSessionTimer();
+      closeAllOverlays();
+    };
+    
+    const unregister = registerCleanup(cleanup);
+    return unregister;
+  }, [registerCleanup]);
 
   // Start/stop the timer when Settings/Bug Report are visible
   useEffect(() => {
