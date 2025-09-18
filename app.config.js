@@ -7,14 +7,14 @@ module.exports = {
     slug: "FlushFrenzy",
     version: "1.1.0",
     orientation: "portrait",
-    icon: path.resolve(__dirname, 'assets/app-icon.png'),
+    icon: path.resolve(__dirname, 'assets/app-icon-halloween.png'),
     userInterfaceStyle: "light",
 
     ios: {
       supportsTablet: false,
       bundleIdentifier: "com.thnx4playing.FlushFrenzy",
       buildNumber: "2",
-      icon: path.resolve(__dirname, 'assets/app-icon.png'),
+      icon: path.resolve(__dirname, 'assets/app-icon-halloween.png'),
       splash: {
         image: path.resolve(__dirname, 'assets/splash-icon.png'),
         resizeMode: "contain",
