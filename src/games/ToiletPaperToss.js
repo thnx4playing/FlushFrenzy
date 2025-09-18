@@ -19,6 +19,7 @@ import {
   Modal,
   Animated,
 } from "react-native";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Easing } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { GameEngine } from "react-native-game-engine";
