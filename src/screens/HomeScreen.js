@@ -44,6 +44,7 @@ export default function HomeScreen({ navigation }) {
   const [volumeModalVisible, setVolumeModalVisible] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [touchResetKey, setTouchResetKey] = useState(0);
+  const [squelchTouches, setSquelchTouches] = useState(false);
   
   // Settings and Discord state
   const [settingsVisible, setSettingsVisible] = useState(false);
@@ -71,6 +72,7 @@ export default function HomeScreen({ navigation }) {
     closingRef.current = true;
     setShowDiscordModal(false);   // Bug report modal
     setSettingsVisible(false);    // Settings root/modal
+    setVolumeModalVisible?.(false);  // Volume modal (defensive)
     // On the next tick, remount root so no invisible overlay can keep swallowing touches
     setTimeout(() => {
       setTouchResetKey(k => k + 1);
@@ -129,6 +131,9 @@ export default function HomeScreen({ navigation }) {
           // One tick: ensure modals closed, then force a root remount to clear any ghost views
           setTimeout(() => {
             closeAllOverlays();
+            // Temporarily squelch touches for a frame to fully reset responders
+            setSquelchTouches(true);
+            requestAnimationFrame(() => setSquelchTouches(false));
             // If your closeAllOverlays already bumps the touchResetKey, this extra bump is harmless.
             setTouchResetKey?.((k) => k + 1);
           }, 0);
@@ -237,7 +242,7 @@ export default function HomeScreen({ navigation }) {
       style={styles.container}
       resizeMode="stretch"
     >
-      <View key={`touch-${touchResetKey}`} style={styles.content}>
+      <View key={`touch-${touchResetKey}`} style={styles.content} pointerEvents={squelchTouches ? "none" : "auto"}>
         {/* Header moved to top with increased size */}
         <View style={styles.header}>
           <Image 
@@ -299,6 +304,8 @@ export default function HomeScreen({ navigation }) {
           animationType="slide"
           transparent={true}
           visible={settingsVisible}
+          statusBarTranslucent
+          onDismiss={() => setTimeout(() => setTouchResetKey(k => k + 1), 0)}
           onRequestClose={() => setSettingsVisible(false)}
         >
           <View 
@@ -340,6 +347,8 @@ export default function HomeScreen({ navigation }) {
           animationType="slide"
           transparent={true}
           visible={showDiscordModal}
+          statusBarTranslucent
+          onDismiss={() => setTimeout(() => setTouchResetKey(k => k + 1), 0)}
           onRequestClose={() => setShowDiscordModal(false)}
         >
           <View 
