@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { CommonActions } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider as PaperProvider } from 'react-native-paper';
@@ -22,6 +23,9 @@ export default function App() {
   const [appRemountKey, setAppRemountKey] = useState(0);
   const [showApp, setShowApp] = useState(true); // Add this for complete rebuild
   const backgroundedRef = useRef(false);
+  
+  // Navigation ref for resetting navigation state
+  const navigationRef = useRef();
   
   // Cleanup registry for centralized background handling
   const cleanupCallbacks = useRef([]);
@@ -81,15 +85,20 @@ export default function App() {
         // });
         
       } else if (backgroundedRef.current) {
-        console.log('🏗️ APP-LEVEL: Resuming from background - FORCING COMPLETE REBUILD');
+        console.log('🏗️ APP-LEVEL: Resuming from background - RESETTING NAVIGATION');
         backgroundedRef.current = false;
         
-        // Force complete unmount/remount of entire component tree
-        setShowApp(false);
+        // Reset navigation completely
         setTimeout(() => {
-          console.log('🏗️ APP-LEVEL: Executing COMPLETE COMPONENT TREE REBUILD');
-          setShowApp(true);
-          setAppRemountKey(k => k + 1);
+          console.log('🏗️ APP-LEVEL: Executing NAVIGATION RESET');
+          if (navigationRef.current) {
+            navigationRef.current.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'Home' }],
+              })
+            );
+          }
         }, 100);
       }
     });
@@ -107,7 +116,7 @@ export default function App() {
       <SafeAreaProvider key={`safe-area-${appRemountKey}`}>
         <PaperProvider key={`paper-${appRemountKey}`}>
           <BottomSheetModalProvider key={`bottom-sheet-${appRemountKey}`}>
-            <NavigationContainer key={`nav-${appRemountKey}`}>
+            <NavigationContainer ref={navigationRef} key={`nav-${appRemountKey}`}>
               <StatusBar style="light" hidden={true} />
               <Stack.Navigator
                 key={`stack-${appRemountKey}`}
