@@ -20,13 +20,11 @@ export const useAssetPreloader = () => {
 
         const imageAssets = [
           require('../../assets/tp.png'),
-          require('../../assets/tp-blue.png'),
-          require('../../assets/tp-green.png'),
-          require('../../assets/tp-orange.png'),
-          require('../../assets/tp-pink.png'),
-          require('../../assets/tp-purple.png'),
-          require('../../assets/tp-rainbow.png'),
-          require('../../assets/tp-red.png'),
+          require('../../assets/halloween1.png'),
+          require('../../assets/halloween2.png'),
+          require('../../assets/halloween3.png'),
+          require('../../assets/halloween4.png'),
+          require('../../assets/halloween5.png'),
           require('../../assets/toilet.png'),
           require('../../assets/plunger.png'),
           require('../../assets/duck.png'),

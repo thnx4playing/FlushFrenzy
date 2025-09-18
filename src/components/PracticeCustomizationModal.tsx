@@ -67,24 +67,20 @@ const PracticeCustomizationModal: React.FC<Props> = ({
 
   const skinMap: { [key: string]: any } = {
     'tp.png': require('../../assets/tp.png'),
-    'tp-blue.png': require('../../assets/tp-blue.png'),
-    'tp-green.png': require('../../assets/tp-green.png'),
-    'tp-pink.png': require('../../assets/tp-pink.png'),
-    'tp-purple.png': require('../../assets/tp-purple.png'),
-    'tp-red.png': require('../../assets/tp-red.png'),
-    'tp-orange.png': require('../../assets/tp-orange.png'),
-    'tp-rainbow.png': require('../../assets/tp-rainbow.png'),
+    'halloween1.png': require('../../assets/halloween1.png'),
+    'halloween2.png': require('../../assets/halloween2.png'),
+    'halloween3.png': require('../../assets/halloween3.png'),
+    'halloween4.png': require('../../assets/halloween4.png'),
+    'halloween5.png': require('../../assets/halloween5.png'),
   };
 
   const skinNames: { [key: string]: string } = {
     'tp.png': 'Classic White',
-    'tp-blue.png': 'Ocean Blue',
-    'tp-green.png': 'Forest Green',
-    'tp-pink.png': 'Bubblegum Pink',
-    'tp-purple.png': 'Royal Purple',
-    'tp-red.png': 'Fire Red',
-    'tp-orange.png': 'Sunset Orange',
-    'tp-rainbow.png': 'Rainbow',
+    'halloween1.png': 'Spooky Pumpkin',
+    'halloween2.png': 'Ghostly White',
+    'halloween3.png': 'Witch Hat Black',
+    'halloween4.png': 'Candy Corn',
+    'halloween5.png': 'Blood Moon Red',
   };
 
   const trailNames: { [key: string]: string } = {
