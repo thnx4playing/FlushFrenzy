@@ -343,16 +343,9 @@ export default function HomeScreen({ navigation, registerCleanup }) {
           onClose={() => setVolumeModalVisible(false)}
         />
 
-        {/* Settings Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={settingsVisible}
-          statusBarTranslucent
-          presentationStyle="overFullScreen"
-          onRequestClose={() => setSettingsVisible(false)}
-        >
-          <GestureHandlerRootView style={{ flex: 1 }}>
+        {/* Settings Custom Overlay - Replace Modal to fix touch issues */}
+        {settingsVisible && (
+          <View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]}>
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
                 <Text style={styles.modalTitle}>Settings</Text>
@@ -382,19 +375,12 @@ export default function HomeScreen({ navigation, registerCleanup }) {
                 </TouchableOpacity>
               </View>
             </View>
-          </GestureHandlerRootView>
-        </Modal>
+          </View>
+        )}
 
-        {/* Discord Message Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={showDiscordModal}
-          statusBarTranslucent
-          presentationStyle="overFullScreen"
-          onRequestClose={() => setShowDiscordModal(false)}
-        >
-          <GestureHandlerRootView style={{ flex: 1 }}>
+        {/* Discord Message Custom Overlay - Replace Modal to fix touch issues */}
+        {showDiscordModal && (
+          <View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]}>
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
                 {/* Buttons at the top */}
@@ -436,8 +422,8 @@ export default function HomeScreen({ navigation, registerCleanup }) {
                 </View>
               </View>
             </View>
-          </GestureHandlerRootView>
-        </Modal>
+          </View>
+        )}
       </View>
     </ImageBackground>
   );
