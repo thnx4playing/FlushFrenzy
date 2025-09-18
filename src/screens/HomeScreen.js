@@ -139,6 +139,20 @@ export default function HomeScreen({ navigation, registerCleanup }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsVisible, showDiscordModal]);
 
+  // Add this useEffect to check for any lingering modal state
+  useEffect(() => {
+    const checkModalState = () => {
+      console.log('📱 Modal State Check:');
+      console.log('  - settingsVisible:', settingsVisible);
+      console.log('  - showDiscordModal:', showDiscordModal);
+      console.log('  - volumeModalVisible:', volumeModalVisible);
+    };
+    
+    // Check every 2 seconds when app is active
+    const interval = setInterval(checkModalState, 2000);
+    return () => clearInterval(interval);
+  }, [settingsVisible, showDiscordModal, volumeModalVisible]);
+
   // Navigate to game mode
   const handleGameModeSelect = (mode) => {
     navigation.navigate('Game', { 
