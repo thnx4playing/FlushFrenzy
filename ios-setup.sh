@@ -9,7 +9,12 @@ echo "Cleaning previous builds..."
 rm -rf ios/ .expo/
 
 echo "Running prebuild..."
-expo prebuild --platform ios --clean
+if command -v expo &> /dev/null; then
+    expo prebuild --platform ios --clean
+else
+    echo "Using npx to run expo prebuild..."
+    npx @expo/cli prebuild --platform ios --clean
+fi
 
 if [ -d "ios" ]; then
     echo "Installing CocoaPods..."
