@@ -6,7 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { AppState } from 'react-native';
+import { AppState, AppRegistry } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import screens
@@ -80,15 +80,23 @@ export default function App() {
         // });
         
       } else if (backgroundedRef.current) {
-        // Returning to active after being backgrounded
-        console.log('🏗️ APP-LEVEL: Resuming from background - DELAYED app remount');
+        console.log('🏗️ APP-LEVEL: Resuming from background - FORCING APP RESTART');
         backgroundedRef.current = false;
         
-        // Wait longer to avoid conflicts with component-level resets
+        // Nuclear option - restart the entire app
         setTimeout(() => {
-          console.log('🏗️ APP-LEVEL: Executing DELAYED app remount');
-          setAppRemountKey(k => k + 1);
-        }, 500); // Wait 500ms to avoid timing conflicts
+          console.log('🏗️ APP-LEVEL: Executing NUCLEAR APP RESTART');
+          try {
+            AppRegistry.unmountApplicationComponentAtRootTag(1);
+            AppRegistry.runApplication('main', {
+              initialProps: {},
+              rootTag: 1,
+            });
+          } catch (error) {
+            console.log('🏗️ APP-LEVEL: Nuclear restart failed, falling back to component remount:', error);
+            setAppRemountKey(k => k + 1);
+          }
+        }, 500);
       }
     });
     
@@ -96,47 +104,41 @@ export default function App() {
   }, []);
 
   return (
-    <SafeAreaProvider key={`app-remount-${appRemountKey}`}>
-      <PaperProvider>
-        <BottomSheetModalProvider>
-          <NavigationContainer key={`nav-${appRemountKey}`}>
-            <StatusBar style="light" hidden={true} />
-            <Stack.Navigator
-              initialRouteName="Home"
-              screenOptions={{
-                headerShown: false,
-                gestureEnabled: true,
-              }}
-            >
-              <Stack.Screen 
-                name="Home" 
-                options={{
-                  title: 'Flush Frenzy',
-                }}
-              >
-                {(props) => (
-                  <GestureHandlerRootView style={{ flex: 1 }}>
-                    <HomeScreen {...props} registerCleanup={registerCleanup} />
-                  </GestureHandlerRootView>
-                )}
-              </Stack.Screen>
-              <Stack.Screen 
-                name="Game" 
-                options={{
-                  title: 'Game',
+    <GestureHandlerRootView key={`gesture-${appRemountKey}`} style={{ flex: 1 }}>
+      <SafeAreaProvider key={`safe-area-${appRemountKey}`}>
+        <PaperProvider key={`paper-${appRemountKey}`}>
+          <BottomSheetModalProvider key={`bottom-sheet-${appRemountKey}`}>
+            <NavigationContainer key={`nav-${appRemountKey}`}>
+              <StatusBar style="light" hidden={true} />
+              <Stack.Navigator
+                key={`stack-${appRemountKey}`}
+                initialRouteName="Home"
+                screenOptions={{
                   headerShown: false,
+                  gestureEnabled: true,
                 }}
               >
-                {(props) => (
-                  <GestureHandlerRootView style={{ flex: 1 }}>
-                    <GameScreen {...props} />
-                  </GestureHandlerRootView>
-                )}
-              </Stack.Screen>
-            </Stack.Navigator>
-          </NavigationContainer>
-        </BottomSheetModalProvider>
-      </PaperProvider>
-    </SafeAreaProvider>
+                <Stack.Screen 
+                  name="Home" 
+                  options={{
+                    title: 'Flush Frenzy',
+                  }}
+                >
+                  {(props) => <HomeScreen {...props} key={`home-${appRemountKey}`} registerCleanup={registerCleanup} />}
+                </Stack.Screen>
+                <Stack.Screen 
+                  name="Game" 
+                  component={GameScreen}
+                  options={{
+                    title: 'Game',
+                    headerShown: false,
+                  }}
+                />
+              </Stack.Navigator>
+            </NavigationContainer>
+          </BottomSheetModalProvider>
+        </PaperProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
