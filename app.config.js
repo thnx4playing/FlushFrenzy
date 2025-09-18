@@ -5,7 +5,7 @@ module.exports = {
     owner: "thnx4playing",
     name: "Flush Frenzy",
     slug: "FlushFrenzy",
-    version: "1.0.0",
+    version: "1.1.0",
     orientation: "portrait",
     icon: path.resolve(__dirname, 'assets/app-icon.png'),
     userInterfaceStyle: "light",
@@ -13,7 +13,7 @@ module.exports = {
     ios: {
       supportsTablet: false,
       bundleIdentifier: "com.thnx4playing.FlushFrenzy",
-      buildNumber: "6",
+      buildNumber: "1",
       icon: path.resolve(__dirname, 'assets/app-icon.png'),
       splash: {
         image: path.resolve(__dirname, 'assets/splash-icon.png'),
