@@ -110,28 +110,9 @@ export default function HomeScreen({ navigation }) {
     }, [])
   );
 
-  // Close on app background/lock
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (next) => {
-      console.log('🔄 HomeScreen AppState changed to:', next);
-      if (next !== 'active') {
-        console.log('📱 HomeScreen: App backgrounding - closing overlays');
-        // If app goes to background/lock, immediately kill browser + overlays
-        if (browserOpenRef.current) {
-          console.log('🌐 HomeScreen: Dismissing browser on background');
-          WebBrowser.dismissBrowser();
-          browserOpenRef.current = false;
-        }
-        stopSessionTimer();
-        closeAllOverlays();
-      } else {
-        console.log('🔄 HomeScreen: App resumed to active - checking state');
-        console.log('settingsVisible:', settingsVisible);
-        console.log('showDiscordModal:', showDiscordModal);
-      }
-    });
-    return () => sub.remove();
-  }, [settingsVisible, showDiscordModal]);
+  // REMOVED: HomeScreen AppState listener - let app-level handler manage everything
+  // The APP-LEVEL remount in App.js handles resetting the entire component tree,
+  // which closes modals and resets touch handling properly without conflicts
 
   // Start/stop the timer when Settings/Bug Report are visible
   useEffect(() => {
