@@ -85,12 +85,21 @@ export default function App() {
         // });
         
       } else if (backgroundedRef.current) {
-        console.log('🏗️ APP-LEVEL: Resuming from background - RESETTING NAVIGATION');
+        console.log('🏗️ APP-LEVEL: Resuming from background - FORCING MODAL CLEANUP FIRST');
         backgroundedRef.current = false;
         
-        // Reset navigation completely
+        // First, execute all cleanup callbacks to close modals
+        cleanupCallbacks.current.forEach(callback => {
+          try {
+            callback();
+          } catch (error) {
+            console.log('🏗️ APP-LEVEL: Cleanup callback error:', error);
+          }
+        });
+        
+        // Wait for modals to close, then reset navigation
         setTimeout(() => {
-          console.log('🏗️ APP-LEVEL: Executing NAVIGATION RESET');
+          console.log('🏗️ APP-LEVEL: Executing DELAYED navigation reset after modal cleanup');
           if (navigationRef.current) {
             navigationRef.current.dispatch(
               CommonActions.reset({
@@ -99,7 +108,7 @@ export default function App() {
               })
             );
           }
-        }, 100);
+        }, 300); // Give modals time to close
       }
     });
     
