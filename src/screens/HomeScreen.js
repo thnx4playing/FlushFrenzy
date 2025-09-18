@@ -281,6 +281,12 @@ export default function HomeScreen({ navigation }) {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.menuItem}
+                onPress={openBugfixes}
+              >
+                <Text style={styles.menuItemText}>Review Bug Fixes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.menuItem}
                 onPress={handlePrivacyPolicy}
               >
                 <Text style={styles.menuItemText}>Privacy Policy</Text>
@@ -319,24 +325,6 @@ export default function HomeScreen({ navigation }) {
                   <Text style={styles.modalButtonText}>Send</Text>
                 </TouchableOpacity>
               </View>
-              
-              <TouchableOpacity
-                onPress={openBugfixes}
-                activeOpacity={0.85}
-                style={{
-                  marginTop: 12,
-                  width: '100%',
-                  paddingVertical: 14,
-                  borderRadius: 10,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: '#2F80ED', // or your primary color
-                }}
-              >
-                <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>
-                  Review Bug Fixes
-                </Text>
-              </TouchableOpacity>
               
               <Text style={styles.inputLabel}>Message:</Text>
               <TextInput
