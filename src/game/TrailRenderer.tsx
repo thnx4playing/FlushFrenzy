@@ -26,7 +26,25 @@ let NEXT_ID = 1;
 const particlePool: Particle[] = [];
 
 const getParticle = (): Particle => {
-  return particlePool.pop() || {
+  const pooled = particlePool.pop();
+  if (pooled) {
+    // Reset pooled particle values
+    pooled.id = NEXT_ID++;
+    pooled.x = 0;
+    pooled.y = 0;
+    pooled.color = '';
+    pooled.size = 0;
+    pooled.lifeMs = 0;
+    // Ensure animated values exist and are reset
+    if (!pooled.fade) pooled.fade = new Animated.Value(1);
+    if (!pooled.scale) pooled.scale = new Animated.Value(1);
+    pooled.fade.setValue(1);
+    pooled.scale.setValue(1);
+    return pooled;
+  }
+  
+  // Create new particle if pool is empty
+  return {
     id: NEXT_ID++,
     x: 0, y: 0, color: '', size: 0, lifeMs: 0,
     fade: new Animated.Value(1),
@@ -35,9 +53,22 @@ const getParticle = (): Particle => {
 };
 
 const releaseParticle = (particle: Particle) => {
-  particle.fade.setValue(1);
-  particle.scale.setValue(1);
-  particlePool.push(particle);
+  if (!particle) return;
+  
+  // Stop any running animations before releasing
+  if (particle.fade) {
+    particle.fade.stopAnimation();
+    particle.fade.setValue(1);
+  }
+  if (particle.scale) {
+    particle.scale.stopAnimation();
+    particle.scale.setValue(1);
+  }
+  
+  // Only add to pool if we have room (prevent memory leaks)
+  if (particlePool.length < 50) {
+    particlePool.push(particle);
+  }
 };
 
 const TrailRenderer = forwardRef<TrailRendererRef, { initialType?: TPTrail }>(
@@ -99,11 +130,11 @@ const TrailRenderer = forwardRef<TrailRendererRef, { initialType?: TPTrail }>(
 
         // animate out
         const anims: Animated.CompositeAnimation[] = [];
-        if (cfg.fadeOut) {
-          anims.push(Animated.timing(fade, { toValue: 0, duration: cfg.lifeMs, easing: Easing.out(Easing.quad), useNativeDriver: true }));
+        if (cfg.fadeOut && p.fade) {
+          anims.push(Animated.timing(p.fade, { toValue: 0, duration: cfg.lifeMs, easing: Easing.out(Easing.quad), useNativeDriver: true }));
         }
-        if (cfg.scaleOut) {
-          anims.push(Animated.timing(scale, { toValue: 1.6, duration: cfg.lifeMs, easing: Easing.out(Easing.quad), useNativeDriver: true }));
+        if (cfg.scaleOut && p.scale) {
+          anims.push(Animated.timing(p.scale, { toValue: 1.6, duration: cfg.lifeMs, easing: Easing.out(Easing.quad), useNativeDriver: true }));
         }
         Animated.parallel(anims).start(() => {
           if (!mountedRef.current) return;
