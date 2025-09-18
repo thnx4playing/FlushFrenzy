@@ -96,40 +96,47 @@ export default function App() {
   }, []);
 
   return (
-    <GestureHandlerRootView key={`app-remount-${appRemountKey}`} style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <PaperProvider>
-          <BottomSheetModalProvider>
-            <NavigationContainer key={`nav-${appRemountKey}`}>
-              <StatusBar style="light" hidden={true} />
-              <Stack.Navigator
-            initialRouteName="Home"
-            screenOptions={{
-              headerShown: false,
-              gestureEnabled: true,
-            }}
-          >
-            <Stack.Screen 
-              name="Home" 
-              options={{
-                title: 'Flush Frenzy',
+    <SafeAreaProvider key={`app-remount-${appRemountKey}`}>
+      <PaperProvider>
+        <BottomSheetModalProvider>
+          <NavigationContainer key={`nav-${appRemountKey}`}>
+            <StatusBar style="light" hidden={true} />
+            <Stack.Navigator
+              initialRouteName="Home"
+              screenOptions={{
+                headerShown: false,
+                gestureEnabled: true,
               }}
             >
-              {(props) => <HomeScreen {...props} registerCleanup={registerCleanup} />}
-            </Stack.Screen>
-            <Stack.Screen 
-              name="Game" 
-              component={GameScreen}
-              options={{
-                title: 'Game',
-                headerShown: false,
-              }}
-            />
-          </Stack.Navigator>
-            </NavigationContainer>
-          </BottomSheetModalProvider>
-        </PaperProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+              <Stack.Screen 
+                name="Home" 
+                options={{
+                  title: 'Flush Frenzy',
+                }}
+              >
+                {(props) => (
+                  <GestureHandlerRootView style={{ flex: 1 }}>
+                    <HomeScreen {...props} registerCleanup={registerCleanup} />
+                  </GestureHandlerRootView>
+                )}
+              </Stack.Screen>
+              <Stack.Screen 
+                name="Game" 
+                options={{
+                  title: 'Game',
+                  headerShown: false,
+                }}
+              >
+                {(props) => (
+                  <GestureHandlerRootView style={{ flex: 1 }}>
+                    <GameScreen {...props} />
+                  </GestureHandlerRootView>
+                )}
+              </Stack.Screen>
+            </Stack.Navigator>
+          </NavigationContainer>
+        </BottomSheetModalProvider>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }
