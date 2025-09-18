@@ -66,15 +66,31 @@ export default function HomeScreen({ navigation }) {
   };
 
   const closeAllOverlays = () => {
+    console.log('=== closeAllOverlays called ===');
+    console.log('showDiscordModal before:', showDiscordModal);
+    console.log('settingsVisible before:', settingsVisible);
+    
     setShowDiscordModal(false);   // Bug report modal
     setSettingsVisible(false);    // Settings root/modal
+    
+    // Reset any other state that might be interfering
+    setDiscordMessage('');
+    
+    // Force a small re-render to reset component state
+    setTimeout(() => {
+      setRefreshKey(prev => prev + 1);
+    }, 100);
+    
+    console.log('=== closeAllOverlays finished ===');
   };
 
   const startSessionTimer = () => {
+    console.log('Starting session timer...');
     stopSessionTimer();
     sessionTimerRef.current = setTimeout(() => {
-      // Time's up: dismiss browser and close settings/bug report
+      console.log('=== TIMEOUT TRIGGERED ===');
       if (browserOpenRef.current) {
+        console.log('Dismissing browser...');
         WebBrowser.dismissBrowser();
         browserOpenRef.current = false;
       }
@@ -97,18 +113,25 @@ export default function HomeScreen({ navigation }) {
   // Close on app background/lock
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
+      console.log('🔄 HomeScreen AppState changed to:', next);
       if (next !== 'active') {
+        console.log('📱 HomeScreen: App backgrounding - closing overlays');
         // If app goes to background/lock, immediately kill browser + overlays
         if (browserOpenRef.current) {
+          console.log('🌐 HomeScreen: Dismissing browser on background');
           WebBrowser.dismissBrowser();
           browserOpenRef.current = false;
         }
         stopSessionTimer();
         closeAllOverlays();
+      } else {
+        console.log('🔄 HomeScreen: App resumed to active - checking state');
+        console.log('settingsVisible:', settingsVisible);
+        console.log('showDiscordModal:', showDiscordModal);
       }
     });
     return () => sub.remove();
-  }, []);
+  }, [settingsVisible, showDiscordModal]);
 
   // Start/stop the timer when Settings/Bug Report are visible
   useEffect(() => {
