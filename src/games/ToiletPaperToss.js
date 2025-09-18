@@ -1673,21 +1673,21 @@ export default function ToiletPaperToss({
     if (state.perks && state.perks.length === 0) {
       state.perkSpawnTimer += time.delta;
       
-      if (state.perkSpawnTimer > (5000 + Math.random() * 3000)) { // 5-8 seconds
+      if (state.perkSpawnTimer > (3000 + Math.random() * 2000)) { // 3-5 seconds (was 5-8)
         state.perkSpawnTimer = 0;
         
-        // 35% chance to spawn a perk
-        if (Math.random() < 0.35) {
-          // Weighted spawn chance: Clock (75%), Rainbow (12.5%), Bubble (12.5%)
+        // 60% chance to spawn a perk (was 35%)
+        if (Math.random() < 0.60) {
+          // Weighted spawn chance: Clock (50%), Rainbow (25%), Bubble (25%)
           const rand = Math.random();
           let randomType;
           
-          if (rand < 0.75) {
-            randomType = PERK_TYPES.CLOCK; // 75% chance
-          } else if (rand < 0.875) {
-            randomType = PERK_TYPES.RAINBOW; // 12.5% chance
+          if (rand < 0.50) {
+            randomType = PERK_TYPES.CLOCK; // 50% chance
+          } else if (rand < 0.75) {
+            randomType = PERK_TYPES.RAINBOW; // 25% chance
           } else {
-            randomType = PERK_TYPES.BUBBLE; // 12.5% chance
+            randomType = PERK_TYPES.BUBBLE; // 25% chance
           }
           
           // Spawn from bottom of HUD to above aimpad, avoiding right side buttons and toilet area
