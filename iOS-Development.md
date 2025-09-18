@@ -163,7 +163,7 @@ ios/
 - **iOS Simulator** (included with Xcode)
 - **CocoaPods** (for iOS dependencies)
 - **Expo CLI** (`npm install -g @expo/cli`)
-- **EAS CLI** (`npm install -g @expo/eas-cli`)
+- **EAS CLI** (`npm install -g eas-cli`)
 
 ### Optional Tools
 - **iOS Device** (for testing on real hardware)
