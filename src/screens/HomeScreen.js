@@ -193,9 +193,22 @@ export default function HomeScreen({ navigation, registerCleanup }) {
 
   const handlePrivacyPolicy = async () => {
     try {
-      await WebBrowser.openBrowserAsync('https://virtuixtech.com/privacy.html');
+      browserOpenRef.current = true;
+      // Make sure a session timer is running while the browser is up
+      startSessionTimer();
+      await WebBrowser.openBrowserAsync('https://virtuixtech.com/privacy.html', {
+        // keep options minimal for broad compatibility
+        showTitle: true,
+        enableBarCollapsing: true,
+        dismissButtonStyle: 'done',
+      });
     } catch (error) {
       Alert.alert('Error', 'Could not open Privacy Policy. Please check your internet connection.');
+    } finally {
+      // Whether user closed it or we dismissed it, clean up and close overlays
+      browserOpenRef.current = false;
+      stopSessionTimer();
+      closeAllOverlays();
     }
   };
 
