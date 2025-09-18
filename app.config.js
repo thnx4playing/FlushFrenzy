@@ -13,7 +13,7 @@ module.exports = {
     ios: {
       supportsTablet: false,
       bundleIdentifier: "com.thnx4playing.FlushFrenzy",
-      buildNumber: "2",
+      buildNumber: "3",
       icon: path.resolve(__dirname, 'assets/app-icon-halloween.png'),
       splash: {
         image: path.resolve(__dirname, 'assets/splash-icon.png'),
