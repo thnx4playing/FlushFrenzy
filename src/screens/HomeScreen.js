@@ -76,10 +76,10 @@ export default function HomeScreen({ navigation, registerCleanup }) {
     // Reset any other state that might be interfering
     setDiscordMessage('');
     
-    // Force a small re-render to reset component state
-    setTimeout(() => {
-      setRefreshKey(prev => prev + 1);
-    }, 100);
+    // REMOVED: Let App.js handle the remount to avoid race conditions
+    // setTimeout(() => {
+    //   setRefreshKey(prev => prev + 1);
+    // }, 100);
     
     console.log('=== closeAllOverlays finished ===');
   };
