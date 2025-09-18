@@ -46,6 +46,7 @@ export default function HomeScreen({ navigation }) {
   const [touchResetKey, setTouchResetKey] = useState(0);
   const [squelchTouches, setSquelchTouches] = useState(false);
   const [fullRemountKey, setFullRemountKey] = useState(0);
+  const [forceHide, setForceHide] = useState(false);
   
   // Debug state changes
   useEffect(() => {
@@ -111,24 +112,28 @@ export default function HomeScreen({ navigation }) {
     setSettingsVisible(false);
     setVolumeModalVisible(false);
     
-    // 3. Full component remount + multiple reset waves
+    // 3. Try complete unmount/remount cycle
+    console.log('☢️ Attempting complete unmount/remount cycle');
+    setForceHide(true);
+    
     setTimeout(() => {
-      console.log('☢️ Wave 1: Full remount + touch reset + squelch off');
+      console.log('☢️ Wave 1: Remounting + touch reset + squelch off');
+      setForceHide(false);
       setFullRemountKey(k => k + 1);
       setTouchResetKey(k => k + 1);
       setSquelchTouches(false);
-    }, 16); // One frame
+    }, 32); // Two frames
     
     setTimeout(() => {
       console.log('☢️ Wave 2: Second touch reset');
       setTouchResetKey(k => k + 1);
-    }, 50); // Multiple frames
+    }, 100); // Multiple frames
     
     setTimeout(() => {
       console.log('☢️ Wave 3: Final touch reset + full remount');
       setTouchResetKey(k => k + 1);
       setFullRemountKey(k => k + 1);
-    }, 200); // Longer delay to ensure everything is settled
+    }, 300); // Longer delay to ensure everything is settled
   };
 
   const startSessionTimer = () => {
@@ -289,6 +294,12 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
+  // If forceHide is true, render nothing to force complete unmount
+  if (forceHide) {
+    console.log('🚫 Component force hidden for unmount/remount cycle');
+    return null;
+  }
+
   return (
     <ImageBackground 
       key={`full-remount-${fullRemountKey}`}
@@ -307,8 +318,16 @@ export default function HomeScreen({ navigation }) {
           style={styles.header}
           onPress={() => {
             console.log('🐛 DEBUG: Manual touch reset triggered');
+            // Try navigation reset as well
+            console.log('🔄 Attempting navigation reset');
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Home' }],
+            });
             forceFullTouchReset();
           }}
+          onPressIn={() => console.log('🐛 DEBUG: Header press IN')}
+          onPressOut={() => console.log('🐛 DEBUG: Header press OUT')}
           activeOpacity={1}
         >
           <Image 
