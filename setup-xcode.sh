@@ -69,7 +69,7 @@ fi
 # Check if EAS CLI is installed
 if ! command -v eas &> /dev/null; then
     print_warning "EAS CLI not found. Installing globally..."
-    npm install -g @expo/eas-cli
+    npm install -g eas-cli
     print_success "EAS CLI installed"
 else
     print_success "EAS CLI found: $(eas --version)"

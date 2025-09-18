@@ -78,10 +78,10 @@ try {
 } catch {
     if (-not $SkipInstall) {
         Write-Warning "EAS CLI not found. Installing globally..."
-        npm install -g @expo/eas-cli
+        npm install -g eas-cli
         Write-Success "EAS CLI installed"
     } else {
-        Write-Error "EAS CLI not found. Please install with: npm install -g @expo/eas-cli"
+        Write-Error "EAS CLI not found. Please install with: npm install -g eas-cli"
     }
 }
 
