@@ -13,7 +13,7 @@ module.exports = {
     ios: {
       supportsTablet: false,
       bundleIdentifier: "com.thnx4playing.FlushFrenzy",
-      buildNumber: "3",
+      buildNumber: "4",
       icon: path.resolve(__dirname, 'assets/app-icon-halloween.png'),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
