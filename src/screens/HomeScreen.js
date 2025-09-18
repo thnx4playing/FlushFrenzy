@@ -14,6 +14,7 @@ import {
   TextInput,
   AppState,
   InteractionManager,
+  DevSettings,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,6 +48,8 @@ export default function HomeScreen({ navigation }) {
   const [squelchTouches, setSquelchTouches] = useState(false);
   const [fullRemountKey, setFullRemountKey] = useState(0);
   const [forceHide, setForceHide] = useState(false);
+  const [showTouchIssueWarning, setShowTouchIssueWarning] = useState(false);
+  const touchTestCountRef = useRef(0);
   
   // Debug state changes
   useEffect(() => {
@@ -196,6 +199,20 @@ export default function HomeScreen({ navigation }) {
       InteractionManager.runAfterInteractions(() => {
         console.log('🔧 Running post-interaction reset');
         forceFullTouchReset();
+        
+        // Start a touch test after reset
+        setTimeout(() => {
+          console.log('🧪 Starting touch responsiveness test');
+          touchTestCountRef.current = 0;
+          
+          // If no touches detected in 5 seconds, show warning
+          setTimeout(() => {
+            if (touchTestCountRef.current === 0) {
+              console.log('⚠️ NO TOUCHES DETECTED - showing warning modal');
+              setShowTouchIssueWarning(true);
+            }
+          }, 5000);
+        }, 1000);
       });
     });
     return () => sub.remove();
@@ -311,19 +328,45 @@ export default function HomeScreen({ navigation }) {
         key={`touch-${touchResetKey}`} 
         style={styles.content} 
         pointerEvents={squelchTouches ? "none" : "auto"}
-        onTouchStart={() => console.log('👆 TOUCH DETECTED on content container')}
+        onTouchStart={() => {
+          console.log('👆 TOUCH DETECTED on content container');
+          touchTestCountRef.current++;
+          if (showTouchIssueWarning) {
+            setShowTouchIssueWarning(false);
+            console.log('✅ Touch issue resolved - hiding warning');
+          }
+        }}
+        onTouchEnd={() => console.log('👆 TOUCH END on content container')}
+        onTouchMove={() => console.log('👆 TOUCH MOVE on content container')}
       >
         {/* Header moved to top with increased size */}
         <TouchableOpacity 
           style={styles.header}
           onPress={() => {
             console.log('🐛 DEBUG: Manual touch reset triggered');
-            // Try navigation reset as well
-            console.log('🔄 Attempting navigation reset');
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Home' }],
-            });
+            // Try immediate navigation reset
+            console.log('🔄 Attempting immediate navigation reset');
+            try {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Home' }],
+              });
+            } catch (error) {
+              console.log('🔄 Navigation reset failed:', error);
+            }
+            
+            // Try hot reload as last resort
+            console.log('🔄 Attempting hot reload to reset JS context');
+            setTimeout(() => {
+              try {
+                if (__DEV__ && DevSettings) {
+                  DevSettings.reload();
+                }
+              } catch (error) {
+                console.log('🔄 Hot reload failed:', error);
+              }
+            }, 200);
+            
             forceFullTouchReset();
           }}
           onPressIn={() => console.log('🐛 DEBUG: Header press IN')}
@@ -499,6 +542,40 @@ export default function HomeScreen({ navigation }) {
                 </TouchableOpacity>
                 <Text style={styles.disclaimerText}>.</Text>
               </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Touch Issue Warning Modal */}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={showTouchIssueWarning}
+          onRequestClose={() => setShowTouchIssueWarning(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: '#ff4444' }]}>
+              <Text style={[styles.modalTitle, { color: '#ffffff' }]}>Touch Issue Detected</Text>
+              <Text style={{ color: '#ffffff', textAlign: 'center', marginBottom: 20 }}>
+                Buttons may not be responding after backgrounding. This is a known iOS issue.
+              </Text>
+              <TouchableOpacity
+                style={[styles.menuItem, { backgroundColor: '#ffffff' }]}
+                onPress={() => {
+                  console.log('🔄 User requested hot reload');
+                  if (__DEV__ && DevSettings) {
+                    DevSettings.reload();
+                  }
+                }}
+              >
+                <Text style={[styles.menuItemText, { color: '#ff4444' }]}>Reload App</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.menuItem, { backgroundColor: '#666666', marginTop: 10 }]}
+                onPress={() => setShowTouchIssueWarning(false)}
+              >
+                <Text style={styles.menuItemText}>Cancel</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
