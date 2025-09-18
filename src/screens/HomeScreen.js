@@ -13,6 +13,7 @@ import {
   Pressable,
   TextInput,
   AppState,
+  InteractionManager,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,6 +43,7 @@ const GAME_MODES = [
 export default function HomeScreen({ navigation }) {
   const [volumeModalVisible, setVolumeModalVisible] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [touchResetKey, setTouchResetKey] = useState(0);
   
   // Settings and Discord state
   const [settingsVisible, setSettingsVisible] = useState(false);
@@ -54,6 +56,8 @@ export default function HomeScreen({ navigation }) {
 
   const sessionTimerRef = useRef(null);
   const browserOpenRef = useRef(false);
+  const closingRef = useRef(false);
+  const resumeResetPendingRef = useRef(false);
 
   const stopSessionTimer = () => {
     if (sessionTimerRef.current) {
@@ -63,19 +67,28 @@ export default function HomeScreen({ navigation }) {
   };
 
   const closeAllOverlays = () => {
+    if (closingRef.current) return;
+    closingRef.current = true;
     setShowDiscordModal(false);   // Bug report modal
     setSettingsVisible(false);    // Settings root/modal
+    // On the next tick, remount root so no invisible overlay can keep swallowing touches
+    setTimeout(() => {
+      setTouchResetKey(k => k + 1);
+      closingRef.current = false;
+    }, 0);
   };
 
   const startSessionTimer = () => {
     stopSessionTimer();
-    sessionTimerRef.current = setTimeout(() => {
-      // Time's up: dismiss browser and close settings/bug report
-      if (browserOpenRef.current) {
-        WebBrowser.dismissBrowser();
-        browserOpenRef.current = false;
+    sessionTimerRef.current = setTimeout(async () => {
+      try {
+        if (browserOpenRef.current) {
+          await WebBrowser.dismissBrowser();
+          browserOpenRef.current = false;
+        }
+      } finally {
+        requestAnimationFrame(() => closeAllOverlays());
       }
-      closeAllOverlays();
     }, SESSION_TIMEOUT_MS);
   };
 
@@ -91,17 +104,35 @@ export default function HomeScreen({ navigation }) {
     }, [])
   );
 
-  // Close on app background/lock
+  // Close on app background/lock + handle resume from background
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
       if (next !== 'active') {
-        // If app goes to background/lock, immediately kill browser + overlays
+        // Going to background/locked: mark that we owe a post-resume reset
+        resumeResetPendingRef.current = true;
         if (browserOpenRef.current) {
-          WebBrowser.dismissBrowser();
+          try { WebBrowser.dismissBrowser(); } catch {}
           browserOpenRef.current = false;
         }
         stopSessionTimer();
-        closeAllOverlays();
+        // Close overlays now in case we return immediately (app switcher bounce)
+        requestAnimationFrame(() => closeAllOverlays());
+        return;
+      }
+
+      // Back to ACTIVE: if we had backgrounded, do a hard reset *after* interactions
+      if (resumeResetPendingRef.current) {
+        resumeResetPendingRef.current = false;
+        // Defensive extra dismiss in case the browser/activity was restored by OS
+        try { WebBrowser.dismissBrowser(); } catch {}
+        InteractionManager.runAfterInteractions(() => {
+          // One tick: ensure modals closed, then force a root remount to clear any ghost views
+          setTimeout(() => {
+            closeAllOverlays();
+            // If your closeAllOverlays already bumps the touchResetKey, this extra bump is harmless.
+            setTouchResetKey?.((k) => k + 1);
+          }, 0);
+        });
       }
     });
     return () => sub.remove();
@@ -206,7 +237,7 @@ export default function HomeScreen({ navigation }) {
       style={styles.container}
       resizeMode="stretch"
     >
-      <View style={styles.content}>
+      <View key={`touch-${touchResetKey}`} style={styles.content}>
         {/* Header moved to top with increased size */}
         <View style={styles.header}>
           <Image 
@@ -270,7 +301,10 @@ export default function HomeScreen({ navigation }) {
           visible={settingsVisible}
           onRequestClose={() => setSettingsVisible(false)}
         >
-          <View style={styles.modalOverlay}>
+          <View 
+            style={styles.modalOverlay}
+            pointerEvents={settingsVisible ? 'auto' : 'none'}
+          >
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Settings</Text>
               <TouchableOpacity
@@ -308,7 +342,10 @@ export default function HomeScreen({ navigation }) {
           visible={showDiscordModal}
           onRequestClose={() => setShowDiscordModal(false)}
         >
-          <View style={styles.modalOverlay}>
+          <View 
+            style={styles.modalOverlay}
+            pointerEvents={showDiscordModal ? 'auto' : 'none'}
+          >
             <View style={styles.modalContent}>
               {/* Buttons at the top */}
               <View style={styles.buttonRow}>
