@@ -68,47 +68,21 @@ export default function App() {
   // App-level AppState handler for touch system reset
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextAppState) => {
-      console.log('🏗️ APP-LEVEL AppState changed to:', nextAppState);
-      
       if (nextAppState !== 'active') {
         backgroundedRef.current = true;
-        console.log('🏗️ APP-LEVEL: Marking backgrounded');
         
-        // TEMPORARILY DISABLE cleanup to test if this is the issue
-        // console.log('🏗️ APP-LEVEL: Executing immediate cleanup callbacks');
-        // cleanupCallbacks.current.forEach(callback => {
-        //   try {
-        //     callback();
-        //   } catch (error) {
-        //     console.log('🏗️ APP-LEVEL: Cleanup callback error:', error);
-        //   }
-        // });
-        
-      } else if (backgroundedRef.current) {
-        console.log('🏗️ APP-LEVEL: Resuming from background - FORCING MODAL CLEANUP FIRST');
-        backgroundedRef.current = false;
-        
-        // First, execute all cleanup callbacks to close modals
+        // IMMEDIATE cleanup when app backgrounds (restored since custom overlays work)
         cleanupCallbacks.current.forEach(callback => {
           try {
             callback();
           } catch (error) {
-            console.log('🏗️ APP-LEVEL: Cleanup callback error:', error);
+            // Silent error handling
           }
         });
         
-        // Wait for modals to close, then reset navigation
-        setTimeout(() => {
-          console.log('🏗️ APP-LEVEL: Executing DELAYED navigation reset after modal cleanup');
-          if (navigationRef.current) {
-            navigationRef.current.dispatch(
-              CommonActions.reset({
-                index: 0,
-                routes: [{ name: 'Home' }],
-              })
-            );
-          }
-        }, 300); // Give modals time to close
+      } else if (backgroundedRef.current) {
+        // App is resuming from background - no special action needed since custom overlays work properly
+        backgroundedRef.current = false;
       }
     });
     

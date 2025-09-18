@@ -71,41 +71,29 @@ export default function HomeScreen({ navigation, registerCleanup }) {
   };
 
   const closeAllOverlays = () => {
-    console.log('=== closeAllOverlays called ===');
-    console.log('showDiscordModal before:', showDiscordModalRef.current);
-    console.log('settingsVisible before:', settingsVisibleRef.current);
-    
     // Force close regardless of current state
     if (settingsVisibleRef.current) {
-      console.log('📱 Force closing settings modal');
       setSettingsVisible(false);
       settingsVisibleRef.current = false;
     }
     
     if (showDiscordModalRef.current) {
-      console.log('📱 Force closing discord modal');
       setShowDiscordModal(false);
       showDiscordModalRef.current = false;
     }
     
     if (volumeModalVisibleRef.current) {
-      console.log('📱 Force closing volume modal');
       setVolumeModalVisible(false);
       volumeModalVisibleRef.current = false;
     }
     
     setDiscordMessage('');
-    
-    console.log('=== closeAllOverlays finished ===');
   };
 
   const startSessionTimer = () => {
-    console.log('Starting session timer...');
     stopSessionTimer();
     sessionTimerRef.current = setTimeout(() => {
-      console.log('=== TIMEOUT TRIGGERED ===');
       if (browserOpenRef.current) {
-        console.log('Dismissing browser...');
         WebBrowser.dismissBrowser();
         browserOpenRef.current = false;
       }
@@ -130,12 +118,8 @@ export default function HomeScreen({ navigation, registerCleanup }) {
     if (!registerCleanup) return;
     
     const cleanup = () => {
-      console.log('📱 HomeScreen: Executing registered cleanup');
-      console.log('📱 Current ref states - settings:', settingsVisibleRef.current, 'discord:', showDiscordModalRef.current, 'volume:', volumeModalVisibleRef.current);
-      
       // Immediate cleanup when app backgrounds
       if (browserOpenRef.current) {
-        console.log('📱 HomeScreen: Dismissing browser');
         WebBrowser.dismissBrowser();
         browserOpenRef.current = false;
       }
@@ -143,7 +127,6 @@ export default function HomeScreen({ navigation, registerCleanup }) {
       
       // Use a fresh closure that accesses current refs (fixes stale closure)
       const forceCloseModals = () => {
-        console.log('📱 Force closing all modals regardless of state');
         setSettingsVisible(false);
         setShowDiscordModal(false);
         setVolumeModalVisible(false);
@@ -182,19 +165,6 @@ export default function HomeScreen({ navigation, registerCleanup }) {
     volumeModalVisibleRef.current = volumeModalVisible;
   }, [volumeModalVisible]);
 
-  // Add this useEffect to check for any lingering modal state
-  useEffect(() => {
-    const checkModalState = () => {
-      console.log('📱 Modal State Check:');
-      console.log('  - settingsVisible:', settingsVisible);
-      console.log('  - showDiscordModal:', showDiscordModal);
-      console.log('  - volumeModalVisible:', volumeModalVisible);
-    };
-    
-    // Check every 2 seconds when app is active
-    const interval = setInterval(checkModalState, 2000);
-    return () => clearInterval(interval);
-  }, [settingsVisible, showDiscordModal, volumeModalVisible]);
 
   // Navigate to game mode
   const handleGameModeSelect = (mode) => {
