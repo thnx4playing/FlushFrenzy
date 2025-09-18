@@ -61,7 +61,13 @@ print_success "npm found: $(npm --version)"
 if ! command -v expo &> /dev/null; then
     print_warning "Expo CLI not found. Installing globally..."
     npm install -g @expo/cli
-    print_success "Expo CLI installed"
+    # Refresh PATH to recognize newly installed CLI
+    hash -r
+    if command -v expo &> /dev/null; then
+        print_success "Expo CLI installed: $(expo --version)"
+    else
+        print_warning "Expo CLI installed but not in PATH. Will use npx as fallback."
+    fi
 else
     print_success "Expo CLI found: $(expo --version)"
 fi
@@ -116,7 +122,12 @@ fi
 
 # Prebuild for iOS
 print_status "Running Expo prebuild for iOS..."
-expo prebuild --platform ios --clean
+if command -v expo &> /dev/null; then
+    expo prebuild --platform ios --clean
+else
+    print_warning "Using npx to run expo prebuild..."
+    npx @expo/cli prebuild --platform ios --clean
+fi
 print_success "iOS prebuild completed"
 
 # Navigate to iOS directory and install pods
