@@ -520,24 +520,57 @@ const addOpenBowl = (engine, bx, by, r = 42) => {
   return { left, right, bottom, sensor, centerX: bx, centerY: by, radius: r };
 };
 
+// Enhanced collision feedback function
+const triggerScreenShake = (intensity) => {
+  // Simple screen shake implementation - can be enhanced with Animated.Value
+  // For now, we'll just trigger haptic feedback
+  try {
+    if (typeof require !== 'undefined') {
+      const { Haptics } = require('expo-haptics');
+      if (intensity > 0.5) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } else {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    }
+  } catch (error) {
+    // Haptics not available, continue silently
+  }
+};
+
 // Wire up scoring when the roll enters the bowl
-const wireScoring = (engine, addScoreCallback) => {
+const wireScoring = (engine, addScoreCallback, spawnImpactParticles = null) => {
   Matter.Events.on(engine, "collisionStart", (e) => {
     e.pairs.forEach(({ bodyA, bodyB }) => {
       const a = bodyA.label,
         b = bodyB.label;
+      
+      // Calculate collision impact velocity
+      const velocity = Math.hypot(
+        bodyA.velocity.x - bodyB.velocity.x,
+        bodyA.velocity.y - bodyB.velocity.y
+      );
+      
+      // Screen shake based on impact
+      if (velocity > 5) {
+        triggerScreenShake(Math.min(velocity / 10, 1));
+      }
+      
+      // Particle effects on wall hits
+      if (((a === "TP" && b === "BOUNDARY") || (b === "TP" && a === "BOUNDARY")) && spawnImpactParticles) {
+        const tpBody = a === "TP" ? bodyA : bodyB;
+        spawnImpactParticles(tpBody.position, velocity);
+      }
+      
       if (
         (a === "BOWL_SENSOR" && b === "TP") ||
         (b === "BOWL_SENSOR" && a === "TP")
       ) {
-    
-
         // Hide the TP sprite by setting it to off-screen
         const tpBody = a === "TP" ? bodyA : bodyB;
         Matter.Body.setPosition(tpBody, { x: -9999, y: -9999 });
 
         // Play water drop sound effect
-
         playWaterDropSound(1);
 
         // Add point
@@ -1092,22 +1125,30 @@ export default function ToiletPaperToss({
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  // First round: 30s/10pts
-  // Every round after: +5s time, +2 points, +5% speed (cap at +50%)
-  function getRoundConfig(round) {
-    if (round === 1) {
-      return { time: 30, target: 10, speedMul: 1.0 };
+  // Dynamic difficulty scaling for endless plunge mode
+  function getRoundConfig(round, playerPerformance = null) {
+    const baseConfig = {
+      time: 30 + (round - 1) * 5,
+      target: 10 + (round - 1) * 2,
+      speedMul: 1.0 + Math.min((round - 1) * 0.05, 0.5)
+    };
+    
+    // Adjust based on player performance if available
+    if (playerPerformance && playerPerformance.attempts > 0) {
+      const avgAccuracy = playerPerformance.hits / playerPerformance.attempts;
+      
+      if (avgAccuracy > 0.8) {
+        // Player is doing well, increase challenge slightly
+        baseConfig.speedMul *= 1.1;
+        baseConfig.target += 1;
+      } else if (avgAccuracy < 0.4) {
+        // Player struggling, ease up slightly
+        baseConfig.speedMul *= 0.9;
+        baseConfig.time += 5;
+      }
     }
-
-    const extraRounds = round - 1;
-    const time = 30 + extraRounds * 5; // 35s at round 2, 40s at round 3, etc.
-    const target = 10 + extraRounds * 2; // 12 at round 2, 14 at round 3, etc.
-
-    // Speed increases by 5% each round, capped at +50% (1.5x total)
-    const speedIncrease = Math.min(extraRounds * 0.05, 0.5);
-    const speedMul = 1.0 + speedIncrease;
-
-    return { time, target, speedMul };
+    
+    return baseConfig;
   }
 
   // Kick off Endless Plunge session (Round 1)
@@ -1294,7 +1335,10 @@ export default function ToiletPaperToss({
 
     // Apply velocity immediately
     Matter.Body.setVelocity(newTp, { x: vx, y: vy });
-    Matter.Body.setAngularVelocity(newTp, 0.2 * p);
+    
+    // Apply spin if available, otherwise use default angular velocity
+    const spinVelocity = (a.spin || 0) * p * 0.4 || 0.2 * p;
+    Matter.Body.setAngularVelocity(newTp, spinVelocity);
     
     // Make sure the body is not static and awake
     Matter.Body.setStatic(newTp, false);
@@ -1495,8 +1539,17 @@ export default function ToiletPaperToss({
 
          // afterUpdate handler (preserving your existing logic)
      let updateCount = 0;
+     let lastPositionUpdate = 0;
+     const POSITION_UPDATE_INTERVAL = 16; // ~60fps throttling
+     
      const handleAfterUpdate = (evt) => {
        updateCount++;
+       
+       const now = Date.now();
+       if (now - lastPositionUpdate < POSITION_UPDATE_INTERVAL) {
+         return;
+       }
+       lastPositionUpdate = now;
 
       const tp = bodies?.tp;
       if (!tp) {

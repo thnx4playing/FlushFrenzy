@@ -8,7 +8,18 @@ export type MatterSession = {
 };
 
 export function createMatterSession(): MatterSession {
-  const engine = Engine.create({ enableSleeping: false });
+  const engine = Engine.create({ 
+    enableSleeping: true,  // Enable sleeping for better performance
+    // Performance optimizations:
+    constraintIterations: 2,  // Default is 2, optimal for most cases
+    positionIterations: 6,    // Default is 6, can try 4-5 for better performance
+    velocityIterations: 4,    // Default is 4, optimal for most cases
+  });
+  
+  // Add timing optimizations
+  engine.timing.timeScale = 1;
+  engine.timing.timestamp = 0;
+  
   const world  = engine.world;
   const runner = Runner.create();
 

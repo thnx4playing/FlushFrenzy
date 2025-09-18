@@ -22,6 +22,24 @@ export type TrailRendererRef = {
 
 let NEXT_ID = 1;
 
+// Object pooling for better performance
+const particlePool: Particle[] = [];
+
+const getParticle = (): Particle => {
+  return particlePool.pop() || {
+    id: NEXT_ID++,
+    x: 0, y: 0, color: '', size: 0, lifeMs: 0,
+    fade: new Animated.Value(1),
+    scale: new Animated.Value(1)
+  };
+};
+
+const releaseParticle = (particle: Particle) => {
+  particle.fade.setValue(1);
+  particle.scale.setValue(1);
+  particlePool.push(particle);
+};
+
 const TrailRenderer = forwardRef<TrailRendererRef, { initialType?: TPTrail }>(
   ({ initialType = 'none' }, ref) => {
     const trailRef = useRef<TPTrail>(initialType);
@@ -69,19 +87,14 @@ const TrailRenderer = forwardRef<TrailRendererRef, { initialType?: TPTrail }>(
 
         const jitter = (v: number) => (Math.random() * 2 - 1) * v;
         const color = cfg.colors[Math.floor(Math.random() * cfg.colors.length)];
-        const fade = new Animated.Value(1);
-        const scale = new Animated.Value(1);
-
-        const p: Particle = {
-          id: NEXT_ID++,
-          x: x + jitter(cfg.jitter),
-          y: y + jitter(cfg.jitter),
-          color,
-          size: cfg.size + Math.random() * 3,
-          lifeMs: cfg.lifeMs,
-          fade,
-          scale,
-        };
+        
+        // Use object pooling instead of creating new particles
+        const p = getParticle();
+        p.x = x + jitter(cfg.jitter);
+        p.y = y + jitter(cfg.jitter);
+        p.color = color;
+        p.size = cfg.size + Math.random() * 3;
+        p.lifeMs = cfg.lifeMs;
         particlesRef.current.push(p);
 
         // animate out
@@ -96,7 +109,8 @@ const TrailRenderer = forwardRef<TrailRendererRef, { initialType?: TPTrail }>(
           if (!mountedRef.current) return;
           const idx = particlesRef.current.findIndex(q => q.id === p.id);
           if (idx !== -1) {
-            particlesRef.current.splice(idx, 1);
+            const particle = particlesRef.current.splice(idx, 1)[0];
+            releaseParticle(particle); // Return to pool
           }
         });
         
@@ -105,7 +119,8 @@ const TrailRenderer = forwardRef<TrailRendererRef, { initialType?: TPTrail }>(
           if (!mountedRef.current) return;
           const idx = particlesRef.current.findIndex(q => q.id === p.id);
           if (idx !== -1) {
-            particlesRef.current.splice(idx, 1);
+            const particle = particlesRef.current.splice(idx, 1)[0];
+            releaseParticle(particle); // Return to pool
           }
         }, cfg.lifeMs + 100);
       },
