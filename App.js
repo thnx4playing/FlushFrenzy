@@ -57,14 +57,14 @@ export default function App() {
         console.log('🏗️ APP-LEVEL: Marking backgrounded');
       } else if (backgroundedRef.current) {
         // Returning to active after being backgrounded
-        console.log('🏗️ APP-LEVEL: Resuming from background - forcing app remount');
+        console.log('🏗️ APP-LEVEL: Resuming from background - DELAYED app remount');
         backgroundedRef.current = false;
         
-        // Force complete app remount to reset gesture handler and navigation
+        // Wait longer to avoid conflicts with component-level resets
         setTimeout(() => {
-          console.log('🏗️ APP-LEVEL: Executing app remount');
+          console.log('🏗️ APP-LEVEL: Executing DELAYED app remount');
           setAppRemountKey(k => k + 1);
-        }, 100);
+        }, 500); // Wait 500ms to avoid timing conflicts
       }
     });
     
