@@ -51,6 +51,11 @@ export default function HomeScreen({ navigation, registerCleanup }) {
   const [discordMessage, setDiscordMessage] = useState('');
   const [showDiscordModal, setShowDiscordModal] = useState(false);
 
+  // Add refs to track current state for cleanup (fixes stale closure problem)
+  const settingsVisibleRef = useRef(false);
+  const showDiscordModalRef = useRef(false);
+  const volumeModalVisibleRef = useRef(false);
+
   // Bug fixes session timeout
   const BUGFIX_URL = 'https://virtuixtech.com/apps/flushfrenzy/bugfix.html';
   const SESSION_TIMEOUT_MS = 60_000;
@@ -67,19 +72,29 @@ export default function HomeScreen({ navigation, registerCleanup }) {
 
   const closeAllOverlays = () => {
     console.log('=== closeAllOverlays called ===');
-    console.log('showDiscordModal before:', showDiscordModal);
-    console.log('settingsVisible before:', settingsVisible);
+    console.log('showDiscordModal before:', showDiscordModalRef.current);
+    console.log('settingsVisible before:', settingsVisibleRef.current);
     
-    setShowDiscordModal(false);   // Bug report modal
-    setSettingsVisible(false);    // Settings root/modal
+    // Force close regardless of current state
+    if (settingsVisibleRef.current) {
+      console.log('📱 Force closing settings modal');
+      setSettingsVisible(false);
+      settingsVisibleRef.current = false;
+    }
     
-    // Reset any other state that might be interfering
+    if (showDiscordModalRef.current) {
+      console.log('📱 Force closing discord modal');
+      setShowDiscordModal(false);
+      showDiscordModalRef.current = false;
+    }
+    
+    if (volumeModalVisibleRef.current) {
+      console.log('📱 Force closing volume modal');
+      setVolumeModalVisible(false);
+      volumeModalVisibleRef.current = false;
+    }
+    
     setDiscordMessage('');
-    
-    // REMOVED: Let App.js handle the remount to avoid race conditions
-    // setTimeout(() => {
-    //   setRefreshKey(prev => prev + 1);
-    // }, 100);
     
     console.log('=== closeAllOverlays finished ===');
   };
@@ -116,6 +131,8 @@ export default function HomeScreen({ navigation, registerCleanup }) {
     
     const cleanup = () => {
       console.log('📱 HomeScreen: Executing registered cleanup');
+      console.log('📱 Current ref states - settings:', settingsVisibleRef.current, 'discord:', showDiscordModalRef.current, 'volume:', volumeModalVisibleRef.current);
+      
       // Immediate cleanup when app backgrounds
       if (browserOpenRef.current) {
         console.log('📱 HomeScreen: Dismissing browser');
@@ -123,12 +140,25 @@ export default function HomeScreen({ navigation, registerCleanup }) {
         browserOpenRef.current = false;
       }
       stopSessionTimer();
-      closeAllOverlays();
+      
+      // Use a fresh closure that accesses current refs (fixes stale closure)
+      const forceCloseModals = () => {
+        console.log('📱 Force closing all modals regardless of state');
+        setSettingsVisible(false);
+        setShowDiscordModal(false);
+        setVolumeModalVisible(false);
+        setDiscordMessage('');
+        settingsVisibleRef.current = false;
+        showDiscordModalRef.current = false;
+        volumeModalVisibleRef.current = false;
+      };
+      
+      forceCloseModals();
     };
     
     const unregister = registerCleanup(cleanup);
     return unregister;
-  }, [registerCleanup]);
+  }, [registerCleanup]); // Remove dependencies that could cause stale closures
 
   // Start/stop the timer when Settings/Bug Report are visible
   useEffect(() => {
@@ -138,6 +168,19 @@ export default function HomeScreen({ navigation, registerCleanup }) {
     else stopSessionTimer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsVisible, showDiscordModal]);
+
+  // Update refs whenever state changes (fixes stale closure problem)
+  useEffect(() => {
+    settingsVisibleRef.current = settingsVisible;
+  }, [settingsVisible]);
+  
+  useEffect(() => {
+    showDiscordModalRef.current = showDiscordModal;
+  }, [showDiscordModal]);
+  
+  useEffect(() => {
+    volumeModalVisibleRef.current = volumeModalVisible;
+  }, [volumeModalVisible]);
 
   // Add this useEffect to check for any lingering modal state
   useEffect(() => {
