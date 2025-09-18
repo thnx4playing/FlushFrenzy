@@ -1111,13 +1111,11 @@ export default function ToiletPaperToss({
   // Round math helpers
   const TP_SKINS = [
     "tp.png",
-    "tp-blue.png",
-    "tp-green.png",
-    "tp-pink.png",
-    "tp-purple.png",
-    "tp-red.png",
-    "tp-orange.png",
-    "tp-rainbow.png",
+    "halloween1.png",
+    "halloween2.png",
+    "halloween3.png",
+    "halloween4.png",
+    "halloween5.png",
   ];
 
   function pickRandomSkin(exclude) {
@@ -1959,13 +1957,11 @@ export default function ToiletPaperToss({
               source={(() => {
                 const skinMap = {
                   "tp.png": require("../../assets/tp.png"),
-                  "tp-blue.png": require("../../assets/tp-blue.png"),
-                  "tp-green.png": require("../../assets/tp-green.png"),
-                  "tp-pink.png": require("../../assets/tp-pink.png"),
-                  "tp-purple.png": require("../../assets/tp-purple.png"),
-                  "tp-red.png": require("../../assets/tp-red.png"),
-                  "tp-orange.png": require("../../assets/tp-orange.png"),
-                  "tp-rainbow.png": require("../../assets/tp-rainbow.png"),
+                  "halloween1.png": require("../../assets/halloween1.png"),
+                  "halloween2.png": require("../../assets/halloween2.png"),
+                  "halloween3.png": require("../../assets/halloween3.png"),
+                  "halloween4.png": require("../../assets/halloween4.png"),
+                  "halloween5.png": require("../../assets/halloween5.png"),
                 };
                 return skinMap[tpSkin] || skinMap["tp.png"];
               })()}
