@@ -20,6 +20,7 @@ const Stack = createStackNavigator();
 export default function App() {
   // App-level touch reset for fixing dead buttons after backgrounding
   const [appRemountKey, setAppRemountKey] = useState(0);
+  const [showApp, setShowApp] = useState(true); // Add this for complete rebuild
   const backgroundedRef = useRef(false);
   
   // Cleanup registry for centralized background handling
@@ -80,28 +81,26 @@ export default function App() {
         // });
         
       } else if (backgroundedRef.current) {
-        console.log('🏗️ APP-LEVEL: Resuming from background - FORCING APP RESTART');
+        console.log('🏗️ APP-LEVEL: Resuming from background - FORCING COMPLETE REBUILD');
         backgroundedRef.current = false;
         
-        // Nuclear option - restart the entire app
+        // Force complete unmount/remount of entire component tree
+        setShowApp(false);
         setTimeout(() => {
-          console.log('🏗️ APP-LEVEL: Executing NUCLEAR APP RESTART');
-          try {
-            AppRegistry.unmountApplicationComponentAtRootTag(1);
-            AppRegistry.runApplication('main', {
-              initialProps: {},
-              rootTag: 1,
-            });
-          } catch (error) {
-            console.log('🏗️ APP-LEVEL: Nuclear restart failed, falling back to component remount:', error);
-            setAppRemountKey(k => k + 1);
-          }
-        }, 500);
+          console.log('🏗️ APP-LEVEL: Executing COMPLETE COMPONENT TREE REBUILD');
+          setShowApp(true);
+          setAppRemountKey(k => k + 1);
+        }, 100);
       }
     });
     
     return () => sub.remove();
   }, []);
+
+  // Conditionally render the entire app for complete rebuild
+  if (!showApp) {
+    return null; // Complete unmount - everything gets destroyed
+  }
 
   return (
     <GestureHandlerRootView key={`gesture-${appRemountKey}`} style={{ flex: 1 }}>
