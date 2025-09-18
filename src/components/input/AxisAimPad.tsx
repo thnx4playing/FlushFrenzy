@@ -16,10 +16,10 @@ export interface AxisAimPadProps {
   style?: ViewStyle;
 
   // Fires every frame while dragging (like the Snack's onChange)
-  onVector?: (v: { dx: number; dy: number; power: number; angle: number; origin: { x: number; y: number } }) => void;
+  onVector?: (v: { dx: number; dy: number; power: number; angle: number; spin?: number; origin: { x: number; y: number } }) => void;
 
   // Fires once on release (like the Snack's "Launch" button)
-  onLaunch?: (v: { dx: number; dy: number; power: number; angle: number; origin: { x: number; y: number } }) => void;
+  onLaunch?: (v: { dx: number; dy: number; power: number; angle: number; spin?: number; origin: { x: number; y: number } }) => void;
 }
 
 const AxisAimPadWrapper: React.FC<AxisAimPadProps> = ({
@@ -36,7 +36,8 @@ const AxisAimPadWrapper: React.FC<AxisAimPadProps> = ({
   // Generate unique ID for this instance
   const aimpadId = useMemo(() => generateAimpadId(), []);
   const [layout, setLayout] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
-  const latestVec = useRef<{ dx: number; dy: number; power: number; angle: number } | null>(null);
+  const latestVec = useRef<{ dx: number; dy: number; power: number; angle: number; spin?: number } | null>(null);
+  const lastTouchPos = useRef<{ x: number; y: number } | null>(null);
 
   const onLayout = useCallback((e: LayoutChangeEvent) => {
     const { x, y, width, height } = e.nativeEvent.layout;
@@ -60,7 +61,18 @@ const AxisAimPadWrapper: React.FC<AxisAimPadProps> = ({
       const dy = -y;
       const angle = Math.atan2(dy, dx); // 0 = right, +π/2 = up
 
-      const payload = { dx, dy, power: currentPower, angle };
+      // Calculate angular velocity based on touch movement for spin
+      let spin = 0;
+      if (lastTouchPos.current && mag > deadZone) {
+        const deltaX = x - lastTouchPos.current.x;
+        const deltaY = y - lastTouchPos.current.y;
+        const angularVel = Math.atan2(deltaY, deltaX);
+        const spinPower = mag * 0.3; // Adjust spin sensitivity
+        spin = spinPower * Math.sign(angularVel);
+      }
+      lastTouchPos.current = { x, y };
+
+      const payload = { dx, dy, power: currentPower, angle, spin };
 
       if (e.eventType === 'pan') {
         latestVec.current = payload;
@@ -72,6 +84,7 @@ const AxisAimPadWrapper: React.FC<AxisAimPadProps> = ({
         if (snapBackOnRelease) {
           latestVec.current = null;
         }
+        lastTouchPos.current = null; // Reset spin tracking
       }
     },
     [onVector, onLaunch, origin, deadZone, snapBackOnRelease]
