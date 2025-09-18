@@ -69,15 +69,50 @@ export default function HomeScreen({ navigation }) {
 
   const closeAllOverlays = () => {
     if (closingRef.current) return;
+    console.log('🚪 Closing all overlays');
     closingRef.current = true;
+    
+    // Force close all possible modals
     setShowDiscordModal(false);   // Bug report modal
     setSettingsVisible(false);    // Settings root/modal
-    setVolumeModalVisible?.(false);  // Volume modal (defensive)
+    setVolumeModalVisible(false); // Volume modal (defensive)
+    
     // On the next tick, remount root so no invisible overlay can keep swallowing touches
     setTimeout(() => {
+      console.log('🔄 Touch reset key bump:', touchResetKey + 1);
       setTouchResetKey(k => k + 1);
       closingRef.current = false;
     }, 0);
+  };
+
+  // Nuclear option: comprehensive touch system reset
+  const forceFullTouchReset = () => {
+    console.log('☢️ NUCLEAR TOUCH RESET - forcing complete responder system reset');
+    
+    // 1. Immediately squelch all touches
+    setSquelchTouches(true);
+    
+    // 2. Force close everything
+    setShowDiscordModal(false);
+    setSettingsVisible(false);
+    setVolumeModalVisible(false);
+    
+    // 3. Multiple reset waves with different timing strategies
+    setTimeout(() => {
+      console.log('☢️ Wave 1: Touch reset + squelch off');
+      setTouchResetKey(k => k + 1);
+      setSquelchTouches(false);
+    }, 16); // One frame
+    
+    setTimeout(() => {
+      console.log('☢️ Wave 2: Second touch reset');
+      setTouchResetKey(k => k + 1);
+    }, 50); // Multiple frames
+    
+    setTimeout(() => {
+      console.log('☢️ Wave 3: Final touch reset');
+      setTouchResetKey(k => k + 1);
+    }, 200); // Longer delay to ensure everything is settled
   };
 
   const startSessionTimer = () => {
@@ -109,10 +144,14 @@ export default function HomeScreen({ navigation }) {
   // Close on app background/lock + handle resume from background
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
+      console.log('🔄 AppState changed to:', next);
+      
       if (next !== 'active') {
         // Going to background/locked: mark that we owe a post-resume reset
+        console.log('📱 App backgrounding - setting reset pending');
         resumeResetPendingRef.current = true;
         if (browserOpenRef.current) {
+          console.log('🌐 Dismissing browser on background');
           try { WebBrowser.dismissBrowser(); } catch {}
           browserOpenRef.current = false;
         }
@@ -122,23 +161,21 @@ export default function HomeScreen({ navigation }) {
         return;
       }
 
-      // Back to ACTIVE: if we had backgrounded, do a hard reset *after* interactions
-      if (resumeResetPendingRef.current) {
-        resumeResetPendingRef.current = false;
-        // Defensive extra dismiss in case the browser/activity was restored by OS
-        try { WebBrowser.dismissBrowser(); } catch {}
-        InteractionManager.runAfterInteractions(() => {
-          // One tick: ensure modals closed, then force a root remount to clear any ghost views
-          setTimeout(() => {
-            closeAllOverlays();
-            // Temporarily squelch touches for a frame to fully reset responders
-            setSquelchTouches(true);
-            requestAnimationFrame(() => setSquelchTouches(false));
-            // If your closeAllOverlays already bumps the touchResetKey, this extra bump is harmless.
-            setTouchResetKey?.((k) => k + 1);
-          }, 0);
-        });
-      }
+      // Back to ACTIVE: ALWAYS do a reset to be safe
+      console.log('🔄 App resuming to active');
+      const wasBackgrounded = resumeResetPendingRef.current;
+      resumeResetPendingRef.current = false;
+      
+      console.log('🛡️ Executing comprehensive reset (was backgrounded:', wasBackgrounded, ')');
+      
+      // Defensive extra dismiss in case the browser/activity was restored by OS
+      try { WebBrowser.dismissBrowser(); } catch {}
+      
+      // Always do a comprehensive reset when returning to active
+      InteractionManager.runAfterInteractions(() => {
+        console.log('🔧 Running post-interaction reset');
+        forceFullTouchReset();
+      });
     });
     return () => sub.remove();
   }, []);
@@ -244,13 +281,20 @@ export default function HomeScreen({ navigation }) {
     >
       <View key={`touch-${touchResetKey}`} style={styles.content} pointerEvents={squelchTouches ? "none" : "auto"}>
         {/* Header moved to top with increased size */}
-        <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.header}
+          onPress={() => {
+            console.log('🐛 DEBUG: Manual touch reset triggered');
+            forceFullTouchReset();
+          }}
+          activeOpacity={1}
+        >
           <Image 
             source={require('../../assets/header.png')} 
             style={styles.headerImage}
             resizeMode="contain"
           />
-        </View>
+        </TouchableOpacity>
 
         {/* Under header image */}
         <View style={styles.underHeaderContainer}>
