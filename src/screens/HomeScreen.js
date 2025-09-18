@@ -45,6 +45,20 @@ export default function HomeScreen({ navigation }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [touchResetKey, setTouchResetKey] = useState(0);
   const [squelchTouches, setSquelchTouches] = useState(false);
+  const [fullRemountKey, setFullRemountKey] = useState(0);
+  
+  // Debug state changes
+  useEffect(() => {
+    console.log('🔧 squelchTouches changed to:', squelchTouches);
+  }, [squelchTouches]);
+  
+  useEffect(() => {
+    console.log('🔧 touchResetKey changed to:', touchResetKey);
+  }, [touchResetKey]);
+  
+  useEffect(() => {
+    console.log('🔧 fullRemountKey changed to:', fullRemountKey);
+  }, [fullRemountKey]);
   
   // Settings and Discord state
   const [settingsVisible, setSettingsVisible] = useState(false);
@@ -97,9 +111,10 @@ export default function HomeScreen({ navigation }) {
     setSettingsVisible(false);
     setVolumeModalVisible(false);
     
-    // 3. Multiple reset waves with different timing strategies
+    // 3. Full component remount + multiple reset waves
     setTimeout(() => {
-      console.log('☢️ Wave 1: Touch reset + squelch off');
+      console.log('☢️ Wave 1: Full remount + touch reset + squelch off');
+      setFullRemountKey(k => k + 1);
       setTouchResetKey(k => k + 1);
       setSquelchTouches(false);
     }, 16); // One frame
@@ -110,8 +125,9 @@ export default function HomeScreen({ navigation }) {
     }, 50); // Multiple frames
     
     setTimeout(() => {
-      console.log('☢️ Wave 3: Final touch reset');
+      console.log('☢️ Wave 3: Final touch reset + full remount');
       setTouchResetKey(k => k + 1);
+      setFullRemountKey(k => k + 1);
     }, 200); // Longer delay to ensure everything is settled
   };
 
@@ -275,11 +291,17 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <ImageBackground 
+      key={`full-remount-${fullRemountKey}`}
       source={require('../../assets/background_.png')} 
       style={styles.container}
       resizeMode="stretch"
     >
-      <View key={`touch-${touchResetKey}`} style={styles.content} pointerEvents={squelchTouches ? "none" : "auto"}>
+      <View 
+        key={`touch-${touchResetKey}`} 
+        style={styles.content} 
+        pointerEvents={squelchTouches ? "none" : "auto"}
+        onTouchStart={() => console.log('👆 TOUCH DETECTED on content container')}
+      >
         {/* Header moved to top with increased size */}
         <TouchableOpacity 
           style={styles.header}
@@ -311,7 +333,12 @@ export default function HomeScreen({ navigation }) {
             <TouchableOpacity
               key={mode.id}
               style={styles.gameModeCard}
-              onPress={() => navigateToGame(mode.id)}
+              onPress={() => {
+                console.log('🎮 Game mode pressed:', mode.id);
+                navigateToGame(mode.id);
+              }}
+              onPressIn={() => console.log('🎮 Game mode press IN:', mode.id)}
+              onPressOut={() => console.log('🎮 Game mode press OUT:', mode.id)}
               activeOpacity={0.8}
             >
               <Image 
@@ -329,10 +356,26 @@ export default function HomeScreen({ navigation }) {
 
         {/* Top corner actions */}
         <View style={styles.topBar} pointerEvents="box-none">
-          <TouchableOpacity style={styles.topLeft} onPress={() => setVolumeModalVisible(true)}>
+          <TouchableOpacity 
+            style={styles.topLeft} 
+            onPress={() => {
+              console.log('🔊 Volume button pressed');
+              setVolumeModalVisible(true);
+            }}
+            onPressIn={() => console.log('🔊 Volume button press IN')}
+            onPressOut={() => console.log('🔊 Volume button press OUT')}
+          >
             <Ionicons name={getVolumeIcon()} size={26} color="#FFFFFF" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.topRight} onPress={() => setSettingsVisible(true)}>
+          <TouchableOpacity 
+            style={styles.topRight} 
+            onPress={() => {
+              console.log('⚙️ Settings button pressed');
+              setSettingsVisible(true);
+            }}
+            onPressIn={() => console.log('⚙️ Settings button press IN')}
+            onPressOut={() => console.log('⚙️ Settings button press OUT')}
+          >
             <Ionicons name="settings-sharp" size={26} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
