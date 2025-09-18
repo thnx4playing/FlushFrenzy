@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   View,
   Text,
@@ -44,25 +45,6 @@ const GAME_MODES = [
 export default function HomeScreen({ navigation }) {
   const [volumeModalVisible, setVolumeModalVisible] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [touchResetKey, setTouchResetKey] = useState(0);
-  const [squelchTouches, setSquelchTouches] = useState(false);
-  const [fullRemountKey, setFullRemountKey] = useState(0);
-  const [forceHide, setForceHide] = useState(false);
-  const [showTouchIssueWarning, setShowTouchIssueWarning] = useState(false);
-  const touchTestCountRef = useRef(0);
-  
-  // Debug state changes
-  useEffect(() => {
-    console.log('🔧 squelchTouches changed to:', squelchTouches);
-  }, [squelchTouches]);
-  
-  useEffect(() => {
-    console.log('🔧 touchResetKey changed to:', touchResetKey);
-  }, [touchResetKey]);
-  
-  useEffect(() => {
-    console.log('🔧 fullRemountKey changed to:', fullRemountKey);
-  }, [fullRemountKey]);
   
   // Settings and Discord state
   const [settingsVisible, setSettingsVisible] = useState(false);
@@ -75,8 +57,6 @@ export default function HomeScreen({ navigation }) {
 
   const sessionTimerRef = useRef(null);
   const browserOpenRef = useRef(false);
-  const closingRef = useRef(false);
-  const resumeResetPendingRef = useRef(false);
 
   const stopSessionTimer = () => {
     if (sessionTimerRef.current) {
@@ -86,70 +66,19 @@ export default function HomeScreen({ navigation }) {
   };
 
   const closeAllOverlays = () => {
-    if (closingRef.current) return;
-    console.log('🚪 Closing all overlays');
-    closingRef.current = true;
-    
-    // Force close all possible modals
     setShowDiscordModal(false);   // Bug report modal
     setSettingsVisible(false);    // Settings root/modal
-    setVolumeModalVisible(false); // Volume modal (defensive)
-    
-    // On the next tick, remount root so no invisible overlay can keep swallowing touches
-    setTimeout(() => {
-      console.log('🔄 Touch reset key bump:', touchResetKey + 1);
-      setTouchResetKey(k => k + 1);
-      closingRef.current = false;
-    }, 0);
-  };
-
-  // Nuclear option: comprehensive touch system reset
-  const forceFullTouchReset = () => {
-    console.log('☢️ NUCLEAR TOUCH RESET - forcing complete responder system reset');
-    
-    // 1. Immediately squelch all touches
-    setSquelchTouches(true);
-    
-    // 2. Force close everything
-    setShowDiscordModal(false);
-    setSettingsVisible(false);
-    setVolumeModalVisible(false);
-    
-    // 3. Try complete unmount/remount cycle
-    console.log('☢️ Attempting complete unmount/remount cycle');
-    setForceHide(true);
-    
-    setTimeout(() => {
-      console.log('☢️ Wave 1: Remounting + touch reset + squelch off');
-      setForceHide(false);
-      setFullRemountKey(k => k + 1);
-      setTouchResetKey(k => k + 1);
-      setSquelchTouches(false);
-    }, 32); // Two frames
-    
-    setTimeout(() => {
-      console.log('☢️ Wave 2: Second touch reset');
-      setTouchResetKey(k => k + 1);
-    }, 100); // Multiple frames
-    
-    setTimeout(() => {
-      console.log('☢️ Wave 3: Final touch reset + full remount');
-      setTouchResetKey(k => k + 1);
-      setFullRemountKey(k => k + 1);
-    }, 300); // Longer delay to ensure everything is settled
   };
 
   const startSessionTimer = () => {
     stopSessionTimer();
-    sessionTimerRef.current = setTimeout(async () => {
-      try {
-        if (browserOpenRef.current) {
-          await WebBrowser.dismissBrowser();
-          browserOpenRef.current = false;
-        }
-      } finally {
-        requestAnimationFrame(() => closeAllOverlays());
+    sessionTimerRef.current = setTimeout(() => {
+      // Time's up: dismiss browser and close settings/bug report
+      if (browserOpenRef.current) {
+        WebBrowser.dismissBrowser();
+        browserOpenRef.current = false;
       }
+      closeAllOverlays();
     }, SESSION_TIMEOUT_MS);
   };
 
@@ -165,55 +94,18 @@ export default function HomeScreen({ navigation }) {
     }, [])
   );
 
-  // Close on app background/lock + handle resume from background
+  // Close on app background/lock
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
-      console.log('🔄 AppState changed to:', next);
-      
       if (next !== 'active') {
-        // Going to background/locked: mark that we owe a post-resume reset
-        console.log('📱 App backgrounding - setting reset pending');
-        resumeResetPendingRef.current = true;
+        // If app goes to background/lock, immediately kill browser + overlays
         if (browserOpenRef.current) {
-          console.log('🌐 Dismissing browser on background');
-          try { WebBrowser.dismissBrowser(); } catch {}
+          WebBrowser.dismissBrowser();
           browserOpenRef.current = false;
         }
         stopSessionTimer();
-        // Close overlays now in case we return immediately (app switcher bounce)
-        requestAnimationFrame(() => closeAllOverlays());
-        return;
+        closeAllOverlays();
       }
-
-      // Back to ACTIVE: ALWAYS do a reset to be safe
-      console.log('🔄 App resuming to active');
-      const wasBackgrounded = resumeResetPendingRef.current;
-      resumeResetPendingRef.current = false;
-      
-      console.log('🛡️ Executing comprehensive reset (was backgrounded:', wasBackgrounded, ')');
-      
-      // Defensive extra dismiss in case the browser/activity was restored by OS
-      try { WebBrowser.dismissBrowser(); } catch {}
-      
-      // Always do a comprehensive reset when returning to active
-      InteractionManager.runAfterInteractions(() => {
-        console.log('🔧 Running post-interaction reset');
-        forceFullTouchReset();
-        
-        // Start a touch test after reset
-        setTimeout(() => {
-          console.log('🧪 Starting touch responsiveness test');
-          touchTestCountRef.current = 0;
-          
-          // If no touches detected in 5 seconds, show warning
-          setTimeout(() => {
-            if (touchTestCountRef.current === 0) {
-              console.log('⚠️ NO TOUCHES DETECTED - showing warning modal');
-              setShowTouchIssueWarning(true);
-            }
-          }, 5000);
-        }, 1000);
-      });
     });
     return () => sub.remove();
   }, []);
@@ -311,74 +203,21 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // If forceHide is true, render nothing to force complete unmount
-  if (forceHide) {
-    console.log('🚫 Component force hidden for unmount/remount cycle');
-    return null;
-  }
-
   return (
     <ImageBackground 
-      key={`full-remount-${fullRemountKey}`}
       source={require('../../assets/background_.png')} 
       style={styles.container}
       resizeMode="stretch"
     >
-      <View 
-        key={`touch-${touchResetKey}`} 
-        style={styles.content} 
-        pointerEvents={squelchTouches ? "none" : "auto"}
-        onTouchStart={() => {
-          console.log('👆 TOUCH DETECTED on content container');
-          touchTestCountRef.current++;
-          if (showTouchIssueWarning) {
-            setShowTouchIssueWarning(false);
-            console.log('✅ Touch issue resolved - hiding warning');
-          }
-        }}
-        onTouchEnd={() => console.log('👆 TOUCH END on content container')}
-        onTouchMove={() => console.log('👆 TOUCH MOVE on content container')}
-      >
+      <View style={styles.content}>
         {/* Header moved to top with increased size */}
-        <TouchableOpacity 
-          style={styles.header}
-          onPress={() => {
-            console.log('🐛 DEBUG: Manual touch reset triggered');
-            // Try immediate navigation reset
-            console.log('🔄 Attempting immediate navigation reset');
-            try {
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Home' }],
-              });
-            } catch (error) {
-              console.log('🔄 Navigation reset failed:', error);
-            }
-            
-            // Try hot reload as last resort
-            console.log('🔄 Attempting hot reload to reset JS context');
-            setTimeout(() => {
-              try {
-                if (__DEV__ && DevSettings) {
-                  DevSettings.reload();
-                }
-              } catch (error) {
-                console.log('🔄 Hot reload failed:', error);
-              }
-            }, 200);
-            
-            forceFullTouchReset();
-          }}
-          onPressIn={() => console.log('🐛 DEBUG: Header press IN')}
-          onPressOut={() => console.log('🐛 DEBUG: Header press OUT')}
-          activeOpacity={1}
-        >
+        <View style={styles.header}>
           <Image 
             source={require('../../assets/header.png')} 
             style={styles.headerImage}
             resizeMode="contain"
           />
-        </TouchableOpacity>
+        </View>
 
         {/* Under header image */}
         <View style={styles.underHeaderContainer}>
@@ -395,12 +234,7 @@ export default function HomeScreen({ navigation }) {
             <TouchableOpacity
               key={mode.id}
               style={styles.gameModeCard}
-              onPress={() => {
-                console.log('🎮 Game mode pressed:', mode.id);
-                navigateToGame(mode.id);
-              }}
-              onPressIn={() => console.log('🎮 Game mode press IN:', mode.id)}
-              onPressOut={() => console.log('🎮 Game mode press OUT:', mode.id)}
+              onPress={() => navigateToGame(mode.id)}
               activeOpacity={0.8}
             >
               <Image 
@@ -418,26 +252,10 @@ export default function HomeScreen({ navigation }) {
 
         {/* Top corner actions */}
         <View style={styles.topBar} pointerEvents="box-none">
-          <TouchableOpacity 
-            style={styles.topLeft} 
-            onPress={() => {
-              console.log('🔊 Volume button pressed');
-              setVolumeModalVisible(true);
-            }}
-            onPressIn={() => console.log('🔊 Volume button press IN')}
-            onPressOut={() => console.log('🔊 Volume button press OUT')}
-          >
+          <TouchableOpacity style={styles.topLeft} onPress={() => setVolumeModalVisible(true)}>
             <Ionicons name={getVolumeIcon()} size={26} color="#FFFFFF" />
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.topRight} 
-            onPress={() => {
-              console.log('⚙️ Settings button pressed');
-              setSettingsVisible(true);
-            }}
-            onPressIn={() => console.log('⚙️ Settings button press IN')}
-            onPressOut={() => console.log('⚙️ Settings button press OUT')}
-          >
+          <TouchableOpacity style={styles.topRight} onPress={() => setSettingsVisible(true)}>
             <Ionicons name="settings-sharp" size={26} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
@@ -454,41 +272,40 @@ export default function HomeScreen({ navigation }) {
           transparent={true}
           visible={settingsVisible}
           statusBarTranslucent
-          onDismiss={() => setTimeout(() => setTouchResetKey(k => k + 1), 0)}
+          presentationStyle="overFullScreen"
           onRequestClose={() => setSettingsVisible(false)}
         >
-          <View 
-            style={styles.modalOverlay}
-            pointerEvents={settingsVisible ? 'auto' : 'none'}
-          >
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Settings</Text>
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={handleSubmitBugReport}
-              >
-                <Text style={styles.menuItemText}>Submit Bug Report</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={openBugfixes}
-              >
-                <Text style={styles.menuItemText}>Review Bug Fixes</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={handlePrivacyPolicy}
-              >
-                <Text style={styles.menuItemText}>Privacy Policy</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setSettingsVisible(false)}
-              >
-                <Text style={styles.closeButtonText}>Close</Text>
-              </TouchableOpacity>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Settings</Text>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={handleSubmitBugReport}
+                >
+                  <Text style={styles.menuItemText}>Submit Bug Report</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={openBugfixes}
+                >
+                  <Text style={styles.menuItemText}>Review Bug Fixes</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={handlePrivacyPolicy}
+                >
+                  <Text style={styles.menuItemText}>Privacy Policy</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setSettingsVisible(false)}
+                >
+                  <Text style={styles.closeButtonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          </GestureHandlerRootView>
         </Modal>
 
         {/* Discord Message Modal */}
@@ -497,87 +314,52 @@ export default function HomeScreen({ navigation }) {
           transparent={true}
           visible={showDiscordModal}
           statusBarTranslucent
-          onDismiss={() => setTimeout(() => setTouchResetKey(k => k + 1), 0)}
+          presentationStyle="overFullScreen"
           onRequestClose={() => setShowDiscordModal(false)}
         >
-          <View 
-            style={styles.modalOverlay}
-            pointerEvents={showDiscordModal ? 'auto' : 'none'}
-          >
-            <View style={styles.modalContent}>
-              {/* Buttons at the top */}
-              <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => setShowDiscordModal(false)}
-                >
-                  <Text style={styles.modalButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.sendButton]}
-                  onPress={sendDiscordMessage}
-                >
-                  <Text style={styles.modalButtonText}>Send</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <Text style={styles.inputLabel}>Message:</Text>
-              <TextInput
-                style={[styles.textInput, styles.messageInput]}
-                placeholder="Send any bug reports or just a thumbs up if you enjoyed Flush Frenzy!"
-                placeholderTextColor="#666"
-                value={discordMessage}
-                onChangeText={setDiscordMessage}
-                multiline
-                numberOfLines={3}
-              />
-              <View style={styles.disclaimerContainer}>
-                <Text style={styles.disclaimerText}>
-                  We do not collect personal information such as your name, email, device ID, or location. Messages are securely transmitted through our server and delivered to our support inbox. We do not log IP addresses or metadata. Please do not include personal information in your message. For complete details, please review our{' '}
-                </Text>
-                <TouchableOpacity onPress={handlePrivacyPolicy}>
-                  <Text style={[styles.disclaimerText, styles.privacyPolicyLink]}>
-                    Privacy Policy
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                {/* Buttons at the top */}
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => setShowDiscordModal(false)}
+                  >
+                    <Text style={styles.modalButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.sendButton]}
+                    onPress={sendDiscordMessage}
+                  >
+                    <Text style={styles.modalButtonText}>Send</Text>
+                  </TouchableOpacity>
+                </View>
+                
+                <Text style={styles.inputLabel}>Message:</Text>
+                <TextInput
+                  style={[styles.textInput, styles.messageInput]}
+                  placeholder="Send any bug reports or just a thumbs up if you enjoyed Flush Frenzy!"
+                  placeholderTextColor="#666"
+                  value={discordMessage}
+                  onChangeText={setDiscordMessage}
+                  multiline
+                  numberOfLines={3}
+                />
+                <View style={styles.disclaimerContainer}>
+                  <Text style={styles.disclaimerText}>
+                    We do not collect personal information such as your name, email, device ID, or location. Messages are securely transmitted through our server and delivered to our support inbox. We do not log IP addresses or metadata. Please do not include personal information in your message. For complete details, please review our{' '}
                   </Text>
-                </TouchableOpacity>
-                <Text style={styles.disclaimerText}>.</Text>
+                  <TouchableOpacity onPress={handlePrivacyPolicy}>
+                    <Text style={[styles.disclaimerText, styles.privacyPolicyLink]}>
+                      Privacy Policy
+                    </Text>
+                  </TouchableOpacity>
+                  <Text style={styles.disclaimerText}>.</Text>
+                </View>
               </View>
             </View>
-          </View>
-        </Modal>
-
-        {/* Touch Issue Warning Modal */}
-        <Modal
-          animationType="fade"
-          transparent={true}
-          visible={showTouchIssueWarning}
-          onRequestClose={() => setShowTouchIssueWarning(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: '#ff4444' }]}>
-              <Text style={[styles.modalTitle, { color: '#ffffff' }]}>Touch Issue Detected</Text>
-              <Text style={{ color: '#ffffff', textAlign: 'center', marginBottom: 20 }}>
-                Buttons may not be responding after backgrounding. This is a known iOS issue.
-              </Text>
-              <TouchableOpacity
-                style={[styles.menuItem, { backgroundColor: '#ffffff' }]}
-                onPress={() => {
-                  console.log('🔄 User requested hot reload');
-                  if (__DEV__ && DevSettings) {
-                    DevSettings.reload();
-                  }
-                }}
-              >
-                <Text style={[styles.menuItemText, { color: '#ff4444' }]}>Reload App</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.menuItem, { backgroundColor: '#666666', marginTop: 10 }]}
-                onPress={() => setShowTouchIssueWarning(false)}
-              >
-                <Text style={styles.menuItemText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          </GestureHandlerRootView>
         </Modal>
       </View>
     </ImageBackground>

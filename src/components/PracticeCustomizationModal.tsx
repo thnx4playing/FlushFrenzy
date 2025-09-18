@@ -11,6 +11,7 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 
@@ -114,6 +115,7 @@ const PracticeCustomizationModal: React.FC<Props> = ({
          visible={visible}
          onRequestClose={onClose}
        >
+        <GestureHandlerRootView style={{flex:1}}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             {/* Background gradient effect */}
@@ -337,7 +339,8 @@ const PracticeCustomizationModal: React.FC<Props> = ({
             )}
           </View>
                  </View>
-       </Modal>
+               </GestureHandlerRootView>
+      </Modal>
 
                {/* Bottom Sheet for TP Skin Selection - Outside the modal */}
         {/* TPSkinSheet is now rendered at GameScreen level */}
@@ -436,16 +439,16 @@ const styles = StyleSheet.create({
      borderColor: '#2C3E50',
      backgroundColor: '#F8F9FA',
    },
-       selectorLeft: { 
-      flexDirection: 'row', 
-      alignItems: 'center', 
-    },
+      selectorLeft: { 
+     flexDirection: 'row', 
+     alignItems: 'center', 
+   },
 
-       selectorText: { 
-      fontSize: 16, 
-      fontWeight: '600', 
-      color: '#2C3E50' 
-    },
+      selectorText: { 
+     fontSize: 16, 
+     fontWeight: '600', 
+     color: '#2C3E50' 
+   },
   sliderContainer: {
     alignItems: 'center',
     paddingHorizontal: 8,
@@ -533,20 +536,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  selectorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#2C3E50',
-    backgroundColor: '#F8F9FA',
-  },
-  selectorLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   selectorThumb: { width: 36, height: 36 },
-  selectorText: { fontSize: 16, fontWeight: '600', color: '#2C3E50' },
   trailPreview: { 
     width: 36, 
     height: 36, 

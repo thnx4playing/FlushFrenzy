@@ -2050,8 +2050,11 @@ export default function ToiletPaperToss({
         transparent
         animationType="fade"
         visible={gameOverVisible}
+        presentationStyle="overFullScreen"
+        statusBarTranslucent
         onRequestClose={() => setGameOverVisible(false)}
       >
+        <GestureHandlerRootView style={{flex:1}}>
         <View style={styles.modalOverlay}>
           <View style={styles.gameOverModalCard}>
             {/* Background gradient effect */}
@@ -2195,6 +2198,7 @@ export default function ToiletPaperToss({
             </View>
           </View>
         </View>
+              </GestureHandlerRootView>
       </Modal>
     </View>
   );
