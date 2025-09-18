@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
@@ -21,6 +21,19 @@ export default function App() {
   // App-level touch reset for fixing dead buttons after backgrounding
   const [appRemountKey, setAppRemountKey] = useState(0);
   const backgroundedRef = useRef(false);
+  
+  // Cleanup registry for centralized background handling
+  const cleanupCallbacks = useRef([]);
+
+  const registerCleanup = useCallback((callback) => {
+    cleanupCallbacks.current.push(callback);
+    return () => {
+      const index = cleanupCallbacks.current.indexOf(callback);
+      if (index > -1) {
+        cleanupCallbacks.current.splice(index, 1);
+      }
+    };
+  }, []);
 
   // Initialize audio once at app startup
   useEffect(() => {
@@ -55,6 +68,17 @@ export default function App() {
       if (nextAppState !== 'active') {
         backgroundedRef.current = true;
         console.log('🏗️ APP-LEVEL: Marking backgrounded');
+        
+        // IMMEDIATELY execute all cleanup callbacks
+        console.log('🏗️ APP-LEVEL: Executing immediate cleanup callbacks');
+        cleanupCallbacks.current.forEach(callback => {
+          try {
+            callback();
+          } catch (error) {
+            console.log('🏗️ APP-LEVEL: Cleanup callback error:', error);
+          }
+        });
+        
       } else if (backgroundedRef.current) {
         // Returning to active after being backgrounded
         console.log('🏗️ APP-LEVEL: Resuming from background - DELAYED app remount');
@@ -87,11 +111,12 @@ export default function App() {
           >
             <Stack.Screen 
               name="Home" 
-              component={HomeScreen}
               options={{
                 title: 'Flush Frenzy',
               }}
-            />
+            >
+              {(props) => <HomeScreen {...props} registerCleanup={registerCleanup} />}
+            </Stack.Screen>
             <Stack.Screen 
               name="Game" 
               component={GameScreen}
