@@ -69,15 +69,15 @@ export default function App() {
         backgroundedRef.current = true;
         console.log('🏗️ APP-LEVEL: Marking backgrounded');
         
-        // IMMEDIATELY execute all cleanup callbacks
-        console.log('🏗️ APP-LEVEL: Executing immediate cleanup callbacks');
-        cleanupCallbacks.current.forEach(callback => {
-          try {
-            callback();
-          } catch (error) {
-            console.log('🏗️ APP-LEVEL: Cleanup callback error:', error);
-          }
-        });
+        // TEMPORARILY DISABLE cleanup to test if this is the issue
+        // console.log('🏗️ APP-LEVEL: Executing immediate cleanup callbacks');
+        // cleanupCallbacks.current.forEach(callback => {
+        //   try {
+        //     callback();
+        //   } catch (error) {
+        //     console.log('🏗️ APP-LEVEL: Cleanup callback error:', error);
+        //   }
+        // });
         
       } else if (backgroundedRef.current) {
         // Returning to active after being backgrounded
