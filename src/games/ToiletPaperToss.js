@@ -1833,7 +1833,7 @@ export default function ToiletPaperToss({
 
       {/* Game Area */}
       <ImageBackground
-        source={require("../../assets/game_background.png")}
+        source={require("../../assets/game_background_halloween.png")}
         style={styles.gameArea}
         resizeMode="stretch"
       >

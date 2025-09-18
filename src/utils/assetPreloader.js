@@ -28,7 +28,7 @@ export const useAssetPreloader = () => {
           require('../../assets/toilet.png'),
           require('../../assets/plunger.png'),
           require('../../assets/duck.png'),
-          require('../../assets/game_background.png'),
+          require('../../assets/game_background_halloween.png'),
         ];
 
         // Preload audio files
