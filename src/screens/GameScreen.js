@@ -70,7 +70,7 @@ export default function GameScreen({ route, navigation }) {
   if (showTutorial) {
     return (
       <ImageBackground 
-        source={require('../../assets/game_background.png')} 
+        source={require('../../assets/game_background_halloween.png')} 
         style={styles.container}
         resizeMode="stretch"
       >
