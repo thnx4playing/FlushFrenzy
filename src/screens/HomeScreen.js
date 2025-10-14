@@ -69,6 +69,7 @@ export default function HomeScreen({ navigation, registerCleanup }) {
 
   // Bug fixes session timeout
   const BUGFIX_URL = 'https://virtuixtech.com/apps/flushfrenzy/bugfixes.html';
+  const BUGFIX_ADMIN_URL = 'https://virtuixtech.com/apps/flushfrenzy/bugfixes_admin.html';
   const SESSION_TIMEOUT_MS = 180_000;
 
   const sessionTimerRef = useRef(null);
@@ -255,6 +256,29 @@ export default function HomeScreen({ navigation, registerCleanup }) {
     }
   };
 
+  const openBugfixesAdmin = async () => {
+    try {
+      browserOpenRef.current = true;
+      // Pause music when browser opens
+      AudioManager.pauseMusic();
+      // Make sure a session timer is running while the browser is up
+      startSessionTimer();
+      await WebBrowser.openBrowserAsync(BUGFIX_ADMIN_URL, {
+        // keep options minimal for broad compatibility
+        showTitle: true,
+        enableBarCollapsing: true,
+        dismissButtonStyle: 'done',
+      });
+    } finally {
+      // Whether user closed it or we dismissed it, clean up and close settings
+      browserOpenRef.current = false;
+      stopSessionTimer();
+      closeAllOverlays();
+      // Resume music when browser closes
+      AudioManager.resumeMusic();
+    }
+  };
+
 
 
   const sendDiscordMessage = async () => {
@@ -399,8 +423,10 @@ export default function HomeScreen({ navigation, registerCleanup }) {
                 <TouchableOpacity
                   style={styles.menuItem}
                   onPress={openBugfixes}
+                  onLongPress={openBugfixesAdmin}
+                  delayLongPress={1000}
                 >
-                  <Text style={styles.menuItemText}>Review Bug Fixes</Text>
+                  <Text style={styles.menuItemText}>Review Updates & Fixes</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.menuItem}
