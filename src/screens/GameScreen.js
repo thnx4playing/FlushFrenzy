@@ -13,6 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 // Import individual game components
 import ToiletPaperToss from '../games/ToiletPaperToss';
 import { AudioManager } from '../audio/AudioManager';
+import { isTablet, getResponsiveSize } from '../utils/responsiveLayout';
 
 
 export default function GameScreen({ route, navigation }) {
@@ -74,34 +75,42 @@ export default function GameScreen({ route, navigation }) {
         style={styles.container}
         resizeMode="stretch"
       >
-                 <View style={styles.tutorialContainer}>
-           <View style={styles.tutorialCard}>
-             <Text style={styles.tutorialTitle}>Ready to Toss?</Text>
-             
-             <View style={styles.tutorialContent}>
-               <Text style={styles.tutorialDescription}>
-                 <Text style={styles.highlight}>👆 Drag & flick</Text>
-               </Text>
-               
-               <Text style={styles.tutorialDescription}>
-                 <Text style={styles.highlight}>🎯 Direct hit = 3 points</Text> • <Text style={styles.highlight}>Bounce = 1 point</Text>
-               </Text>
-               
-               <Text style={styles.tutorialDescription}>
-                 <Text style={styles.highlight}>🚀 {gameMode === 'quick-flush' ? '60 seconds to score!' : '3 misses allowed!'}</Text>
-               </Text>
-             </View>
+        <View style={[styles.tutorialContainer, isTablet && { alignItems: 'center' }]}>
+          <View style={[styles.tutorialCard, isTablet && { 
+            maxWidth: 500, 
+            paddingHorizontal: 40, 
+            paddingVertical: 30 
+          }]}>
+            <Text style={[styles.tutorialTitle, isTablet && { fontSize: 32 }]}>Ready to Toss?</Text>
             
-            <TouchableOpacity
-              style={styles.tutorialButton}
-              onPress={handleTutorialStart}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.tutorialButtonText}>Let's Play! 🚽</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ImageBackground>
+            <View style={styles.tutorialContent}>
+              <Text style={[styles.tutorialDescription, isTablet && { fontSize: 18, marginBottom: 15 }]}>
+                <Text style={styles.highlight}>👆 Drag & flick</Text>
+              </Text>
+              
+              <Text style={[styles.tutorialDescription, isTablet && { fontSize: 18, marginBottom: 15 }]}>
+                <Text style={styles.highlight}>🎯 Direct hit = 3 points</Text> • <Text style={styles.highlight}>Bounce = 1 point</Text>
+              </Text>
+              
+              <Text style={[styles.tutorialDescription, isTablet && { fontSize: 18, marginBottom: 15 }]}>
+                <Text style={styles.highlight}>🚀 {gameMode === 'quick-flush' ? '60 seconds to score!' : '3 misses allowed!'}</Text>
+              </Text>
+            </View>
+           
+           <TouchableOpacity
+             style={[styles.tutorialButton, isTablet && { 
+               paddingHorizontal: 40, 
+               paddingVertical: 15,
+               borderRadius: 25 
+             }]}
+             onPress={handleTutorialStart}
+             activeOpacity={0.8}
+           >
+             <Text style={[styles.tutorialButtonText, isTablet && { fontSize: 20 }]}>Let's Play! 🚽</Text>
+           </TouchableOpacity>
+         </View>
+       </View>
+     </ImageBackground>
     );
   }
 

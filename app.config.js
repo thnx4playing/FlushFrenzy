@@ -9,11 +9,16 @@ module.exports = {
     orientation: "portrait",
     icon: path.resolve(__dirname, 'assets/app-icon-halloween.png'),
     userInterfaceStyle: "light",
+    splash: {
+      image: path.resolve(__dirname, 'assets/splash-icon.png'),
+      resizeMode: "cover",
+      backgroundColor: "#ffffff"
+    },
 
     ios: {
-      supportsTablet: false,
+      supportsTablet: true,
       bundleIdentifier: "com.thnx4playing.FlushFrenzy",
-      buildNumber: "4",
+      buildNumber: "6",
       icon: path.resolve(__dirname, 'assets/app-icon-halloween.png'),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -27,7 +32,6 @@ module.exports = {
             }
           }
         },
-        UIBackgroundModes: ["audio"],
         NSMicrophoneUsageDescription: "This app does not use the microphone.",
         NSCameraUsageDescription: "This app does not use the camera.",
         UIRequiresFullScreen: true,

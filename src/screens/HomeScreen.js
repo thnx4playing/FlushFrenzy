@@ -24,6 +24,17 @@ import { HighScoreLabel } from '../components/HighScoreLabel';
 import VolumeControlModal from '../components/VolumeControlModal';
 import { AudioManager } from '../audio/AudioManager';
 import { useAudioStore } from '../audio/AudioStore';
+import { 
+  isTablet, 
+  getResponsiveSize, 
+  getResponsivePadding, 
+  getResponsiveMargin,
+  getContainerWidth,
+  getGameModeCardWidth,
+  getHeaderImageWidth,
+  getHeaderImageHeight,
+  responsiveStyles 
+} from '../utils/responsiveLayout';
 
 const { width, height } = Dimensions.get('window');
 
@@ -58,7 +69,7 @@ export default function HomeScreen({ navigation, registerCleanup }) {
 
   // Bug fixes session timeout
   const BUGFIX_URL = 'https://virtuixtech.com/apps/flushfrenzy/bugfix.html';
-  const SESSION_TIMEOUT_MS = 60_000;
+  const SESSION_TIMEOUT_MS = 180_000;
 
   const sessionTimerRef = useRef(null);
   const browserOpenRef = useRef(false);
@@ -88,6 +99,9 @@ export default function HomeScreen({ navigation, registerCleanup }) {
     }
     
     setDiscordMessage('');
+    
+    // Resume music when any overlay is closed
+    AudioManager.resumeMusic();
   };
 
   const startSessionTimer = () => {
@@ -189,11 +203,15 @@ export default function HomeScreen({ navigation, registerCleanup }) {
   const handleSubmitBugReport = () => {
     setSettingsVisible(false);
     setShowDiscordModal(true);
+    // Pause music when Discord modal opens
+    AudioManager.pauseMusic();
   };
 
   const handlePrivacyPolicy = async () => {
     try {
       browserOpenRef.current = true;
+      // Pause music when browser opens
+      AudioManager.pauseMusic();
       // Make sure a session timer is running while the browser is up
       startSessionTimer();
       await WebBrowser.openBrowserAsync('https://virtuixtech.com/privacy.html', {
@@ -209,12 +227,16 @@ export default function HomeScreen({ navigation, registerCleanup }) {
       browserOpenRef.current = false;
       stopSessionTimer();
       closeAllOverlays();
+      // Resume music when browser closes
+      AudioManager.resumeMusic();
     }
   };
 
   const openBugfixes = async () => {
     try {
       browserOpenRef.current = true;
+      // Pause music when browser opens
+      AudioManager.pauseMusic();
       // Make sure a session timer is running while the browser is up
       startSessionTimer();
       await WebBrowser.openBrowserAsync(BUGFIX_URL, {
@@ -228,6 +250,8 @@ export default function HomeScreen({ navigation, registerCleanup }) {
       browserOpenRef.current = false;
       stopSessionTimer();
       closeAllOverlays();
+      // Resume music when browser closes
+      AudioManager.resumeMusic();
     }
   };
 
@@ -255,6 +279,7 @@ export default function HomeScreen({ navigation, registerCleanup }) {
         Alert.alert('Success', 'Bug report submitted successfully!');
         setDiscordMessage('');
         setShowDiscordModal(false);
+        AudioManager.resumeMusic();
       } else {
         Alert.alert('Error', 'Failed to submit bug report');
       }
@@ -266,15 +291,15 @@ export default function HomeScreen({ navigation, registerCleanup }) {
   return (
     <ImageBackground 
       source={require('../../assets/background_.png')} 
-      style={styles.container}
+      style={[styles.container, isTablet && { alignItems: 'center' }]}
       resizeMode="stretch"
     >
-      <View style={styles.content}>
+      <View style={[styles.content, isTablet && responsiveStyles.content]}>
         {/* Header moved to top with increased size */}
         <View style={styles.header}>
           <Image 
             source={require('../../assets/header.png')} 
-            style={styles.headerImage}
+            style={[styles.headerImage, isTablet && responsiveStyles.headerImage]}
             resizeMode="contain"
           />
         </View>
@@ -283,40 +308,73 @@ export default function HomeScreen({ navigation, registerCleanup }) {
         <View style={styles.underHeaderContainer}>
           <Image 
             source={require('../../assets/under-header.png')} 
-            style={styles.underHeaderImage}
+            style={[styles.underHeaderImage, isTablet && responsiveStyles.underHeaderImage]}
             resizeMode="stretch"
           />
         </View>
 
         {/* Game Modes - moved down to allow room for header */}
-        <View style={styles.gameModesContainer}>
+        <View style={[styles.gameModesContainer, isTablet && responsiveStyles.gameModesContainer]}>
           {GAME_MODES.map((mode, index) => (
             <TouchableOpacity
               key={mode.id}
-              style={styles.gameModeCard}
+              style={[styles.gameModeCard, isTablet && responsiveStyles.gameModeCard]}
               onPress={() => navigateToGame(mode.id)}
               activeOpacity={0.8}
             >
               <Image 
                 source={mode.imageSource}
-                style={styles.gameModeImage}
+                style={[styles.gameModeImage, isTablet && responsiveStyles.gameModeImage]}
                 resizeMode="contain"
               />
-              <View style={styles.highScoreContainer}>
-                <Ionicons name="trophy" size={16} color="#FF6B35" style={styles.trophyIcon} />
-                <HighScoreLabel key={`${mode.id}-${refreshKey}`} mode={mode.id} style={styles.highScoreText} />
+              <View style={[styles.highScoreContainer, isTablet && { 
+                bottom: 20, 
+                right: 20,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                borderRadius: 25 
+              }]}>
+                <Ionicons 
+                  name="trophy" 
+                  size={isTablet ? 20 : 16} 
+                  color="#FF6B35" 
+                  style={styles.trophyIcon} 
+                />
+                <HighScoreLabel 
+                  key={`${mode.id}-${refreshKey}`} 
+                  mode={mode.id} 
+                  style={[styles.highScoreText, isTablet && { fontSize: 16 }]} 
+                />
               </View>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Top corner actions */}
-        <View style={styles.topBar} pointerEvents="box-none">
-          <TouchableOpacity style={styles.topLeft} onPress={() => setVolumeModalVisible(true)}>
-            <Ionicons name={getVolumeIcon()} size={26} color="#FFFFFF" />
+        <View style={[styles.topBar, isTablet && { 
+          left: '50%', 
+          transform: [{ translateX: -60 }],
+          top: isTablet ? 60 : 40,
+          flexDirection: 'row',
+          gap: 60,
+          width: 'auto'
+        }]} pointerEvents="box-none">
+          <TouchableOpacity style={[styles.topLeft, isTablet && { position: 'relative', left: 'auto' }]} onPress={() => setVolumeModalVisible(true)}>
+            <Ionicons 
+              name={getVolumeIcon()} 
+              size={isTablet ? 32 : 26} 
+              color="#FFFFFF" 
+            />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.topRight} onPress={() => setSettingsVisible(true)}>
-            <Ionicons name="settings-sharp" size={26} color="#FFFFFF" />
+          <TouchableOpacity style={[styles.topRight, isTablet && { position: 'relative', right: 'auto' }]} onPress={() => {
+            setSettingsVisible(true);
+            AudioManager.pauseMusic();
+          }}>
+            <Ionicons 
+              name="settings-sharp" 
+              size={isTablet ? 32 : 26} 
+              color="#FFFFFF" 
+            />
           </TouchableOpacity>
         </View>
 
@@ -352,7 +410,10 @@ export default function HomeScreen({ navigation, registerCleanup }) {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.closeButton}
-                  onPress={() => setSettingsVisible(false)}
+                  onPress={() => {
+                    setSettingsVisible(false);
+                    AudioManager.resumeMusic();
+                  }}
                 >
                   <Text style={styles.closeButtonText}>Close</Text>
                 </TouchableOpacity>
@@ -370,7 +431,10 @@ export default function HomeScreen({ navigation, registerCleanup }) {
                 <View style={styles.buttonRow}>
                   <TouchableOpacity
                     style={[styles.modalButton, styles.cancelButton]}
-                    onPress={() => setShowDiscordModal(false)}
+                    onPress={() => {
+                      setShowDiscordModal(false);
+                      AudioManager.resumeMusic();
+                    }}
                   >
                     <Text style={styles.modalButtonText}>Cancel</Text>
                   </TouchableOpacity>

@@ -37,6 +37,7 @@ import { freshConfig } from "../game/gameModeConfig";
 import { makeModeConfig } from "../game/mode-config";
 import TrailRenderer from "../game/TrailRenderer";
 import { useAudioStore } from '../audio/AudioStore';
+import { isTablet, getResponsiveSize } from '../utils/responsiveLayout';
 import { loadPracticeConfig, savePracticeConfig } from "../state/practiceConfig";
 
 // Set up poly-decomp for Matter.js concave shapes
@@ -51,7 +52,7 @@ const { width: WIDTH, height: HEIGHT } = Dimensions.get("window");
 const PERK_TYPES = {
   CLOCK: 'clock',
   RAINBOW: 'rainbow',
-  BUBBLE: 'bubble'
+  SNOWFLAKE: 'snowflake'
 };
 
 // Sound effects
@@ -687,8 +688,8 @@ const CollisionSystem = (entities, { events }) => {
               if (state.onRainbowPerk) state.onRainbowPerk();
               break;
               
-            case PERK_TYPES.BUBBLE:
-              if (state.onBubblePerk) state.onBubblePerk();
+            case PERK_TYPES.SNOWFLAKE:
+              if (state.onSnowflakePerk) state.onSnowflakePerk();
               break;
           }
           
@@ -873,8 +874,8 @@ const PerkSprite = ({ x, y, type, size = 52 }) => {
     src = require("../../assets/clock-perk.png");
   } else if (type === "rainbow") {
     src = require("../../assets/rainbow-perk.png");
-  } else if (type === "bubble") {
-    src = require("../../assets/bubble-perk.png");
+  } else if (type === "snowflake") {
+    src = require("../../assets/snowflake.png");
   } else {
     // Fallback
     src = null;
@@ -1127,7 +1128,7 @@ export default function ToiletPaperToss({
   // Dynamic difficulty scaling for endless plunge mode
   function getRoundConfig(round, playerPerformance = null) {
     const baseConfig = {
-      time: 30 + (round - 1) * 5,
+      time: 30 + (round - 1) * 10, // Increased from 5 to 10 seconds per round
       target: 10 + (round - 1) * 2,
       speedMul: 1.0 + Math.min((round - 1) * 0.05, 0.5)
     };
@@ -1371,10 +1372,11 @@ export default function ToiletPaperToss({
       rainbow: false,
       bubble: false
     },
+    timerFrozen: false,
     // Perk callbacks
     onClockPerk: null,
     onRainbowPerk: null,
-    onBubblePerk: null
+    onSnowflakePerk: null
   });
 
   // Load sounds
@@ -1462,6 +1464,11 @@ export default function ToiletPaperToss({
 
     const tick = () => {
       if (!endlessRef.current.running || isTimerPaused) return; // Don't tick when paused
+      
+      // Check if timer is frozen by snowflake perk
+      const state = stateRef.current;
+      if (state.timerFrozen) return; // Don't tick when frozen
+      
       setEpTimeLeft((t) => {
         if (t <= 1) {
           // time is up -> win if target met, else lose
@@ -1679,7 +1686,7 @@ export default function ToiletPaperToss({
         
         // 60% chance to spawn a perk (was 35%)
         if (Math.random() < 0.60) {
-          // Weighted spawn chance: Clock (50%), Rainbow (25%), Bubble (25%)
+          // Weighted spawn chance: Clock (50%), Rainbow (25%), Snowflake (25%)
           const rand = Math.random();
           let randomType;
           
@@ -1688,7 +1695,7 @@ export default function ToiletPaperToss({
           } else if (rand < 0.75) {
             randomType = PERK_TYPES.RAINBOW; // 25% chance
           } else {
-            randomType = PERK_TYPES.BUBBLE; // 25% chance
+            randomType = PERK_TYPES.SNOWFLAKE; // 25% chance
           }
           
           // Spawn from bottom of HUD to above aimpad, avoiding right side buttons and toilet area
@@ -1752,7 +1759,7 @@ export default function ToiletPaperToss({
   // Set up perk callbacks
   state.onClockPerk = () => {
     if (gameMode === 'endless-plunge') {
-      setEpTimeLeft(prev => Math.min(prev + 5, 60)); // Cap at 60 seconds
+      setEpTimeLeft(prev => Math.min(prev + 10, 60)); // Increased from 5 to 10 seconds, cap at 60 seconds
       // Trigger green flash effect
       setTimeFlash(true);
       setTimeout(() => setTimeFlash(false), 1200); // Reset after animation completes
@@ -1765,11 +1772,21 @@ export default function ToiletPaperToss({
       trailRendererRef.current.configure('rainbow');
     }
   };
-  state.onBubblePerk = () => {
-    state.activeTrails.bubble = true;
-    // Configure trail renderer for bubble effect
-    if (trailRendererRef.current) {
-      trailRendererRef.current.configure('bubbles');
+  state.onSnowflakePerk = () => {
+    if (gameMode === 'endless-plunge') {
+      // Freeze the timer for 8 seconds
+      setEpTimeLeft(prev => prev); // Keep current time
+      // Set a flag to prevent timer from counting down
+      state.timerFrozen = true;
+      
+      // Unfreeze after 8 seconds
+      setTimeout(() => {
+        state.timerFrozen = false;
+      }, 8000);
+      
+      // Trigger blue flash effect (snow/ice theme)
+      setTimeFlash(true);
+      setTimeout(() => setTimeFlash(false), 1200);
     }
   };
 
@@ -2298,10 +2315,10 @@ const styles = StyleSheet.create({
   },
   // Game Over Modal Styles
   gameOverModalCard: {
-    width: "85%",
+    width: isTablet ? Math.min(Dimensions.get('window').width * 0.6, 500) : "85%",
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
-    padding: 16,
+    padding: isTablet ? 24 : 16,
     alignItems: "center",
     borderWidth: 1.5,
     borderColor: "#E2E8F0",
@@ -2339,7 +2356,7 @@ const styles = StyleSheet.create({
     borderColor: "#3B82F6",
   },
   gameOverTitle: {
-    fontSize: 16,
+    fontSize: isTablet ? 24 : 16,
     fontWeight: "900",
     color: "#2D3748",
     textTransform: "uppercase",
