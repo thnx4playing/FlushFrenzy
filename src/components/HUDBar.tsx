@@ -145,7 +145,7 @@ const HUDBar: React.FC<Props> = ({
         outputRange: [3, 6],
       }),
     }),
-    []
+    [iceEffect, frozenPulse]
   );
 
 
