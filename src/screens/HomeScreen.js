@@ -68,7 +68,7 @@ export default function HomeScreen({ navigation, registerCleanup }) {
   const volumeModalVisibleRef = useRef(false);
 
   // Bug fixes session timeout
-  const BUGFIX_URL = 'https://virtuixtech.com/apps/flushfrenzy/bugfix.html';
+  const BUGFIX_URL = 'https://virtuixtech.com/apps/flushfrenzy/bugfixes.html';
   const SESSION_TIMEOUT_MS = 180_000;
 
   const sessionTimerRef = useRef(null);
