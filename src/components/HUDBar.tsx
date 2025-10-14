@@ -68,30 +68,68 @@ const HUDBar: React.FC<Props> = ({
       // Start ice effect animation
       iceEffect.setValue(1);
       
-      // Start slow pulsing animation for frozen state
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(frozenPulse, { 
-            toValue: 1, 
-            duration: 2000, 
-            easing: Easing.inOut(Easing.sine), 
-            useNativeDriver: true 
-          }),
-          Animated.timing(frozenPulse, { 
-            toValue: 0, 
-            duration: 2000, 
-            easing: Easing.inOut(Easing.sine), 
-            useNativeDriver: true 
-          }),
-        ])
-      ).start();
+      // Start slow pulsing animation for frozen state with safer easing
+      try {
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(frozenPulse, { 
+              toValue: 1, 
+              duration: 2000, 
+              easing: Easing.inOut(Easing.quad), // Use more reliable easing
+              useNativeDriver: true 
+            }),
+            Animated.timing(frozenPulse, { 
+              toValue: 0, 
+              duration: 2000, 
+              easing: Easing.inOut(Easing.quad), // Use more reliable easing
+              useNativeDriver: true 
+            }),
+          ])
+        ).start();
+      } catch (error) {
+        console.log('Frozen animation error:', error);
+        // Fallback to simple linear animation if easing fails
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(frozenPulse, { 
+              toValue: 1, 
+              duration: 2000, 
+              easing: Easing.linear,
+              useNativeDriver: true 
+            }),
+            Animated.timing(frozenPulse, { 
+              toValue: 0, 
+              duration: 2000, 
+              easing: Easing.linear,
+              useNativeDriver: true 
+            }),
+          ])
+        ).start();
+      }
     } else {
       // Stop frozen animations
-      iceEffect.setValue(0);
-      frozenPulse.stopAnimation();
-      frozenPulse.setValue(0);
+      try {
+        iceEffect.setValue(0);
+        frozenPulse.stopAnimation();
+        frozenPulse.setValue(0);
+      } catch (error) {
+        console.log('Stop frozen animation error:', error);
+      }
     }
   }, [timerFrozen]);
+
+  // Cleanup animations on unmount
+  useEffect(() => {
+    return () => {
+      try {
+        timePulse.stopAnimation();
+        dangerPulse.stopAnimation();
+        frozenPulse.stopAnimation();
+      } catch (error) {
+        console.log('Animation cleanup error:', error);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (timeLeft <= criticalTime) {
@@ -122,29 +160,43 @@ const HUDBar: React.FC<Props> = ({
   );
 
   const frozenTimeStyle: TextStyle = useMemo(
-    () => ({
-      color: iceEffect.interpolate({
-        inputRange: [0, 1],
-        outputRange: ['#FFFFFF', '#87CEEB'], // White to light blue
-      }),
-      transform: [
-        {
-          scale: frozenPulse.interpolate({
+    () => {
+      try {
+        return {
+          color: iceEffect.interpolate({
             inputRange: [0, 1],
-            outputRange: [1, 1.05],
+            outputRange: ['#FFFFFF', '#87CEEB'], // White to light blue
           }),
-        },
-      ],
-      textShadowColor: iceEffect.interpolate({
-        inputRange: [0, 1],
-        outputRange: ['rgba(0,0,0,0.7)', '#87CEEB'],
-      }),
-      textShadowOffset: { width: 0, height: 2 },
-      textShadowRadius: iceEffect.interpolate({
-        inputRange: [0, 1],
-        outputRange: [3, 6],
-      }),
-    }),
+          transform: [
+            {
+              scale: frozenPulse.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 1.05],
+              }),
+            },
+          ],
+          textShadowColor: iceEffect.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['rgba(0,0,0,0.7)', '#87CEEB'],
+          }),
+          textShadowOffset: { width: 0, height: 2 },
+          textShadowRadius: iceEffect.interpolate({
+            inputRange: [0, 1],
+            outputRange: [3, 6],
+          }),
+        };
+      } catch (error) {
+        console.log('Frozen time style error:', error);
+        // Return fallback style
+        return {
+          color: '#87CEEB',
+          transform: [{ scale: 1 }],
+          textShadowColor: '#87CEEB',
+          textShadowOffset: { width: 0, height: 2 },
+          textShadowRadius: 6,
+        };
+      }
+    },
     [iceEffect, frozenPulse]
   );
 
