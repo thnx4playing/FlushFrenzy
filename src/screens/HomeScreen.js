@@ -496,7 +496,8 @@ export default function HomeScreen({ navigation, registerCleanup }) {
                 </View>
               </View>
             </View>
-          </GestureHandlerRootView>
+          </View>
+        </GestureHandlerRootView>
         )}
       </View>
     </ImageBackground>
