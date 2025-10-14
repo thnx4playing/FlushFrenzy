@@ -424,8 +424,9 @@ export default function HomeScreen({ navigation, registerCleanup }) {
 
         {/* Discord Message Custom Overlay - Replace Modal to fix touch issues */}
         {showDiscordModal && (
-          <View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]}>
-            <View style={styles.modalOverlay}>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]}>
+              <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
                 {/* Buttons at the top */}
                 <View style={styles.buttonRow}>
@@ -469,7 +470,7 @@ export default function HomeScreen({ navigation, registerCleanup }) {
                 </View>
               </View>
             </View>
-          </View>
+          </GestureHandlerRootView>
         )}
       </View>
     </ImageBackground>
