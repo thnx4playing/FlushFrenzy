@@ -955,6 +955,7 @@ export default function ToiletPaperToss({
 
   // ===== Time Flash State =====
   const [timeFlash, setTimeFlash] = useState(false);
+  const [timerFrozen, setTimerFrozen] = useState(false);
 
   // ===== Practice Mode Customization State =====
   const [practiceCustomizationVisible, setPracticeCustomizationVisible] =
@@ -1797,10 +1798,12 @@ export default function ToiletPaperToss({
       setEpTimeLeft(prev => prev); // Keep current time
       // Set a flag to prevent timer from counting down
       state.timerFrozen = true;
+      setTimerFrozen(true); // Set UI frozen state
       
       // Unfreeze after 8 seconds
       setTimeout(() => {
         state.timerFrozen = false;
+        setTimerFrozen(false); // Clear UI frozen state
       }, 8000);
       
       // Trigger blue flash effect (snow/ice theme)
@@ -1834,6 +1837,7 @@ export default function ToiletPaperToss({
             showGameOver();
           }}
           timeFlash={timeFlash}
+          timerFrozen={timerFrozen}
         />
       )}
 

@@ -23,6 +23,8 @@ type Props = {
   primary?: string;
   secondary?: string;
   accent?: string;
+  timeFlash?: boolean;
+  timerFrozen?: boolean;
 };
 
 const HUDBar: React.FC<Props> = ({
@@ -38,9 +40,13 @@ const HUDBar: React.FC<Props> = ({
   primary = '#4DA8FF',    // Lighter sky blue
   secondary = '#0077CC',  // Rich ocean blue
   accent = '#A8D8FF',     // Soft blue highlight
+  timeFlash = false,
+  timerFrozen = false,
 }) => {
   const timePulse = useRef(new Animated.Value(0)).current;
   const dangerPulse = useRef(new Animated.Value(0)).current;
+  const frozenPulse = useRef(new Animated.Value(0)).current;
+  const iceEffect = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (timeLeft <= criticalTime) {
@@ -56,7 +62,36 @@ const HUDBar: React.FC<Props> = ({
     }
   }, [timeLeft, criticalTime]);
 
-
+  // Frozen effect animation
+  useEffect(() => {
+    if (timerFrozen) {
+      // Start ice effect animation
+      iceEffect.setValue(1);
+      
+      // Start slow pulsing animation for frozen state
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(frozenPulse, { 
+            toValue: 1, 
+            duration: 2000, 
+            easing: Easing.inOut(Easing.sine), 
+            useNativeDriver: true 
+          }),
+          Animated.timing(frozenPulse, { 
+            toValue: 0, 
+            duration: 2000, 
+            easing: Easing.inOut(Easing.sine), 
+            useNativeDriver: true 
+          }),
+        ])
+      ).start();
+    } else {
+      // Stop frozen animations
+      iceEffect.setValue(0);
+      frozenPulse.stopAnimation();
+      frozenPulse.setValue(0);
+    }
+  }, [timerFrozen]);
 
   useEffect(() => {
     if (timeLeft <= criticalTime) {
@@ -86,6 +121,33 @@ const HUDBar: React.FC<Props> = ({
     []
   );
 
+  const frozenTimeStyle: TextStyle = useMemo(
+    () => ({
+      color: iceEffect.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['#FFFFFF', '#87CEEB'], // White to light blue
+      }),
+      transform: [
+        {
+          scale: frozenPulse.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 1.05],
+          }),
+        },
+      ],
+      textShadowColor: iceEffect.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['rgba(0,0,0,0.7)', '#87CEEB'],
+      }),
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: iceEffect.interpolate({
+        inputRange: [0, 1],
+        outputRange: [3, 6],
+      }),
+    }),
+    []
+  );
+
 
 
   const bgPrimary = dangerPulse.interpolate({
@@ -106,12 +168,22 @@ const HUDBar: React.FC<Props> = ({
         end={{ x: 0, y: 1 }}
         style={styles.card}
       >
-        <LinearGradient
+         <LinearGradient
           colors={[accent, 'transparent']}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
           style={styles.gloss}
         />
+        {timerFrozen && (
+          <Animated.View 
+            style={[
+              styles.iceOverlay,
+              {
+                opacity: iceEffect,
+              }
+            ]}
+          />
+        )}
 
                  <View style={styles.row}>
            <Stat label="ROUND" value={round} />
@@ -121,8 +193,11 @@ const HUDBar: React.FC<Props> = ({
            <Stat
              label="TIME"
              value={
-               <Animated.Text style={[styles.valueBig, timeStyle]}>
-                 {timeLeft}s
+               <Animated.Text style={[
+                 styles.valueBig, 
+                 timerFrozen ? frozenTimeStyle : timeStyle
+               ]}>
+                 {timerFrozen ? '❄️' : ''}{timeLeft}s
                </Animated.Text>
              }
            />
@@ -176,6 +251,15 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 18,
     opacity: 0.55,
+  },
+  iceOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(135, 206, 235, 0.15)', // Light blue ice tint
+    borderRadius: 22,
   },
   row: {
     flexDirection: 'row',
