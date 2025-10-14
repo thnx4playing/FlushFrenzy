@@ -175,15 +175,10 @@ const HUDBar: React.FC<Props> = ({
               }),
             },
           ],
-          textShadowColor: iceEffect.interpolate({
-            inputRange: [0, 1],
-            outputRange: ['rgba(0,0,0,0.7)', '#87CEEB'],
-          }),
+          // Use static shadow properties instead of animated ones
+          textShadowColor: '#87CEEB',
           textShadowOffset: { width: 0, height: 2 },
-          textShadowRadius: iceEffect.interpolate({
-            inputRange: [0, 1],
-            outputRange: [3, 6],
-          }),
+          textShadowRadius: 6,
         };
       } catch (error) {
         console.log('Frozen time style error:', error);
