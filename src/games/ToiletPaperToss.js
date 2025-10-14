@@ -659,9 +659,16 @@ const Physics = (entities, { time }) => {
 const CollisionSystem = (entities, { events }) => {
   const { state, physics, gameMode } = entities;
   
+  // Early exit if no perks - performance optimization
+  if (gameMode !== 'endless-plunge' || !state.perks || state.perks.length === 0) {
+    return entities;
+  }
+  
+  const tpBody = physics.bodies.tp;
+  if (!tpBody || !tpBody.position) return entities;
+  
   // Check for perk collection
-  if (state.perks && state.perks.length > 0 && physics.bodies.tp) {
-    const tpBody = physics.bodies.tp;
+  if (state.perks && state.perks.length > 0) {
     const tpPos = tpBody.position;
     
     state.perks.forEach((perk, index) => {
@@ -1280,10 +1287,19 @@ export default function ToiletPaperToss({
       return;
     }
 
-    // Despawn any existing TP first
+    // More thorough cleanup to prevent ghost collisions
     if (bodies?.tp) {
-      Matter.World.remove(world, bodies.tp);
-      bodies.tp = null;
+      try {
+        // Put body to sleep first to prevent physics updates
+        Matter.Sleeping.set(bodies.tp, true);
+        // Add deep removal flag to ensure complete cleanup
+        Matter.World.remove(world, bodies.tp, true);
+        bodies.tp = null;
+      } catch (e) {
+        console.warn('TP cleanup failed:', e);
+        // Force null even if removal failed
+        bodies.tp = null;
+      }
     }
     
     // Clear trails when launching new TP
@@ -1291,19 +1307,21 @@ export default function ToiletPaperToss({
       trailRendererRef.current.clear();
     }
 
-    // Create a new TP body (not static initially)
-    const newTp = Matter.Bodies.circle(-9999, -9999, CONSTANTS.TP_RADIUS, {
-      restitution: 0.45,
-      friction: 0.05,
-      frictionAir: 0.012,
-      density: 0.0016,
-      label: "TP",
-      isStatic: false, // Make sure it's not static
-    });
+    // Add small delay to ensure cleanup completes before creating new TP
+    setTimeout(() => {
+      // Create a new TP body (not static initially)
+      const newTp = Matter.Bodies.circle(-9999, -9999, CONSTANTS.TP_RADIUS, {
+        restitution: 0.45,
+        friction: 0.05,
+        frictionAir: 0.012,
+        density: 0.0016,
+        label: "TP",
+        isStatic: false, // Make sure it's not static
+      });
 
-    // Add to world
-    Matter.World.add(world, newTp);
-    bodies.tp = newTp;
+      // Add to world
+      Matter.World.add(world, newTp);
+      bodies.tp = newTp;
 
     // spawn at the visual center of the aimpad
     const spawn = {
@@ -1346,14 +1364,15 @@ export default function ToiletPaperToss({
     
 
 
-    // FIRST-FRAME SYNC + show sprite in the SAME component that renders it
-    // Force immediate sync to prevent afterUpdate from overwriting
-    setTpPos(spawn);
-    setTpVisible(true);
+      // FIRST-FRAME SYNC + show sprite in the SAME component that renders it
+      // Force immediate sync to prevent afterUpdate from overwriting
+      setTpPos(spawn);
+      setTpVisible(true);
 
-    // Reset turn state for new TP roll
-    stateRef.current.turnOver = false;
-    stateRef.current.missCounted = false;
+      // Reset turn state for new TP roll
+      stateRef.current.turnOver = false;
+      stateRef.current.missCounted = false;
+    }, 16); // One frame delay to ensure cleanup completes
   };
 
   const stateRef = useRef({

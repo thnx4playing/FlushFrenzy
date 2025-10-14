@@ -55,18 +55,14 @@ const getParticle = (): Particle => {
 const releaseParticle = (particle: Particle) => {
   if (!particle) return;
   
-  // Stop any running animations before releasing
-  if (particle.fade) {
-    particle.fade.stopAnimation();
-    particle.fade.setValue(1);
-  }
-  if (particle.scale) {
-    particle.scale.stopAnimation();
-    particle.scale.setValue(1);
-  }
+  // Stop animations before releasing - CRITICAL for memory leak prevention
+  particle.fade?.stopAnimation();
+  particle.scale?.stopAnimation();
+  particle.fade?.setValue(1);
+  particle.scale?.setValue(1);
   
-  // Only add to pool if we have room (prevent memory leaks)
-  if (particlePool.length < 50) {
+  // Limit pool size to prevent memory growth - increased from 50 to 100
+  if (particlePool.length < 100) {
     particlePool.push(particle);
   }
 };
