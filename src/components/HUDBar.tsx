@@ -221,16 +221,6 @@ const HUDBar: React.FC<Props> = ({
           end={{ x: 0.5, y: 1 }}
           style={styles.gloss}
         />
-        {timerFrozen && (
-          <Animated.View 
-            style={[
-              styles.iceOverlay,
-              {
-                opacity: iceEffect,
-              }
-            ]}
-          />
-        )}
 
                  <View style={styles.row}>
            <Stat label="ROUND" value={round} />
@@ -298,15 +288,6 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 18,
     opacity: 0.55,
-  },
-  iceOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(135, 206, 235, 0.15)', // Light blue ice tint
-    borderRadius: 22,
   },
   row: {
     flexDirection: 'row',
