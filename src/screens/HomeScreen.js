@@ -424,7 +424,7 @@ export default function HomeScreen({ navigation, registerCleanup }) {
                   style={styles.menuItem}
                   onPress={openBugfixes}
                   onLongPress={openBugfixesAdmin}
-                  delayLongPress={1000}
+                  delayLongPress={2000}
                 >
                   <Text style={styles.menuItemText}>Review Updates & Fixes</Text>
                 </TouchableOpacity>
