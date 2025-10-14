@@ -133,34 +133,45 @@ const playWaterDropSound = async () => {
 };
 
 const playPerkSound = async () => {
-  if (perkSound) {
-    try {
-      const { sfxMuted, sfxVolume } = useAudioStore.getState();
-      if (!sfxMuted) {
-        console.log('Playing perk sound with volume:', sfxVolume);
-        await perkSound.setVolumeAsync(sfxVolume);
-        
-        // Check if sound is already playing and stop it first
-        const status = await perkSound.getStatusAsync();
-        if (status.isLoaded && status.isPlaying) {
-          await perkSound.stopAsync();
-        }
-        
-        await perkSound.replayAsync();
-      }
-    } catch (error) {
-      console.log("Could not play perk sound:", error);
-      // Try to reload the sound if it's in a bad state
-      try {
-        const { sound: newPerk } = await Audio.Sound.createAsync(
-          require("../../assets/perk-sound.caf"),
-          { shouldPlay: false, isLooping: false }
-        );
-        perkSound = newPerk;
-      } catch (reloadError) {
-        console.log("Could not reload perk sound:", reloadError);
-      }
+  const { sfxMuted, sfxVolume } = useAudioStore.getState();
+  if (sfxMuted) return; // Don't play if muted
+  
+  try {
+    // If perkSound doesn't exist or isn't loaded, create it
+    if (!perkSound) {
+      const { sound: newPerk } = await Audio.Sound.createAsync(
+        require("../../assets/perk-sound.caf"),
+        { shouldPlay: false, isLooping: false }
+      );
+      perkSound = newPerk;
     }
+    
+    // Check if sound is loaded
+    const status = await perkSound.getStatusAsync();
+    if (!status.isLoaded) {
+      // Try to reload the sound
+      await perkSound.unloadAsync();
+      const { sound: newPerk } = await Audio.Sound.createAsync(
+        require("../../assets/perk-sound.caf"),
+        { shouldPlay: false, isLooping: false }
+      );
+      perkSound = newPerk;
+    }
+    
+    console.log('Playing perk sound with volume:', sfxVolume);
+    await perkSound.setVolumeAsync(sfxVolume);
+    
+    // Check if sound is already playing and stop it first
+    const currentStatus = await perkSound.getStatusAsync();
+    if (currentStatus.isPlaying) {
+      await perkSound.stopAsync();
+    }
+    
+    await perkSound.replayAsync();
+  } catch (error) {
+    console.log("Could not play perk sound:", error);
+    // Reset perkSound to null so it gets recreated next time
+    perkSound = null;
   }
 };
 
@@ -1706,16 +1717,16 @@ export default function ToiletPaperToss({
         
         // 60% chance to spawn a perk (was 35%)
         if (Math.random() < 0.60) {
-          // Weighted spawn chance: Clock (50%), Rainbow (25%), Snowflake (25%)
+          // Weighted spawn chance: Clock (40%), Rainbow (30%), Snowflake (30%)
           const rand = Math.random();
           let randomType;
           
-          if (rand < 0.50) {
-            randomType = PERK_TYPES.CLOCK; // 50% chance
-          } else if (rand < 0.75) {
-            randomType = PERK_TYPES.RAINBOW; // 25% chance
+          if (rand < 0.40) {
+            randomType = PERK_TYPES.CLOCK; // 40% chance
+          } else if (rand < 0.70) {
+            randomType = PERK_TYPES.RAINBOW; // 30% chance
           } else {
-            randomType = PERK_TYPES.SNOWFLAKE; // 25% chance
+            randomType = PERK_TYPES.SNOWFLAKE; // 30% chance
           }
           
           // Spawn from bottom of HUD to above aimpad, avoiding right side buttons and toilet area
