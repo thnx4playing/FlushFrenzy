@@ -415,24 +415,24 @@ export default function HomeScreen({ navigation, registerCleanup }) {
               <View style={styles.modalContent}>
                 <Text style={styles.modalTitle}>Settings</Text>
                 <TouchableOpacity
-                  style={styles.menuItem}
+                  style={[styles.menuItem, isTablet && { width: '95%', paddingHorizontal: 30 }]}
                   onPress={handleSubmitBugReport}
                 >
-                  <Text style={styles.menuItemText}>Submit Bug Report</Text>
+                  <Text style={[styles.menuItemText, isTablet && { fontSize: 19 }]}>Submit Bug Report</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.menuItem}
+                  style={[styles.menuItem, isTablet && { width: '95%', paddingHorizontal: 30 }]}
                   onPress={openBugfixes}
                   onLongPress={openBugfixesAdmin}
                   delayLongPress={1000}
                 >
-                  <Text style={styles.menuItemText}>Review Updates & Fixes</Text>
+                  <Text style={[styles.menuItemText, isTablet && { fontSize: 19 }]}>Review Updates & Fixes</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.menuItem}
+                  style={[styles.menuItem, isTablet && { width: '95%', paddingHorizontal: 30 }]}
                   onPress={handlePrivacyPolicy}
                 >
-                  <Text style={styles.menuItemText}>Privacy Policy</Text>
+                  <Text style={[styles.menuItemText, isTablet && { fontSize: 19 }]}>Privacy Policy</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.closeButton}
@@ -662,7 +662,8 @@ const styles = StyleSheet.create({
   },
   menuItem: {
     backgroundColor: '#3B82F6', // Darker blue buttons
-    padding: 18,
+    paddingHorizontal: 20, // Increased horizontal padding
+    paddingVertical: 18,
     borderRadius: 15,
     marginVertical: 8,
     alignItems: 'center',
@@ -673,7 +674,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 5,
-    width: '85%', // Smaller width
+    width: '90%', // Increased width from 85% to 90%
     alignSelf: 'center',
   },
   menuItemText: {
