@@ -17,6 +17,8 @@ type Props = {
   roundTarget?: number;      // target points for current round
   onEndGame: () => void;
   containerStyle?: ViewStyle;
+  timeFlash?: boolean;       // flash effect for time changes
+  timerFrozen?: boolean;     // frozen effect for snowflake perk
 };
 
 export default function GameHUD({
@@ -29,6 +31,8 @@ export default function GameHUD({
   roundTarget,
   onEndGame,
   containerStyle,
+  timeFlash = false,
+  timerFrozen = false,
 }: Props) {
   const insets = useSafeAreaInsets();
   const [volumeModalVisible, setVolumeModalVisible] = useState(false);
@@ -66,6 +70,8 @@ export default function GameHUD({
             pointsNeeded={roundTarget || 0}
             timeLeft={timeLeft}
             total={totalScore !== undefined ? totalScore : points}
+            timeFlash={timeFlash}
+            timerFrozen={timerFrozen}
           />
         ) : (
           <PracticeHUD
