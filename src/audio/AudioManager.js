@@ -184,6 +184,32 @@ class AudioManagerClass {
     }
   }
 
+  async pauseMusic() {
+    console.log('AudioManager: pauseMusic called');
+    await this._ensureInit();
+    if (this._music) {
+      try {
+        await this._music.pauseAsync();
+        console.log('AudioManager: Music paused');
+      } catch (error) {
+        console.log('AudioManager: Error pausing music:', error);
+      }
+    }
+  }
+
+  async resumeMusic() {
+    console.log('AudioManager: resumeMusic called');
+    await this._ensureInit();
+    if (this._music) {
+      try {
+        await this._music.playAsync();
+        console.log('AudioManager: Music resumed');
+      } catch (error) {
+        console.log('AudioManager: Error resuming music:', error);
+      }
+    }
+  }
+
   async playSfx(name) {
     await this._ensureInit();
     const { sfxMuted } = useAudioStore.getState();
