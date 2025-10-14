@@ -421,12 +421,12 @@ export default function HomeScreen({ navigation, registerCleanup }) {
                   <Text style={[styles.menuItemText, isTablet && { fontSize: 19 }]}>Submit Bug Report</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.menuItem, isTablet && { width: '95%', paddingHorizontal: 30 }]}
+                  style={[styles.menuItem, isTablet && { width: '98%', paddingHorizontal: 35 }]}
                   onPress={openBugfixes}
                   onLongPress={openBugfixesAdmin}
                   delayLongPress={1000}
                 >
-                  <Text style={[styles.menuItemText, isTablet && { fontSize: 19 }]}>Review Updates & Fixes</Text>
+                  <Text style={[styles.menuItemText, isTablet && { fontSize: 18 }]}>Review Updates & Fixes</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.menuItem, isTablet && { width: '95%', paddingHorizontal: 30 }]}
@@ -674,12 +674,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 5,
-    width: '90%', // Increased width from 85% to 90%
+    width: '95%', // Increased width to 95% to prevent text wrapping
     alignSelf: 'center',
   },
   menuItemText: {
     color: '#FFFFFF',
-    fontSize: 17,
+    fontSize: 16, // Reduced from 17 to 16 to prevent wrapping
     fontWeight: '700',
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 1, height: 1 },
