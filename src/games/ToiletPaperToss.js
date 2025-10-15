@@ -1792,7 +1792,7 @@ export default function ToiletPaperToss({
   // Set up perk callbacks
   state.onClockPerk = () => {
     if (gameMode === 'endless-plunge') {
-      setEpTimeLeft(prev => Math.min(prev + 10, 60)); // Increased from 5 to 10 seconds, cap at 60 seconds
+      setEpTimeLeft(prev => Math.min(prev + 7, 60)); // Reduced from 10 to 7 seconds, cap at 60 seconds
       // Trigger green flash effect
       setTimeFlash(true);
       setTimeout(() => setTimeFlash(false), 1200); // Reset after animation completes
@@ -1817,7 +1817,7 @@ export default function ToiletPaperToss({
       setTimeout(() => {
         state.timerFrozen = false;
         setTimerFrozen(false); // Clear UI frozen state
-      }, 8000);
+      }, 7000);
       
       // Trigger blue flash effect (snow/ice theme)
       setTimeFlash(true);
