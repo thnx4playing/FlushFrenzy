@@ -431,12 +431,17 @@ const getModeConstants = (gameMode) => {
   const baseConfig = freshConfig(gameMode);
   const modeConfig = makeModeConfig(gameMode);
   
+  // iPad-specific physics adjustments
+  const isIPad = isTablet;
+  const gravityMultiplier = isIPad ? 0.7 : 1.0; // Reduce gravity by 30% on iPad
+  const speedMultiplier = isIPad ? 1.4 : 1.0; // Increase speed by 40% on iPad
+  
   return {
     ...CONSTANTS,
     // Override with mode-specific settings
-    GRAVITY_Y: baseConfig.gravityY,
-    // Add mode-specific speed
-    SPEED: gameMode === 'endless-plunge' ? 19 : 19, // Both modes use same speed for now
+    GRAVITY_Y: baseConfig.gravityY * gravityMultiplier,
+    // Add mode-specific speed with iPad adjustment
+    SPEED: (gameMode === 'endless-plunge' ? 19 : 19) * speedMultiplier,
   };
 };
 
@@ -595,12 +600,17 @@ const wireScoring = (engine, addScoreCallback, spawnImpactParticles = null) => {
 
 // Create TP body
 const createTP = () => {
+  // iPad-specific physics adjustments
+  const isIPad = isTablet;
+  const airFrictionMultiplier = isIPad ? 0.8 : 1.0; // Reduce air friction on iPad
+  const densityMultiplier = isIPad ? 0.8 : 1.0; // Reduce density (lighter) on iPad
+  
   return Matter.Bodies.circle(-9999, -9999, CONSTANTS.TP_RADIUS, {
     label: "TP",
     restitution: 0.45,
     friction: 0.05,
-    frictionAir: 0.012,
-    density: 0.0016,
+    frictionAir: 0.012 * airFrictionMultiplier, // Less air resistance on iPad
+    density: 0.0016 * densityMultiplier, // Lighter on iPad
     isStatic: true, // keep the roll fixed until launch
   });
 };
@@ -1321,12 +1331,16 @@ export default function ToiletPaperToss({
 
     // Add small delay to ensure cleanup completes before creating new TP
     setTimeout(() => {
-      // Create a new TP body (not static initially)
+      // Create a new TP body (not static initially) with iPad adjustments
+      const isIPad = isTablet;
+      const airFrictionMultiplier = isIPad ? 0.8 : 1.0; // Reduce air friction on iPad
+      const densityMultiplier = isIPad ? 0.8 : 1.0; // Reduce density (lighter) on iPad
+      
       const newTp = Matter.Bodies.circle(-9999, -9999, CONSTANTS.TP_RADIUS, {
         restitution: 0.45,
         friction: 0.05,
-        frictionAir: 0.012,
-        density: 0.0016,
+        frictionAir: 0.012 * airFrictionMultiplier, // Less air resistance on iPad
+        density: 0.0016 * densityMultiplier, // Lighter on iPad
         label: "TP",
         isStatic: false, // Make sure it's not static
       });
