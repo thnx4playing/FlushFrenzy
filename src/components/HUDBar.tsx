@@ -215,12 +215,14 @@ const HUDBar: React.FC<Props> = ({
         end={{ x: 0, y: 1 }}
         style={styles.card}
       >
-         <LinearGradient
-          colors={[accent, 'transparent']}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.gloss}
-        />
+         {!timerFrozen && (
+           <LinearGradient
+            colors={[accent, 'transparent']}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.gloss}
+          />
+         )}
 
                  <View style={styles.row}>
            <Stat label="ROUND" value={round} />
