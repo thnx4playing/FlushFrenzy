@@ -11,7 +11,11 @@ module.exports = {
     userInterfaceStyle: "light",
     splash: {
       image: path.resolve(__dirname, 'assets/splash-icon.png'),
-      resizeMode: "contain",
+      resizeMode: "cover",
+      backgroundColor: "#ffffff"
+    },
+    loading: {
+      icon: path.resolve(__dirname, 'assets/splash-icon.png'),
       backgroundColor: "#ffffff"
     },
 
@@ -20,6 +24,11 @@ module.exports = {
       bundleIdentifier: "com.thnx4playing.FlushFrenzy",
       buildNumber: "2",
       icon: path.resolve(__dirname, 'assets/app-icon-halloween.png'),
+      splash: {
+        image: path.resolve(__dirname, 'assets/splash-icon.png'),
+        resizeMode: "cover",
+        backgroundColor: "#ffffff"
+      },
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSAppTransportSecurity: {
