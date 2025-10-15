@@ -70,7 +70,7 @@ export default function HomeScreen({ navigation, registerCleanup }) {
   // Bug fixes session timeout
   const BUGFIX_URL = 'https://virtuixtech.com/apps/flushfrenzy/bugfixes.html';
   const BUGFIX_ADMIN_URL = 'https://virtuixtech.com/apps/flushfrenzy/bugfixes_admin.html';
-  const SESSION_TIMEOUT_MS = 180_000;
+  const SESSION_TIMEOUT_MS = 300_000;
 
   const sessionTimerRef = useRef(null);
   const browserOpenRef = useRef(false);
