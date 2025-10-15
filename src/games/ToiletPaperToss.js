@@ -1712,21 +1712,21 @@ export default function ToiletPaperToss({
     if (state.perks && state.perks.length === 0) {
       state.perkSpawnTimer += time.delta;
       
-      if (state.perkSpawnTimer > (3000 + Math.random() * 2000)) { // 3-5 seconds (was 5-8)
+      if (state.perkSpawnTimer > (5000 + Math.random() * 2000)) { // 5-7 seconds
         state.perkSpawnTimer = 0;
         
         // 60% chance to spawn a perk (was 35%)
         if (Math.random() < 0.60) {
-          // Weighted spawn chance: Clock (30%), Rainbow (40%), Snowflake (30%)
+          // Equal spawn chance: Clock (33.33%), Rainbow (33.33%), Snowflake (33.33%)
           const rand = Math.random();
           let randomType;
           
-          if (rand < 0.30) {
-            randomType = PERK_TYPES.CLOCK; // 30% chance
-          } else if (rand < 0.70) {
-            randomType = PERK_TYPES.RAINBOW; // 40% chance
+          if (rand < 0.333) {
+            randomType = PERK_TYPES.CLOCK; // 33.33% chance
+          } else if (rand < 0.666) {
+            randomType = PERK_TYPES.RAINBOW; // 33.33% chance
           } else {
-            randomType = PERK_TYPES.SNOWFLAKE; // 30% chance
+            randomType = PERK_TYPES.SNOWFLAKE; // 33.33% chance
           }
           
           console.log('Spawning perk:', randomType, 'rand:', rand);
