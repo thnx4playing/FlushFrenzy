@@ -1712,7 +1712,7 @@ export default function ToiletPaperToss({
     if (state.perks && state.perks.length === 0) {
       state.perkSpawnTimer += time.delta;
       
-      if (state.perkSpawnTimer > (5000 + Math.random() * 2000)) { // 5-7 seconds
+      if (state.perkSpawnTimer > (8000 + Math.random() * 2000)) { // 8-10 seconds
         state.perkSpawnTimer = 0;
         
         // 60% chance to spawn a perk (was 35%)
@@ -1792,7 +1792,7 @@ export default function ToiletPaperToss({
   // Set up perk callbacks
   state.onClockPerk = () => {
     if (gameMode === 'endless-plunge') {
-      setEpTimeLeft(prev => Math.min(prev + 6, 60)); // Reduced from 7 to 6 seconds, cap at 60 seconds
+      setEpTimeLeft(prev => Math.min(prev + 5, 60)); // Reduced from 6 to 5 seconds, cap at 60 seconds
       // Trigger green flash effect
       setTimeFlash(true);
       setTimeout(() => setTimeFlash(false), 1200); // Reset after animation completes
@@ -1817,7 +1817,7 @@ export default function ToiletPaperToss({
       setTimeout(() => {
         state.timerFrozen = false;
         setTimerFrozen(false); // Clear UI frozen state
-      }, 6000);
+      }, 5000);
       
       // Trigger blue flash effect (snow/ice theme)
       setTimeFlash(true);

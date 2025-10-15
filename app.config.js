@@ -11,7 +11,7 @@ module.exports = {
     userInterfaceStyle: "light",
     splash: {
       image: path.resolve(__dirname, 'assets/splash-icon.png'),
-      resizeMode: "cover",
+      resizeMode: "contain",
       backgroundColor: "#ffffff"
     },
 
