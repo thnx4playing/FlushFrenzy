@@ -47,7 +47,6 @@ export default function App() {
     // Reset audio settings to unmuted on every app launch
     const resetAudioOnStartup = async () => {
       try {
-        console.log('App: Resetting audio to unmuted on app launch');
         useAudioStore.getState().resetToDefaults();
       } catch (error) {
         console.log('App: Error resetting audio settings:', error);
@@ -58,7 +57,6 @@ export default function App() {
     
     // Cleanup audio resources when app unmounts
     return () => {
-      console.log('App: Cleaning up audio resources');
       AudioManager.dispose().catch(error => {
         console.log('App: Error disposing audio manager:', error);
       });

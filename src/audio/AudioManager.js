@@ -132,7 +132,6 @@ class AudioManagerClass {
   }
 
   async playMenuMusic() {
-    console.log('AudioManager: playMenuMusic called');
     await this._ensureInit();
     const { musicMuted } = useAudioStore.getState();
     console.log('AudioManager: musicMuted state:', musicMuted);
@@ -200,7 +199,6 @@ class AudioManagerClass {
   }
 
   async pauseMusic() {
-    console.log('AudioManager: pauseMusic called');
     await this._ensureInit();
     if (this._music) {
       try {
@@ -213,7 +211,6 @@ class AudioManagerClass {
   }
 
   async resumeMusic() {
-    console.log('AudioManager: resumeMusic called');
     await this._ensureInit();
     if (this._music) {
       try {

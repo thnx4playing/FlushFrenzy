@@ -1729,7 +1729,6 @@ export default function ToiletPaperToss({
             randomType = PERK_TYPES.SNOWFLAKE; // 33.33% chance
           }
           
-          console.log('Spawning perk:', randomType, 'rand:', rand);
           
           // Spawn from bottom of HUD to above aimpad, avoiding right side buttons and toilet area
           const hudBottom = 120; // Approximate bottom of HUD

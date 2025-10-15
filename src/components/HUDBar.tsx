@@ -87,7 +87,6 @@ const HUDBar: React.FC<Props> = ({
           ])
         ).start();
       } catch (error) {
-        console.log('Frozen animation error:', error);
         // Fallback to simple linear animation if easing fails
         Animated.loop(
           Animated.sequence([
