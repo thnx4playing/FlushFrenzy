@@ -15,8 +15,7 @@ module.exports = {
       backgroundColor: "#ffffff"
     },
     loading: {
-      icon: path.resolve(__dirname, 'assets/splash-icon.png'),
-      backgroundColor: "#ffffff"
+      backgroundColor: "transparent"
     },
 
     ios: {
