@@ -81,7 +81,6 @@ const loadSounds = async () => {
     );
     perkSound = perk;
   } catch (error) {
-    console.log("Could not load sound effect:", error);
   }
 };
 
@@ -90,12 +89,10 @@ const playDingSound = async () => {
     try {
       const { sfxMuted, sfxVolume } = useAudioStore.getState();
       if (!sfxMuted) {
-        console.log('Playing ding sound with volume:', sfxVolume);
         await dingSound.setVolumeAsync(sfxVolume);
         await dingSound.replayAsync();
       }
     } catch (error) {
-      console.log("Could not play sound:", error);
     }
   }
 };
@@ -105,7 +102,6 @@ const playWaterDropSound = async () => {
     try {
       const { sfxMuted, sfxVolume } = useAudioStore.getState();
       if (!sfxMuted) {
-        console.log('Playing water drop sound with volume:', sfxVolume);
         await waterDropSound.setVolumeAsync(sfxVolume);
         
         // Check if sound is already playing and stop it first
@@ -117,7 +113,6 @@ const playWaterDropSound = async () => {
         await waterDropSound.replayAsync();
       }
     } catch (error) {
-      console.log("Could not play water drop sound:", error);
       // Try to reload the sound if it's in a bad state
       try {
         const { sound: newWater } = await Audio.Sound.createAsync(
@@ -126,7 +121,6 @@ const playWaterDropSound = async () => {
         );
         waterDropSound = newWater;
       } catch (reloadError) {
-        console.log("Could not reload water drop sound:", reloadError);
       }
     }
   }
@@ -158,7 +152,6 @@ const playPerkSound = async () => {
       perkSound = newPerk;
     }
     
-    console.log('Playing perk sound with volume:', sfxVolume);
     await perkSound.setVolumeAsync(sfxVolume);
     
     // Check if sound is already playing and stop it first
@@ -169,7 +162,6 @@ const playPerkSound = async () => {
     
     await perkSound.replayAsync();
   } catch (error) {
-    console.log("Could not play perk sound:", error);
     // Reset perkSound to null so it gets recreated next time
     perkSound = null;
   }
@@ -433,8 +425,8 @@ const getModeConstants = (gameMode) => {
   
   // iPad-specific physics adjustments
   const isIPad = isTablet;
-  const gravityMultiplier = isIPad ? 0.7 : 1.0; // Reduce gravity by 30% on iPad
-  const speedMultiplier = isIPad ? 1.4 : 1.0; // Increase speed by 40% on iPad
+  const gravityMultiplier = isIPad ? 0.84 : 1.0; // Reduce gravity by 16% on iPad (was 30%, now 16%)
+  const speedMultiplier = isIPad ? 1.54 : 1.0; // Increase speed by 54% on iPad (was 40%, now 54%)
   
   return {
     ...CONSTANTS,
@@ -661,7 +653,6 @@ const setupWorld = (addScoreCallback, modeConstants = CONSTANTS) => {
     (b) => b.label === "BOUNDARY",
   );
   if (boundaryWalls.length < 4) {
-    console.warn("Missing boundary walls! Rebuilding arena...");
     buildArena(engine, WIDTH, HEIGHT, tp);
   }
 
@@ -1058,7 +1049,6 @@ export default function ToiletPaperToss({
           setPersistentHighScore(newScore);
         })
         .catch((error) => {
-          console.log("Error saving high score:", error);
         });
     }
 
@@ -1066,12 +1056,6 @@ export default function ToiletPaperToss({
     if (gameMode === "endless-plunge" && endlessRef.current.running) {
       setEpRoundPoints((p) => {
         const newPoints = p + 1;
-        console.log(
-          "Round points updated:",
-          newPoints,
-          "/",
-          endlessRef.current.target,
-        );
 
         // Don't auto-advance - let the level up banner handle it
         // The banner will trigger and pause the game, then advance when complete
@@ -1197,12 +1181,6 @@ export default function ToiletPaperToss({
 
   // Advance to next round (after win) or end game (after fail)
   async function advanceOrEndRound(won) {
-    console.log(
-      "advanceOrEndRound called with won:",
-      won,
-      "current round:",
-      epRound,
-    );
 
     if (!won) {
       // Show your existing game over modal
@@ -1266,7 +1244,6 @@ export default function ToiletPaperToss({
 
     // Save practice settings to storage
     savePracticeConfig(settings).catch((error) => {
-      console.log("Error saving practice config:", error);
     });
 
     // Apply practice settings
@@ -1289,7 +1266,6 @@ export default function ToiletPaperToss({
           setPersistentHighScore(score);
         })
         .catch((error) => {
-          console.log("Error saving practice high score:", error);
         });
     }
     
@@ -1318,7 +1294,6 @@ export default function ToiletPaperToss({
         Matter.World.remove(world, bodies.tp, true);
         bodies.tp = null;
       } catch (e) {
-        console.warn('TP cleanup failed:', e);
         // Force null even if removal failed
         bodies.tp = null;
       }
@@ -1450,7 +1425,6 @@ export default function ToiletPaperToss({
           setHighScore(highScoreRecord.highScore); // Also set session high score
         }
       } catch (error) {
-        console.log("Error loading high score:", error);
       }
     };
     loadHighScoreData();
@@ -1473,7 +1447,6 @@ export default function ToiletPaperToss({
         setHighScore(finalScore);
       }
     } catch (error) {
-      console.log("Error saving high score:", error);
     }
 
     // Call the original onGameComplete callback
@@ -1519,14 +1492,6 @@ export default function ToiletPaperToss({
           // time is up -> win if target met, else lose
           // Use current state values instead of ref to avoid stale closure issues
           const won = epRoundPoints >= epTarget;
-          console.log(
-            "Time up! Round points:",
-            epRoundPoints,
-            "Target:",
-            epTarget,
-            "Won:",
-            won,
-          );
           // stop this round before advancing
           endlessRef.current.running = false;
           // small delay so UI can show 0
@@ -2046,7 +2011,6 @@ export default function ToiletPaperToss({
               resizeMode="contain"
               onLoad={() => {}}
               onError={(error) => {
-                console.error("TP image failed to load:", error);
                 // Only show red circle if image fails to load
               }}
             />

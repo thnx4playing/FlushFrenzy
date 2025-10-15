@@ -112,7 +112,6 @@ const HUDBar: React.FC<Props> = ({
         frozenPulse.stopAnimation();
         frozenPulse.setValue(0);
       } catch (error) {
-        console.log('Stop frozen animation error:', error);
       }
     }
   }, [timerFrozen]);
@@ -125,7 +124,6 @@ const HUDBar: React.FC<Props> = ({
         dangerPulse.stopAnimation();
         frozenPulse.stopAnimation();
       } catch (error) {
-        console.log('Animation cleanup error:', error);
       }
     };
   }, []);
@@ -180,7 +178,6 @@ const HUDBar: React.FC<Props> = ({
           textShadowRadius: 6,
         };
       } catch (error) {
-        console.log('Frozen time style error:', error);
         // Return fallback style
         return {
           color: '#87CEEB',
