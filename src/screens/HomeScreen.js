@@ -17,11 +17,12 @@ import {
   InteractionManager,
   DevSettings,
 } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
+import WebViewModal from '../components/WebViewModal';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { HighScoreLabel } from '../components/HighScoreLabel';
 import VolumeControlModal from '../components/VolumeControlModal';
+import LeaderboardModal from '../leaderboard/LeaderboardModal';
 import { AudioManager } from '../audio/AudioManager';
 import { useAudioStore } from '../audio/AudioStore';
 import { 
@@ -43,13 +44,19 @@ const GAME_MODES = [
     id: 'endless-plunge',
     title: 'ENDLESS PLUNGE',
     subtitle: 'BEAT THE CLOCK',
-    imageSource: require('../../assets/endless_plunge.png'),
+    imageSource: require('../../assets/button-endless.png'),
   },
   {
     id: 'quick-flush',
     title: 'PRACTICE MODE',
-    subtitle: '60 SECOND CHALLENGE',
-    imageSource: require('../../assets/quick_flush.png'),
+    subtitle: 'FREE PLAY',
+    imageSource: require('../../assets/button-practice.png'),
+  },
+  {
+    id: 'touchless-toss',
+    title: 'TOUCHLESS TOSS',
+    subtitle: 'ACCESSIBILITY MODE',
+    imageSource: require('../../assets/button-touchless.png'),
   },
 ];
 
@@ -61,11 +68,21 @@ export default function HomeScreen({ navigation, registerCleanup }) {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [discordMessage, setDiscordMessage] = useState('');
   const [showDiscordModal, setShowDiscordModal] = useState(false);
+  
+  // WebView modal state
+  const [webViewVisible, setWebViewVisible] = useState(false);
+  const [webViewUrl, setWebViewUrl] = useState('');
+  const [webViewTitle, setWebViewTitle] = useState('');
+
+  // Leaderboard modal state
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [leaderboardGameMode, setLeaderboardGameMode] = useState('endless-plunge');
 
   // Add refs to track current state for cleanup (fixes stale closure problem)
   const settingsVisibleRef = useRef(false);
   const showDiscordModalRef = useRef(false);
   const volumeModalVisibleRef = useRef(false);
+  const webViewVisibleRef = useRef(false);
 
   // Bug fixes session timeout
   const BUGFIX_URL = 'https://virtuixtech.com/apps/flushfrenzy/bugfixes.html';
@@ -73,7 +90,6 @@ export default function HomeScreen({ navigation, registerCleanup }) {
   const SESSION_TIMEOUT_MS = 300_000;
 
   const sessionTimerRef = useRef(null);
-  const browserOpenRef = useRef(false);
 
   const stopSessionTimer = () => {
     if (sessionTimerRef.current) {
@@ -99,28 +115,29 @@ export default function HomeScreen({ navigation, registerCleanup }) {
       volumeModalVisibleRef.current = false;
     }
     
+    if (webViewVisibleRef.current) {
+      setWebViewVisible(false);
+      webViewVisibleRef.current = false;
+    }
+    
     setDiscordMessage('');
     
-    // Resume music when any overlay is closed
-    AudioManager.resumeMusic();
+    // Note: No menu music to resume (music only plays in-game)
   };
 
   const startSessionTimer = () => {
     stopSessionTimer();
     sessionTimerRef.current = setTimeout(() => {
-      if (browserOpenRef.current) {
-        WebBrowser.dismissBrowser();
-        browserOpenRef.current = false;
-      }
       closeAllOverlays();
     }, SESSION_TIMEOUT_MS);
   };
 
-  // Play menu music when HomeScreen is focused, stop when blurred
+  // Refresh high scores when HomeScreen is focused
+  // Note: Menu music disabled - music only plays during gameplay
   useFocusEffect(
     React.useCallback(() => {
       setRefreshKey(prev => prev + 1);
-      AudioManager.playMenuMusic();
+      // AudioManager.playMenuMusic(); // Disabled: music only plays in-game
       
       return () => {
         AudioManager.stopMusic();
@@ -134,10 +151,6 @@ export default function HomeScreen({ navigation, registerCleanup }) {
     
     const cleanup = () => {
       // Immediate cleanup when app backgrounds
-      if (browserOpenRef.current) {
-        WebBrowser.dismissBrowser();
-        browserOpenRef.current = false;
-      }
       stopSessionTimer();
       
       // Use a fresh closure that accesses current refs (fixes stale closure)
@@ -145,10 +158,12 @@ export default function HomeScreen({ navigation, registerCleanup }) {
         setSettingsVisible(false);
         setShowDiscordModal(false);
         setVolumeModalVisible(false);
+        setWebViewVisible(false);
         setDiscordMessage('');
         settingsVisibleRef.current = false;
         showDiscordModalRef.current = false;
         volumeModalVisibleRef.current = false;
+        webViewVisibleRef.current = false;
       };
       
       forceCloseModals();
@@ -158,14 +173,14 @@ export default function HomeScreen({ navigation, registerCleanup }) {
     return unregister;
   }, [registerCleanup]); // Remove dependencies that could cause stale closures
 
-  // Start/stop the timer when Settings/Bug Report are visible
+  // Start/stop the timer when Settings/Bug Report/WebView are visible
   useEffect(() => {
     const sessionActive =
-      Boolean(settingsVisible) || Boolean(showDiscordModal) || browserOpenRef.current;
+      Boolean(settingsVisible) || Boolean(showDiscordModal) || Boolean(webViewVisible);
     if (sessionActive) startSessionTimer();
     else stopSessionTimer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settingsVisible, showDiscordModal]);
+  }, [settingsVisible, showDiscordModal, webViewVisible]);
 
   // Update refs whenever state changes (fixes stale closure problem)
   useEffect(() => {
@@ -179,6 +194,10 @@ export default function HomeScreen({ navigation, registerCleanup }) {
   useEffect(() => {
     volumeModalVisibleRef.current = volumeModalVisible;
   }, [volumeModalVisible]);
+  
+  useEffect(() => {
+    webViewVisibleRef.current = webViewVisible;
+  }, [webViewVisible]);
 
 
   // Navigate to game mode
@@ -204,79 +223,27 @@ export default function HomeScreen({ navigation, registerCleanup }) {
   const handleSubmitBugReport = () => {
     setSettingsVisible(false);
     setShowDiscordModal(true);
-    // Pause music when Discord modal opens
-    AudioManager.pauseMusic();
   };
 
-  const handlePrivacyPolicy = async () => {
-    try {
-      browserOpenRef.current = true;
-      // Pause music when browser opens
-      AudioManager.pauseMusic();
-      // Make sure a session timer is running while the browser is up
-      startSessionTimer();
-      await WebBrowser.openBrowserAsync('https://virtuixtech.com/privacy.html', {
-        // keep options minimal for broad compatibility
-        showTitle: true,
-        enableBarCollapsing: true,
-        dismissButtonStyle: 'done',
-      });
-    } catch (error) {
-      Alert.alert('Error', 'Could not open Privacy Policy. Please check your internet connection.');
-    } finally {
-      // Whether user closed it or we dismissed it, clean up and close overlays
-      browserOpenRef.current = false;
-      stopSessionTimer();
-      closeAllOverlays();
-      // Resume music when browser closes
-      AudioManager.resumeMusic();
-    }
+  const handlePrivacyPolicy = () => {
+    setSettingsVisible(false);
+    setWebViewUrl('https://virtuixtech.com/privacy.html');
+    setWebViewTitle('Privacy Policy');
+    setWebViewVisible(true);
   };
 
-  const openBugfixes = async () => {
-    try {
-      browserOpenRef.current = true;
-      // Pause music when browser opens
-      AudioManager.pauseMusic();
-      // Make sure a session timer is running while the browser is up
-      startSessionTimer();
-      await WebBrowser.openBrowserAsync(BUGFIX_URL, {
-        // keep options minimal for broad compatibility
-        showTitle: true,
-        enableBarCollapsing: true,
-        dismissButtonStyle: 'done',
-      });
-    } finally {
-      // Whether user closed it or we dismissed it, clean up and close settings
-      browserOpenRef.current = false;
-      stopSessionTimer();
-      closeAllOverlays();
-      // Resume music when browser closes
-      AudioManager.resumeMusic();
-    }
+  const openBugfixes = () => {
+    setSettingsVisible(false);
+    setWebViewUrl(BUGFIX_URL);
+    setWebViewTitle('Updates & Fixes');
+    setWebViewVisible(true);
   };
 
-  const openBugfixesAdmin = async () => {
-    try {
-      browserOpenRef.current = true;
-      // Pause music when browser opens
-      AudioManager.pauseMusic();
-      // Make sure a session timer is running while the browser is up
-      startSessionTimer();
-      await WebBrowser.openBrowserAsync(BUGFIX_ADMIN_URL, {
-        // keep options minimal for broad compatibility
-        showTitle: true,
-        enableBarCollapsing: true,
-        dismissButtonStyle: 'done',
-      });
-    } finally {
-      // Whether user closed it or we dismissed it, clean up and close settings
-      browserOpenRef.current = false;
-      stopSessionTimer();
-      closeAllOverlays();
-      // Resume music when browser closes
-      AudioManager.resumeMusic();
-    }
+  const openBugfixesAdmin = () => {
+    setSettingsVisible(false);
+    setWebViewUrl(BUGFIX_ADMIN_URL);
+    setWebViewTitle('Admin - Updates & Fixes');
+    setWebViewVisible(true);
   };
 
 
@@ -303,7 +270,6 @@ export default function HomeScreen({ navigation, registerCleanup }) {
         Alert.alert('Success', 'Bug report submitted successfully!');
         setDiscordMessage('');
         setShowDiscordModal(false);
-        AudioManager.resumeMusic();
       } else {
         Alert.alert('Error', 'Failed to submit bug report');
       }
@@ -344,6 +310,8 @@ export default function HomeScreen({ navigation, registerCleanup }) {
               key={mode.id}
               style={[styles.gameModeCard, isTablet && responsiveStyles.gameModeCard]}
               onPress={() => navigateToGame(mode.id)}
+              onLongPress={index === GAME_MODES.length - 1 ? openBugfixesAdmin : undefined}
+              delayLongPress={1000}
               activeOpacity={0.8}
             >
               <Image 
@@ -374,6 +342,16 @@ export default function HomeScreen({ navigation, registerCleanup }) {
           ))}
         </View>
 
+        {/* Leaderboard Button */}
+        <TouchableOpacity
+          style={styles.leaderboardButton}
+          onPress={() => setLeaderboardVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="trophy" size={20} color="#FFD700" />
+          <Text style={styles.leaderboardButtonText}>Leaderboard</Text>
+        </TouchableOpacity>
+
         {/* Top corner actions */}
         <View style={[styles.topBar, isTablet && { 
           left: '50%', 
@@ -392,7 +370,6 @@ export default function HomeScreen({ navigation, registerCleanup }) {
           </TouchableOpacity>
           <TouchableOpacity style={[styles.topRight, isTablet && { position: 'relative', right: 'auto' }]} onPress={() => {
             setSettingsVisible(true);
-            AudioManager.pauseMusic();
           }}>
             <Ionicons 
               name="settings-sharp" 
@@ -438,7 +415,6 @@ export default function HomeScreen({ navigation, registerCleanup }) {
                   style={styles.closeButton}
                   onPress={() => {
                     setSettingsVisible(false);
-                    AudioManager.resumeMusic();
                   }}
                 >
                   <Text style={styles.closeButtonText}>Close</Text>
@@ -450,17 +426,16 @@ export default function HomeScreen({ navigation, registerCleanup }) {
 
         {/* Discord Message Custom Overlay - Replace Modal to fix touch issues */}
         {showDiscordModal && (
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]}>
+          <View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]}>
+            <GestureHandlerRootView style={StyleSheet.absoluteFill}>
               <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
+                <View style={styles.modalContent}>
                 {/* Buttons at the top */}
                 <View style={styles.buttonRow}>
                   <TouchableOpacity
                     style={[styles.modalButton, styles.cancelButton]}
                     onPress={() => {
                       setShowDiscordModal(false);
-                      AudioManager.resumeMusic();
                     }}
                   >
                     <Text style={styles.modalButtonText}>Cancel</Text>
@@ -494,10 +469,58 @@ export default function HomeScreen({ navigation, registerCleanup }) {
                   </TouchableOpacity>
                   <Text style={styles.disclaimerText}>.</Text>
                 </View>
+                </View>
               </View>
-            </View>
+            </GestureHandlerRootView>
           </View>
-        </GestureHandlerRootView>
+        )}
+
+        {/* WebView Modal for Privacy Policy and Bug Fixes */}
+        <WebViewModal
+          visible={webViewVisible}
+          url={webViewUrl}
+          title={webViewTitle}
+          onClose={() => {
+            setWebViewVisible(false);
+          }}
+        />
+
+        {/* Leaderboard Modal with Game Mode Tabs */}
+        {leaderboardVisible && (
+          <View style={[StyleSheet.absoluteFill, { zIndex: 9998 }]}>
+            {/* Game Mode Tabs */}
+            <View style={styles.leaderboardTabsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.leaderboardTab,
+                  leaderboardGameMode === 'endless-plunge' && styles.leaderboardTabActive
+                ]}
+                onPress={() => setLeaderboardGameMode('endless-plunge')}
+              >
+                <Text style={[
+                  styles.leaderboardTabText,
+                  leaderboardGameMode === 'endless-plunge' && styles.leaderboardTabTextActive
+                ]}>Endless Plunge</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.leaderboardTab,
+                  leaderboardGameMode === 'quick-flush' && styles.leaderboardTabActive
+                ]}
+                onPress={() => setLeaderboardGameMode('quick-flush')}
+              >
+                <Text style={[
+                  styles.leaderboardTabText,
+                  leaderboardGameMode === 'quick-flush' && styles.leaderboardTabTextActive
+                ]}>Practice</Text>
+              </TouchableOpacity>
+            </View>
+            <LeaderboardModal
+              visible={true}
+              onClose={() => setLeaderboardVisible(false)}
+              gameMode={leaderboardGameMode}
+            />
+          </View>
         )}
       </View>
     </ImageBackground>
@@ -526,8 +549,8 @@ const styles = StyleSheet.create({
   },
   underHeaderContainer: {
     alignItems: 'center',
-    marginTop: 65,
-    marginBottom: 5,
+    marginTop: 45,
+    marginBottom: 0,
   },
   underHeaderImage: {
     width: width * 0.75,
@@ -551,12 +574,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     width: width * 0.95,
-    height: 220,
-    marginVertical: -10,
+    height: 140,
+    marginVertical: -14,
   },
   gameModeImage: {
-    width: width * 0.765, // 10% smaller (was 0.85)
-    height: 291.6, // 10% smaller (was 324)
+    width: width * 0.65,
+    height: 210,
     alignSelf: 'center',
   },
   highScoreContainer: {
@@ -584,6 +607,64 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000000',
   },
+  leaderboardButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(45, 27, 78, 0.95)',
+    borderRadius: 25,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    marginTop: 24,
+    marginBottom: 40,
+    borderWidth: 2,
+    borderColor: '#FFD700',
+    gap: 8,
+    alignSelf: 'center',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  leaderboardButtonText: {
+    color: '#FFD700',
+    fontSize: 16,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  leaderboardTabsContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+    zIndex: 10000,
+    paddingHorizontal: 20,
+  },
+  leaderboardTab: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(30, 30, 46, 0.9)',
+    borderWidth: 2,
+    borderColor: '#3D3D4D',
+  },
+  leaderboardTabActive: {
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    borderColor: '#FFD700',
+  },
+  leaderboardTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#888',
+  },
+  leaderboardTabTextActive: {
+    color: '#FFD700',
+  },
   topBar: {
     position: 'absolute',
     left: 0,
@@ -609,7 +690,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 80,
   },
   modalCard: {
     width: '80%',
@@ -649,7 +731,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     padding: 35,
     width: width * 0.85,
-    maxHeight: height * 0.75,
+    maxHeight: height * 0.55,
     alignItems: 'center',
     borderWidth: 3,
     borderColor: '#000000', // Black border
@@ -658,7 +740,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 15,
     elevation: 10,
-    marginTop: -180, // Move the modal up closer to the top
   },
   menuItem: {
     backgroundColor: '#3B82F6', // Darker blue buttons

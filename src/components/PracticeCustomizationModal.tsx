@@ -67,21 +67,25 @@ const PracticeCustomizationModal: React.FC<Props> = ({
   };
 
   const skinMap: { [key: string]: any } = {
-    'tp.png': require('../../assets/tp.png'),
-    'halloween1.png': require('../../assets/halloween1.png'),
-    'halloween2.png': require('../../assets/halloween2.png'),
-    'halloween3.png': require('../../assets/halloween3.png'),
-    'halloween4.png': require('../../assets/halloween4.png'),
-    'halloween5.png': require('../../assets/halloween5.png'),
+    'tp.png': require('../../assets/default/tp.png'),
+    'tp-blue.png': require('../../assets/default/tp-blue.png'),
+    'tp-green.png': require('../../assets/default/tp-green.png'),
+    'tp-orange.png': require('../../assets/default/tp-orange.png'),
+    'tp-pink.png': require('../../assets/default/tp-pink.png'),
+    'tp-purple.png': require('../../assets/default/tp-purple.png'),
+    'tp-rainbow.png': require('../../assets/default/tp-rainbow.png'),
+    'tp-red.png': require('../../assets/default/tp-red.png'),
   };
 
   const skinNames: { [key: string]: string } = {
-    'tp.png': 'Classic White',
-    'halloween1.png': 'Spooky Pumpkin',
-    'halloween2.png': 'Ghostly White',
-    'halloween3.png': 'Witch Hat Black',
-    'halloween4.png': 'Candy Corn',
-    'halloween5.png': 'Blood Moon Red',
+    'tp.png': 'Classic',
+    'tp-blue.png': 'Blue',
+    'tp-green.png': 'Green',
+    'tp-orange.png': 'Orange',
+    'tp-pink.png': 'Pink',
+    'tp-purple.png': 'Purple',
+    'tp-rainbow.png': 'Rainbow',
+    'tp-red.png': 'Red',
   };
 
   const trailNames: { [key: string]: string } = {

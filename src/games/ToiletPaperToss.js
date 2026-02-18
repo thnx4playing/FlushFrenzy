@@ -28,6 +28,7 @@ import { Audio } from "expo-av";
 import Svg, { Polygon, Circle as SvgCircle, Rect } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AxisAimPad from "../components/input/AxisAimPad";
+import TouchlessControls from "../components/input/TouchlessControls";
 import TrajectoryOverlay from "../../components/TrajectoryOverlay";
 import GameHUD from "../ui/GameHUD";
 import LevelUpBanner from "../components/LevelUpBanner";
@@ -39,6 +40,9 @@ import TrailRenderer from "../game/TrailRenderer";
 import { useAudioStore } from '../audio/AudioStore';
 import { isTablet, getResponsiveSize } from '../utils/responsiveLayout';
 import { loadPracticeConfig, savePracticeConfig } from "../state/practiceConfig";
+import SubmitScoreModal from "../leaderboard/SubmitScoreModal";
+import LeaderboardModal from "../leaderboard/LeaderboardModal";
+import { getStoredInitials } from "../leaderboard/useLeaderboard";
 
 // Set up poly-decomp for Matter.js concave shapes
 import decomp from "poly-decomp";
@@ -982,6 +986,12 @@ export default function ToiletPaperToss({
 
   const [practiceGameStarted, setPracticeGameStarted] = useState(false);
 
+  // ===== Leaderboard State =====
+  const [submitScoreVisible, setSubmitScoreVisible] = useState(false);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [playerRank, setPlayerRank] = useState(null);
+  const [storedInitials, setStoredInitials] = useState("PLAYER");
+
 
 
 
@@ -1126,15 +1136,17 @@ export default function ToiletPaperToss({
   // Round math helpers
   const TP_SKINS = [
     "tp.png",
-    "halloween1.png",
-    "halloween2.png",
-    "halloween3.png",
-    "halloween4.png",
-    "halloween5.png",
+    "tp-blue.png",
+    "tp-green.png",
+    "tp-orange.png",
+    "tp-pink.png",
+    "tp-purple.png",
+    "tp-rainbow.png",
+    "tp-red.png",
   ];
 
   function pickRandomSkin(exclude) {
-    const pool = TP_SKINS.filter((s) => s !== exclude && s !== "tp.png"); // Exclude default skin from random selection
+    const pool = TP_SKINS.filter((s) => s !== exclude); // Exclude previously used skin from random selection
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
@@ -1401,7 +1413,7 @@ export default function ToiletPaperToss({
 
   // Load sounds
   useEffect(() => {
-    loadSounds();
+    if (gameMode !== 'touchless-toss') loadSounds();
     return () => {
       if (dingSound) {
         dingSound.unloadAsync();
@@ -1430,6 +1442,11 @@ export default function ToiletPaperToss({
     loadHighScoreData();
   }, [gameMode]);
 
+  // Load stored initials for leaderboard
+  useEffect(() => {
+    getStoredInitials().then(setStoredInitials);
+  }, []);
+
   // Initialize endless plunge session when game mode changes
   useEffect(() => {
     if (gameMode === "endless-plunge") {
@@ -1456,7 +1473,10 @@ export default function ToiletPaperToss({
   };
 
   // Apply mute state to loaded sounds
+  // NOTE: Skip setting allowsRecordingIOS=false in touchless mode,
+  // because the BlowDetector needs recording enabled for mic metering.
   useEffect(() => {
+    if (gameMode === 'touchless-toss') return; // BlowDetector manages audio mode
     const setupAudio = async () => {
       try {
         await Audio.setAudioModeAsync({
@@ -1847,8 +1867,8 @@ export default function ToiletPaperToss({
         />
       )}
 
-      {/* Quick Flush HUD - simplified version */}
-      {gameMode === "quick-flush" && (
+      {/* Quick Flush / Touchless HUD - simplified version */}
+      {(gameMode === "quick-flush" || gameMode === "touchless-toss") && (
         <GameHUD
           gameMode={gameMode}
           round={1}
@@ -1865,7 +1885,7 @@ export default function ToiletPaperToss({
 
       {/* Game Area */}
       <ImageBackground
-        source={require("../../assets/game_background_halloween.png")}
+        source={require("../../assets/default/background.png")}
         style={styles.gameArea}
         resizeMode="stretch"
       >
@@ -1896,34 +1916,18 @@ export default function ToiletPaperToss({
           dt={1 / 30}
         />
 
-        <View
-          style={{
-            position: "absolute",
-            bottom: 24,
-            left: 0,
-            right: 0,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <AxisAimPad
-            size={148.5} // AxisPad takes diameter (74.25 * 2)
-            deadZone={0.08} // matches your previous dead zone
-            powerCurve={1.0} // linear like the Snack
-            snapBackOnRelease // center stick on release (Snack behavior)
-            showPowerBar // enable the built-in aim/power bar
+        {/* Input Controls: AxisAimPad for touch modes, TouchlessControls for touchless mode */}
+        {gameMode === 'touchless-toss' ? (
+          <TouchlessControls
             onVector={({ dx, dy, power, angle, origin }) => {
-              // keep all your existing state logic intact
               stateRef.current.padActive = true;
               stateRef.current.padPower = power;
-              stateRef.current.padOrigin = origin; // keep origin for trajectory overlay
-              const PAD_SPEED = 12; // your existing constant
+              stateRef.current.padOrigin = origin;
+              const PAD_SPEED = 12;
               stateRef.current.padVel = {
                 x: dx * PAD_SPEED,
                 y: dy * PAD_SPEED,
               };
-
-              // Update lastAimRef for doLaunch
               lastAimRef.current = {
                 dir: { x: dx, y: dy },
                 power,
@@ -1932,8 +1936,6 @@ export default function ToiletPaperToss({
             }}
             onLaunch={({ dx, dy, power, angle, origin }) => {
               stateRef.current.padActive = false;
-              // Your doLaunch() uses stateRef.current.padVel/power already,
-              // so just ensure those are final before calling.
               const PAD_SPEED = 12;
               stateRef.current.padVel = {
                 x: dx * PAD_SPEED,
@@ -1941,18 +1943,65 @@ export default function ToiletPaperToss({
               };
               stateRef.current.padPower = power;
               stateRef.current.padOrigin = origin;
-
-              // Update lastAimRef for doLaunch
               lastAimRef.current = {
                 dir: { x: dx, y: dy },
                 power,
                 origin,
               };
-
               doLaunch();
             }}
           />
-        </View>
+        ) : (
+          <View
+            style={{
+              position: "absolute",
+              bottom: 24,
+              left: 0,
+              right: 0,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <AxisAimPad
+              size={148.5}
+              deadZone={0.08}
+              powerCurve={1.0}
+              snapBackOnRelease
+              showPowerBar
+              onVector={({ dx, dy, power, angle, origin }) => {
+                stateRef.current.padActive = true;
+                stateRef.current.padPower = power;
+                stateRef.current.padOrigin = origin;
+                const PAD_SPEED = 12;
+                stateRef.current.padVel = {
+                  x: dx * PAD_SPEED,
+                  y: dy * PAD_SPEED,
+                };
+                lastAimRef.current = {
+                  dir: { x: dx, y: dy },
+                  power,
+                  origin,
+                };
+              }}
+              onLaunch={({ dx, dy, power, angle, origin }) => {
+                stateRef.current.padActive = false;
+                const PAD_SPEED = 12;
+                stateRef.current.padVel = {
+                  x: dx * PAD_SPEED,
+                  y: dy * PAD_SPEED,
+                };
+                stateRef.current.padPower = power;
+                stateRef.current.padOrigin = origin;
+                lastAimRef.current = {
+                  dir: { x: dx, y: dy },
+                  power,
+                  origin,
+                };
+                doLaunch();
+              }}
+            />
+          </View>
+        )}
 
 
         {/* <StaticBodiesOverlay engine={engine} /> */}
@@ -1988,12 +2037,14 @@ export default function ToiletPaperToss({
             <Image
               source={(() => {
                 const skinMap = {
-                  "tp.png": require("../../assets/tp.png"),
-                  "halloween1.png": require("../../assets/halloween1.png"),
-                  "halloween2.png": require("../../assets/halloween2.png"),
-                  "halloween3.png": require("../../assets/halloween3.png"),
-                  "halloween4.png": require("../../assets/halloween4.png"),
-                  "halloween5.png": require("../../assets/halloween5.png"),
+                  "tp.png": require("../../assets/default/tp.png"),
+                  "tp-blue.png": require("../../assets/default/tp-blue.png"),
+                  "tp-green.png": require("../../assets/default/tp-green.png"),
+                  "tp-orange.png": require("../../assets/default/tp-orange.png"),
+                  "tp-pink.png": require("../../assets/default/tp-pink.png"),
+                  "tp-purple.png": require("../../assets/default/tp-purple.png"),
+                  "tp-rainbow.png": require("../../assets/default/tp-rainbow.png"),
+                  "tp-red.png": require("../../assets/default/tp-red.png"),
                 };
                 return skinMap[tpSkin] || skinMap["tp.png"];
               })()}
@@ -2201,6 +2252,20 @@ export default function ToiletPaperToss({
               </View>
             )}
 
+            {/* Submit Score to Leaderboard */}
+            {score > 0 && (
+              <TouchableOpacity
+                onPress={() => {
+                  setGameOverVisible(false);
+                  setSubmitScoreVisible(true);
+                }}
+                style={styles.submitScoreButton}
+              >
+                <Ionicons name="trophy" size={16} color="#FFD700" />
+                <Text style={styles.submitScoreButtonText}>Submit to Leaderboard</Text>
+              </TouchableOpacity>
+            )}
+
             {/* Action buttons */}
             <View style={styles.actionButtonsContainer}>
               <TouchableOpacity
@@ -2231,6 +2296,32 @@ export default function ToiletPaperToss({
         </View>
               </GestureHandlerRootView>
       </Modal>
+
+      {/* Submit Score Modal */}
+      <SubmitScoreModal
+        visible={submitScoreVisible}
+        onClose={() => setSubmitScoreVisible(false)}
+        onSuccess={(rank) => {
+          setPlayerRank(rank);
+          setSubmitScoreVisible(false);
+          setLeaderboardVisible(true);
+        }}
+        gameMode={gameMode}
+        score={score}
+        round={gameMode === "endless-plunge" ? epRound : undefined}
+        defaultInitials={storedInitials}
+      />
+
+      {/* Leaderboard Modal */}
+      <LeaderboardModal
+        visible={leaderboardVisible}
+        onClose={() => {
+          setLeaderboardVisible(false);
+          setPlayerRank(null);
+        }}
+        gameMode={gameMode}
+        highlightRank={playerRank}
+      />
     </View>
   );
 }
@@ -2500,6 +2591,31 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
+  },
+  submitScoreButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(45, 27, 78, 0.95)",
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: "#FFD700",
+    gap: 8,
+    shadowColor: "#FFD700",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  submitScoreButtonText: {
+    color: "#FFD700",
+    fontSize: 14,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   actionButtonsContainer: {
     flexDirection: "row",

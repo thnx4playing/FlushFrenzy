@@ -41,11 +41,14 @@ export default function GameScreen({ route, navigation }) {
   const gameNames = {
     'quick-flush': 'Quick Flush',
     'endless-plunge': 'Endless Plunge',
+    'touchless-toss': 'Touchless Toss',
   };
 
   const getGameModeDescription = () => {
     if (gameMode === 'quick-flush') {
       return 'You have 60 seconds to score as many points as possible!';
+    } else if (gameMode === 'touchless-toss') {
+      return 'Aim with your head, blow to launch! No touching required.';
     } else {
       return 'Keep tossing until you miss 3 times!';
     }
@@ -71,7 +74,7 @@ export default function GameScreen({ route, navigation }) {
   if (showTutorial) {
     return (
       <ImageBackground 
-        source={require('../../assets/game_background_halloween.png')} 
+        source={require('../../assets/default/background.png')} 
         style={styles.container}
         resizeMode="stretch"
       >
