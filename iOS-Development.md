@@ -1,42 +1,60 @@
 # iOS Development Guide for Flush Frenzy
 
+**Updated: February 2026 - Touchless Mode V2**
+
 ## Quick Start
 
-### Windows Users
-1. **Initial Setup** (run once):
+1. **On Windows** - Prepare project:
    ```powershell
    .\setup-xcode.ps1
    ```
 
-### macOS Users
-1. **Initial Setup** (run once):
+2. **On macOS** - Full iOS setup:
    ```bash
    ./setup-xcode.sh
    ```
 
-2. **Daily Development**:
+3. **Open Xcode**:
    ```bash
-   ./ios-setup.sh    # Clean rebuild when needed
-   ./xcode-open.sh   # Open Xcode workspace
+   open ios/FlushFrenzy.xcworkspace
    ```
+
+## Current Project Configuration
+
+| Setting | Value |
+|---------|-------|
+| Version | 1.3.1 |
+| Build Number | 10 |
+| iOS Deployment Target | 16.0 |
+| Bundle Identifier | com.thnx4playing.FlushFrenzy |
+
+### Plugins Configured
+- `expo-build-properties` - iOS 16.0 deployment target
+- `expo-camera` - Camera permission for touchless mode
+- `react-native-vision-camera` - Vision camera for face detection
+- `expo-av` - Audio/video for blow detection
+- `expo-audio` - Microphone access
+
+### Permissions
+- **Camera**: "Used in Touchless Mode for head tracking to aim without touching the screen."
+- **Microphone**: "Used in Touchless Mode to detect blowing into the microphone to launch toilet paper rolls."
 
 ## Development Workflow
 
 ### Prerequisites
-- **macOS** with Xcode installed (for iOS builds)
-- **iOS Simulator** or physical iOS device
-- **Apple Developer Account** (for device testing)
-- **Node.js** (18.x or later)
-- **Expo CLI** and **EAS CLI**
+- macOS with Xcode 15+ installed
+- iOS 16.0+ Simulator or physical device
+- Apple Developer Account (for device testing)
+- CocoaPods installed (`sudo gem install cocoapods`)
 
 ### Scripts Available
 
-| Script | Purpose | Platform |
-|--------|---------|----------|
-| `./setup-xcode.sh` | Complete project setup for Xcode | macOS |
-| `.\setup-xcode.ps1` | Initial setup and preparation | Windows/macOS |
-| `./ios-setup.sh` | Quick iOS rebuild and pod install | macOS |
-| `./xcode-open.sh` | Open Xcode workspace | macOS |
+| Script | Platform | Purpose |
+|--------|----------|---------|
+| `./setup-xcode.sh` | macOS | Complete project setup for Xcode |
+| `.\setup-xcode.ps1` | Windows | Prepare project (prebuild only) |
+| `./ios-setup.sh` | macOS | Quick iOS rebuild and pod install |
+| `./xcode-open.sh` | macOS | Open Xcode workspace |
 
 ### NPM Scripts
 
@@ -47,25 +65,30 @@
 | `npm run ios:dev` | Run on connected iOS device |
 | `npm run prebuild:ios` | Rebuild iOS native code |
 | `npm run pods` | Install CocoaPods dependencies |
-| `npm run clean` | Clean all builds and rebuild (Unix) |
-| `npm run clean:win` | Clean all builds and rebuild (Windows) |
+| `npm run clean` | Clean all builds and rebuild |
 
-### Building for Distribution
+## Manual Setup Steps
 
-1. **Development Build**:
-   ```bash
-   npm run build:ios:dev
-   ```
+If scripts don't work, follow these steps:
 
-2. **Production Build**:
-   ```bash
-   npm run build:ios
-   ```
+```bash
+# 1. Install dependencies
+npm install
 
-3. **Submit to App Store**:
-   ```bash
-   npm run submit:ios
-   ```
+# 2. Clean previous builds
+rm -rf ios/ .expo/
+
+# 3. Generate iOS project
+npx expo prebuild --platform ios --clean
+
+# 4. Install CocoaPods (macOS only)
+cd ios
+pod install --repo-update
+cd ..
+
+# 5. Open in Xcode
+open ios/FlushFrenzy.xcworkspace
+```
 
 ## Xcode Configuration
 
@@ -76,33 +99,32 @@
 4. Select your development team
 5. Xcode will automatically provision the app
 
-### Bundle Identifier
-- **Production**: `com.thnx4playing.FlushFrenzy`
-- Ensure this matches your Apple Developer account
-
 ### Key iOS Settings
-- **Target iOS Version**: iOS 13.0+
+- **Target iOS Version**: iOS 16.0+
 - **Orientation**: Portrait only
-- **Background Modes**: Audio (for game sounds)
-- **Privacy**: No camera/microphone permissions required
-- **Full Screen**: Required (no home indicator)
+- **Requires Full Screen**: Yes
+- **Background Modes**: None required
 
-## iOS-Specific Features
+## Building for Distribution
 
-### Audio Configuration
-- Background audio playback enabled
-- No microphone permissions requested
-- Optimized for game sound effects and music
+### EAS Build (Recommended)
 
-### Network Security
-- Configured for HTTPS connections to virtuixtech.com
-- Bug fixes browser functionality enabled
-- Secure web browser integration
+1. **Development Build** (for testing):
+   ```bash
+   eas build --platform ios --profile development
+   ```
 
-### Performance
-- Portrait-only orientation for optimal gameplay
-- Full-screen experience
-- Optimized for iOS devices (iPhone focus, no iPad)
+2. **Production Build** (for TestFlight/App Store):
+   ```bash
+   eas build --platform ios --profile production --auto-submit
+   ```
+
+### Local Xcode Build
+
+1. Open `ios/FlushFrenzy.xcworkspace`
+2. Select "Any iOS Device" or your device
+3. Product → Archive
+4. Distribute to App Store Connect
 
 ## Troubleshooting
 
@@ -112,14 +134,15 @@
    ```bash
    cd ios
    pod deintegrate
+   pod cache clean --all
    pod install --repo-update
    ```
 
-2. **Build Errors**:
+2. **Build Errors After Config Changes**:
    ```bash
-   npm run clean      # macOS/Linux
-   npm run clean:win  # Windows
-   ./ios-setup.sh     # macOS only
+   rm -rf ios/
+   npx expo prebuild --platform ios --clean
+   cd ios && pod install && cd ..
    ```
 
 3. **Metro Bundle Issues**:
@@ -132,75 +155,40 @@
    - Verify bundle identifier matches your Apple ID
    - Clean build folder (Cmd+Shift+K in Xcode)
 
-5. **Simulator Issues**:
-   ```bash
-   xcrun simctl erase all
-   npm run ios:sim
-   ```
+5. **Vision Camera / Worklets Issues**:
+   - Ensure iOS 16.0+ deployment target
+   - Check babel.config.js has worklets plugin
+   - Rebuild with clean prebuild
 
 ### Getting Help
 
-- **Expo Documentation**: https://docs.expo.dev/
-- **iOS-specific Expo docs**: https://docs.expo.dev/workflow/ios/
-- **React Native iOS guide**: https://reactnative.dev/docs/running-on-ios
-- **EAS Build docs**: https://docs.expo.dev/build/introduction/
+- Expo documentation: https://docs.expo.dev/
+- React Native Vision Camera: https://react-native-vision-camera.com/
+- EAS Build docs: https://docs.expo.dev/build/introduction/
 
 ## Project Structure
 
 ```
 ios/
 ├── FlushFrenzy/                # Main iOS app
-├── FlushFrenzy.xcodeproj/      # Xcode project
-├── FlushFrenzy.xcworkspace/    # Xcode workspace (use this)
+│   ├── AppDelegate.mm          # App delegate
+│   ├── Info.plist              # App configuration
+│   └── Supporting/             # Supporting files
+├── FlushFrenzy.xcodeproj/      # Xcode project (don't use directly)
+├── FlushFrenzy.xcworkspace/    # Xcode workspace (USE THIS)
 ├── Podfile                     # CocoaPods dependencies
 └── Pods/                       # Installed pods
 ```
 
-## Development Environment
+## Touchless Mode Notes
 
-### Required Tools
-- **Xcode** (latest stable version)
-- **iOS Simulator** (included with Xcode)
-- **CocoaPods** (for iOS dependencies)
-- **Expo CLI** (`npm install -g @expo/cli`)
-- **EAS CLI** (`npm install -g eas-cli`)
+The current build (v1.3.1 build 10) has:
+- Frame processor disabled (worklets threading issues)
+- Auto-sweep aiming enabled by default
+- Single blow = launch
+- Camera renders for Apple compliance but no face detection active
 
-### Optional Tools
-- **iOS Device** (for testing on real hardware)
-- **Flipper** (for debugging)
-- **React Native Debugger**
-
-## Next Steps After Setup
-
-### First Time Setup
-1. Run setup script: `./setup-xcode.sh` (macOS) or `.\setup-xcode.ps1` (Windows)
-2. Open Xcode workspace: `./xcode-open.sh`
-3. Configure development team in Xcode
-4. Test on simulator: `npm run ios:sim`
-
-### Daily Development
-1. Start development server: `npm start`
-2. Run on simulator: `npm run ios:sim`
-3. Make changes and hot reload
-4. Test on device when needed: `npm run ios:dev`
-
-### Before Release
-1. Test thoroughly on simulator and device
-2. Build for TestFlight: `npm run build:ios:dev`
-3. Submit for review: `npm run submit:ios`
-
-## App Store Information
-
-- **App Store Connect ID**: 6749656491
-- **Bundle ID**: com.thnx4playing.FlushFrenzy
-- **Team**: thnx4playing
-
-## Support
-
-For issues specific to this project, check:
-1. This documentation
-2. Project issues on GitHub
-3. Expo/React Native documentation
-4. iOS development forums
-
-Happy coding! 🚀
+To re-enable face detection in the future:
+1. Fix worklets threading in `TouchlessControls.tsx`
+2. Uncomment frame processor code
+3. Set `useFaceDetection` initial state to `true`
