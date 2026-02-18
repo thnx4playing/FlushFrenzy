@@ -1,5 +1,5 @@
 // Make config per mode immutable and never mutate these at runtime.
-export type GameMode = 'endless-plunge' | 'quick-flush';
+export type GameMode = 'endless-plunge' | 'quick-flush' | 'touchless-toss';
 
 export type ModeConfig = {
   gravityY: number;
@@ -25,6 +25,13 @@ export const CONFIG: Readonly<Record<GameMode, Readonly<ModeConfig>>> = {
     timerSecs: 60, // 60 second challenge
     aimPad: { radius: 90, bottomInset: 24 },
   }),
+  'touchless-toss': Object.freeze({
+    gravityY: 0.3,
+    walls: true,
+    movingToilet: true,
+    timerSecs: 0, // No timer — practice/accessibility mode
+    aimPad: { radius: 90, bottomInset: 24 },
+  }),
 };
 
 function deepClone<T>(obj: T): T {
@@ -41,7 +48,7 @@ export function freshConfig(
   mode?: GameMode,
   overrides: Partial<ModeConfig> = {}
 ): ModeConfig {
-  const fallback: GameMode = 'practice';
+  const fallback: GameMode = 'quick-flush';
   const chosen: GameMode = (mode && (CONFIG as any)[mode]) ? mode : fallback;
 
   if (!mode || !(CONFIG as any)[mode]) {

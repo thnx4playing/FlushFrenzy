@@ -5,9 +5,9 @@ module.exports = {
     owner: "thnx4playing",
     name: "Flush Frenzy",
     slug: "FlushFrenzy",
-    version: "1.2.0",
+    version: "1.3.1",
     orientation: "portrait",
-    icon: path.resolve(__dirname, 'assets/app-icon-halloween.png'),
+    icon: path.resolve(__dirname, 'assets/default/app-icon.png'),
     userInterfaceStyle: "light",
     loading: {
       backgroundColor: "transparent"
@@ -16,8 +16,8 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.thnx4playing.FlushFrenzy",
-      buildNumber: "8",
-      icon: path.resolve(__dirname, 'assets/app-icon-halloween.png'),
+      buildNumber: "10",
+      icon: path.resolve(__dirname, 'assets/default/app-icon.png'),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSAppTransportSecurity: {
@@ -30,8 +30,8 @@ module.exports = {
             }
           }
         },
-        NSMicrophoneUsageDescription: "This app does not use the microphone.",
-        NSCameraUsageDescription: "This app does not use the camera.",
+        NSMicrophoneUsageDescription: "Used in Touchless Mode to detect blowing into the microphone to launch toilet paper rolls.",
+        NSCameraUsageDescription: "Used in Touchless Mode for head tracking to aim without touching the screen.",
         UIRequiresFullScreen: true,
         UISupportedInterfaceOrientations: ["UIInterfaceOrientationPortrait"]
       },
@@ -61,18 +61,39 @@ module.exports = {
     
     // Plugins
     plugins: [
+      [
+        "expo-build-properties",
+        {
+          ios: {
+            deploymentTarget: "16.0"
+          }
+        }
+      ],
       "expo-web-browser",
       "expo-dev-client",
       [
+        "expo-camera",
+        {
+          cameraPermission: "Used in Touchless Mode for head tracking to aim without touching the screen.",
+          microphonePermission: "Used in Touchless Mode to detect blowing into the microphone to launch toilet paper rolls."
+        }
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          cameraPermissionText: "Used in Touchless Mode for head tracking to aim without touching the screen."
+        }
+      ],
+      [
         "expo-av",
         {
-          microphonePermission: false
+          microphonePermission: "Used in Touchless Mode to detect blowing into the microphone to launch toilet paper rolls."
         }
       ],
       [
         "expo-audio",
         {
-          microphonePermission: false
+          microphonePermission: "Used in Touchless Mode to detect blowing into the microphone to launch toilet paper rolls."
         }
       ]
     ]

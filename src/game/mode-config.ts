@@ -1,5 +1,5 @@
 // src/game/mode-config.ts
-export type GameMode = 'endless-plunge' | 'quick-flush';
+export type GameMode = 'endless-plunge' | 'quick-flush' | 'touchless-toss';
 
 export type ModeConfig = {
   // physics
@@ -45,6 +45,13 @@ export const PRESETS: Record<GameMode, ModeConfig> = {
     roundTimeSec: undefined,
     pointsToAdvance: undefined,
     movingToiletSpeed: 1.0,
+  },
+  'touchless-toss': {
+    ...BASE,
+    // Touchless mode: no timer, moderate toilet speed, accessibility-focused
+    roundTimeSec: undefined,
+    pointsToAdvance: undefined,
+    movingToiletSpeed: 0.6, // Slower toilet for accessibility
   },
 };
 
