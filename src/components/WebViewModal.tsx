@@ -12,20 +12,16 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
-
 const { width, height } = Dimensions.get('window');
-
 type Props = {
   visible: boolean;
   url: string;
   title?: string;
   onClose: () => void;
 };
-
 const WebViewModal: React.FC<Props> = ({ visible, url, title, onClose }) => {
   const [loading, setLoading] = useState(true);
   const insets = useSafeAreaInsets();
-
   return (
     <Modal
       visible={visible}
@@ -45,7 +41,6 @@ const WebViewModal: React.FC<Props> = ({ visible, url, title, onClose }) => {
           </Text>
           <View style={styles.placeholder} />
         </View>
-
         {/* WebView */}
         <View style={styles.webViewContainer}>
           <WebView
@@ -57,6 +52,12 @@ const WebViewModal: React.FC<Props> = ({ visible, url, title, onClose }) => {
             javaScriptEnabled={true}
             domStorageEnabled={true}
             allowsInlineMediaPlayback={true}
+            // iOS: auto-grant camera/mic if the WebView URL is the same host
+            // as the app's entitlement — no per-session prompt
+            mediaCapturePermissionGrantType="grantIfSameHostElsePrompt"
+            mediaPlaybackRequiresUserAction={false}
+            // Android: auto-grant whatever resources the page requests
+            onPermissionRequest={(request) => request.grant(request.resources)}
           />
           {loading && (
             <View style={styles.loadingOverlay}>
@@ -68,7 +69,6 @@ const WebViewModal: React.FC<Props> = ({ visible, url, title, onClose }) => {
     </Modal>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -117,8 +117,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
-
 export default WebViewModal;
-
-
-

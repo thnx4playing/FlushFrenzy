@@ -1,3 +1,4 @@
+// Path: src/audio/AudioManager.js
 import { Audio } from 'expo-av';
 import { useAudioStore } from './AudioStore';
 
@@ -5,25 +6,30 @@ import { useAudioStore } from './AudioStore';
 class AudioManagerClass {
   constructor() {
     this._initialized = false;
-    this._music = null;       // Audio.Sound
-    this._musicKind = null;   // 'menu' | 'game'
-    this._sfx = {};           // { ding, water_drop }
+    this._music = null;
+    this._musicKind = null;
+    this._sfx = {};
     this._unsub = null;
   }
 
   async init() {
     if (this._initialized) return;
     try {
+      // MUSIC FIX: Prime the audio session for BOTH recording and playback from the start.
+      // If we start with allowsRecordingIOS: false, BlowDetector later changes the category
+      // to PlayAndRecord which triggers an iOS interruption that kills the music.
+      // Starting with allowsRecordingIOS: true + MixWithOthers means BlowDetector's
+      // setAudioModeAsync call won't change the category, so no interruption fires.
       await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
+        allowsRecordingIOS: true,
         staysActiveInBackground: false,
         playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
+        interruptionModeIOS: 0,        // MIX_WITH_OTHERS — keep music playing during recording
+        shouldDuckAndroid: false,
+        interruptionModeAndroid: 2,
         playThroughEarpieceAndroid: false,
       });
 
-      // Preload music + sfx
-      // NOTE: Replace these with different tracks if you have them
       const { sound: menu } = await Audio.Sound.createAsync(
         require('../../assets/jingle.m4a'),
         { shouldPlay: false, isLooping: true }
@@ -42,7 +48,6 @@ class AudioManagerClass {
       this._sfx.ding = ding;
       this._sfx.water_drop = water;
 
-      // React to global state changes (mute/volume)
       const store = useAudioStore.getState();
       this._applyState(store);
       this._unsub = useAudioStore.subscribe((s) => {
@@ -50,14 +55,11 @@ class AudioManagerClass {
       });
 
       this._initialized = true;
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   _applyState(state) {
-    // Music volume/mute
     if (this._music) {
-      // Add state verification to catch audio desync
       this._music.getStatusAsync().then(status => {
         if (!status.isLoaded) {
           this._music = null;
@@ -65,35 +67,29 @@ class AudioManagerClass {
           this.init();
           return;
         }
-        
         try {
           const mv = state.musicMuted ? 0 : state.musicVolume ?? 1;
-          this._music.setVolumeAsync(mv).catch((e) => {});
+          this._music.setVolumeAsync(mv).catch(() => {});
           if (state.musicMuted) {
-            this._music.setIsMutedAsync(true).catch((e) => {});
-            this._music.stopAsync().catch((e) => {});
+            this._music.setIsMutedAsync(true).catch(() => {});
+            this._music.stopAsync().catch(() => {});
           } else {
-            this._music.setIsMutedAsync(false).catch((e) => {});
-            
-            // If we're unmuting and have music loaded, start playing based on current music kind
+            this._music.setIsMutedAsync(false).catch(() => {});
             if (this._musicKind === 'menu') {
-              this._music.replayAsync().catch((e) => {});
+              this._music.replayAsync().catch(() => {});
             } else if (this._musicKind === 'game') {
-              this._music.playAsync().catch((e) => {});
+              this._music.playAsync().catch(() => {});
             }
           }
         } catch (error) {
-          // Reset music instance if there's an error
           this._music = null;
           this._musicKind = null;
         }
-      }).catch(e => {
-        this._music = null; // Force reinit
+      }).catch(() => {
+        this._music = null;
         this._musicKind = null;
       });
-    } else {
     }
-    // SFX volume/mute
     const sv = state.sfxMuted ? 0 : state.sfxVolume ?? 1;
     for (const key of Object.keys(this._sfx)) {
       const snd = this._sfx[key];
@@ -101,7 +97,6 @@ class AudioManagerClass {
         try {
           snd.setVolumeAsync(sv).catch(() => {});
         } catch (error) {
-          // Remove problematic SFX instance
           this._sfx[key] = null;
         }
       }
@@ -117,7 +112,6 @@ class AudioManagerClass {
     const { musicMuted } = useAudioStore.getState();
     if (!this._music || this._musicKind !== 'menu') {
       try {
-        // unload previous and load menu track (using jingle as menu here)
         if (this._music) await this._music.unloadAsync().catch(() => {});
         const { sound } = await Audio.Sound.createAsync(
           require('../../assets/jingle.m4a'),
@@ -134,13 +128,10 @@ class AudioManagerClass {
     }
     if (!musicMuted && this._music) {
       try {
-        // Ensure mute flag is cleared before playing
         await this._music.setIsMutedAsync(false).catch(() => {});
         await this._music.stopAsync().catch(() => {});
         await this._music.replayAsync().catch(() => {});
-      } catch (error) {
-      }
-    } else {
+      } catch (error) {}
     }
   }
 
@@ -149,7 +140,6 @@ class AudioManagerClass {
     const { musicMuted } = useAudioStore.getState();
     if (!this._music || this._musicKind !== 'game') {
       if (this._music) await this._music.unloadAsync().catch(() => {});
-      // reuse jingle as a placeholder; swap to your real game track if you have it
       const { sound } = await Audio.Sound.createAsync(
         require('../../assets/jingle.m4a'),
         { shouldPlay: false, isLooping: loop }
@@ -159,7 +149,6 @@ class AudioManagerClass {
       this._applyState(useAudioStore.getState());
     }
     if (!musicMuted) {
-      // Ensure mute flag is cleared before playing
       await this._music.setIsMutedAsync(false).catch(() => {});
       await this._music.stopAsync().catch(() => {});
       await this._music.playAsync().catch(() => {});
@@ -168,28 +157,20 @@ class AudioManagerClass {
 
   async stopMusic() {
     await this._ensureInit();
-    if (this._music) {
-      await this._music.stopAsync().catch(() => {});
-    }
+    if (this._music) await this._music.stopAsync().catch(() => {});
   }
 
   async pauseMusic() {
     await this._ensureInit();
     if (this._music) {
-      try {
-        await this._music.pauseAsync();
-      } catch (error) {
-      }
+      try { await this._music.pauseAsync(); } catch (error) {}
     }
   }
 
   async resumeMusic() {
     await this._ensureInit();
     if (this._music) {
-      try {
-        await this._music.playAsync();
-      } catch (error) {
-      }
+      try { await this._music.playAsync(); } catch (error) {}
     }
   }
 
@@ -214,4 +195,5 @@ class AudioManagerClass {
     this._initialized = false;
   }
 }
+
 export const AudioManager = new AudioManagerClass();

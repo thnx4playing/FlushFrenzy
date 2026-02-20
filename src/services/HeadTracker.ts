@@ -1,56 +1,82 @@
-// src/services/HeadTracker.ts
-// Processes face yaw angle from react-native-vision-camera-face-detector (MLKit)
-// into a normalized [-1, +1] range for controlling the aim direction.
-//
-// Returns yaw in range [-1, +1]:
-//   -1 = head turned fully left
-//    0 = looking straight ahead
-//   +1 = head turned fully right
+// Path: src/services/HeadTracker.ts
 
 export interface HeadTrackerCallbacks {
-  /** Called every frame with the normalized yaw value [-1, +1]. */
   onYawUpdate: (yaw: number) => void;
 }
 
-// Maximum yaw angle (degrees) that maps to full aim deflection.
-// ~30° head turn = full aim. MLKit yaw range is typically -45 to +45.
-// Tune this for comfort — lower = more sensitive.
-const MAX_YAW_DEGREES = 30;
+// ±15° maps to full ±1 range (was 30°) — doubles sensitivity.
+// User now only needs to turn their head 15° for full slider travel.
+const MAX_YAW_DEGREES = 10;  // ±10° = full slider range (was 15°); lower = less head turn needed
 
-// Exponential moving average smoothing factor.
-// 0 = no smoothing (raw/jittery), 1 = maximum smoothing (very laggy).
-// 0.3 is responsive enough for a game while filtering out noise.
-const SMOOTHING = 0.15;
+// Smoothing: 0.72 = smooth EMA. Increase toward 0.85 for more glide,
+// decrease toward 0.55 for snappier response.
+const SMOOTHING = 0.82;  // higher = smoother (was 0.72); range 0.7–0.92
 
 let smoothedYaw = 0;
 
-/**
- * Process a raw yaw angle from MLKit face detection into a smoothed,
- * clamped [-1, +1] value. Call this from the frame processor callback.
- *
- * @param rawYawDegrees - The yawAngle from the detected face (degrees)
- * @param callbacks - Object with onYawUpdate callback
- */
+let _frameCount      = 0;
+let _fpsWindowStart  = 0;
+let _lastCallTime    = 0;
+let _stallWarnedAt   = 0;
+
+const STALL_THRESHOLD_MS = 500;
+const FPS_WINDOW_MS      = 1000;
+
+export const headTrackerStats = {
+  fps:         0,
+  lastCallMs:  0,
+  totalFrames: 0,
+  rawYawDeg:   0,
+  smoothedYaw: 0,
+  isStale:     false,
+};
+
+export function tickHeadTrackerStats(): void {
+  const now = Date.now();
+  const msSinceUpdate = _lastCallTime > 0 ? now - _lastCallTime : 0;
+  headTrackerStats.lastCallMs = msSinceUpdate;
+  headTrackerStats.isStale    = _lastCallTime > 0 && msSinceUpdate > STALL_THRESHOLD_MS;
+
+  if (headTrackerStats.isStale && now - _stallWarnedAt > 2000) {
+    _stallWarnedAt = now;
+    smoothedYaw = 0;
+    console.warn(`[HeadTracker] STALE — no yaw update for ${Math.round(msSinceUpdate)}ms`);
+  }
+}
+
 export function processYaw(
   rawYawDegrees: number,
   callbacks: HeadTrackerCallbacks
 ): void {
-  // Clamp raw yaw to our max range
-  const clamped = Math.max(-MAX_YAW_DEGREES, Math.min(MAX_YAW_DEGREES, rawYawDegrees));
+  const now = Date.now();
+  _lastCallTime = now;
 
-  // Normalize to [-1, +1]
+  _frameCount++;
+  headTrackerStats.totalFrames++;
+  if (_fpsWindowStart === 0) _fpsWindowStart = now;
+  const elapsed = now - _fpsWindowStart;
+  if (elapsed >= FPS_WINDOW_MS) {
+    headTrackerStats.fps = Math.round((_frameCount / elapsed) * 1000);
+    _frameCount     = 0;
+    _fpsWindowStart = now;
+  }
+
+  const clamped    = Math.max(-MAX_YAW_DEGREES, Math.min(MAX_YAW_DEGREES, rawYawDegrees));
   const normalized = clamped / MAX_YAW_DEGREES;
+  smoothedYaw      = smoothedYaw * SMOOTHING + normalized * (1 - SMOOTHING);
 
-  // Apply exponential moving average smoothing
-  smoothedYaw = smoothedYaw * SMOOTHING + normalized * (1 - SMOOTHING);
+  headTrackerStats.rawYawDeg   = rawYawDegrees;
+  headTrackerStats.smoothedYaw = smoothedYaw;
+  headTrackerStats.isStale     = false;
+  headTrackerStats.lastCallMs  = 0;
 
   callbacks.onYawUpdate(smoothedYaw);
 }
 
-/**
- * Reset the smoothing state (call when entering/leaving touchless mode
- * or when resetting after a launch).
- */
 export function resetYaw(): void {
   smoothedYaw = 0;
+  _frameCount = 0; _fpsWindowStart = 0; _lastCallTime = 0; _stallWarnedAt = 0;
+  headTrackerStats.fps = 0; headTrackerStats.lastCallMs = 0;
+  headTrackerStats.totalFrames = 0; headTrackerStats.rawYawDeg = 0;
+  headTrackerStats.smoothedYaw = 0; headTrackerStats.isStale = false;
 }

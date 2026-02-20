@@ -422,6 +422,12 @@ const CONSTANTS = {
   GRAVITY_Y: 0.3, // Light gravity for nice arc
 };
 
+// DEBUG — game engine FPS tracking (touchless mode only)
+let _engineFrameCount    = 0;
+let _engineFpsWindowStart = 0;
+let _engineFps           = 0;
+let _engineLastFrameTime = 0;
+
 // Mode-specific configuration system
 const getModeConstants = (gameMode) => {
   const baseConfig = freshConfig(gameMode);
@@ -667,6 +673,31 @@ const setupWorld = (addScoreCallback, modeConstants = CONSTANTS) => {
 // Fixed-step physics
 const Physics = (entities, { time }) => {
   const engine = entities.physics.engine;
+
+  // DEBUG — only runs in touchless mode, zero cost in other modes
+  if (entities.gameMode === 'touchless-toss') {
+    const now = Date.now();
+    _engineFrameCount++;
+    if (_engineFpsWindowStart === 0) _engineFpsWindowStart = now;
+    const elapsed = now - _engineFpsWindowStart;
+    if (elapsed >= 1000) {
+      _engineFps = Math.round((_engineFrameCount / elapsed) * 1000);
+      _engineFrameCount    = 0;
+      _engineFpsWindowStart = now;
+      console.log(`[GameEngine] ⚙️ FPS: ${_engineFps}`);
+      if (_engineFps < 30) {
+        console.warn(
+          `[GameEngine] ⚠️ Engine dropped to ${_engineFps} FPS! ` +
+          `Face callbacks may be starving the game loop → toilet freezes.`
+        );
+      }
+    }
+    if (_engineLastFrameTime > 0 && now - _engineLastFrameTime > 100) {
+      console.warn(`[GameEngine] ⚠️ Loop gap: ${now - _engineLastFrameTime}ms — toilet will freeze here.`);
+    }
+    _engineLastFrameTime = now;
+  }
+
   Matter.Engine.update(engine, time?.delta || 16.666);
   return entities;
 };
@@ -733,6 +764,13 @@ const MovingToiletSystem = (entities, { time }) => {
   const bowlBodies = bodies?.bowlBodies;
 
   if (!bowlBodies) {
+    return entities;
+  }
+
+  // Touchless mode: static toilet — head tracking already provides
+  // the aiming challenge. Moving toilet + camera pipeline on the same
+  // JS thread causes stutter. No other modes affected.
+  if (entities.gameMode === 'touchless-toss') {
     return entities;
   }
 
@@ -1950,6 +1988,7 @@ export default function ToiletPaperToss({
               };
               doLaunch();
             }}
+            engineFps={_engineFps}
           />
         ) : (
           <View
