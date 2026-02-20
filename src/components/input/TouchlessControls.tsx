@@ -1,9 +1,41 @@
-// src/components/input/TouchlessControls.tsx
-// Touchless Mode: head yaw → aim direction, blow → lock/launch.
-// Uses react-native-vision-camera + MLKit for face detection.
-// Falls back to auto-sweep if face detection is unavailable.
+// Path: src/components/input/TouchlessControls.tsx
+//
+// ARCHITECTURE (final, correct):
+//
+//   Camera frame (worklet thread)
+//     → detectFaces()
+//     → handleFaceJS(yawDeg, detected)   ← createRunOnJS, ONLY writes touchlessState
+//
+//   requestAnimationFrame loop (JS thread, inside TouchlessControls)
+//     → reads touchlessState.yawDeg / touchlessState.detected
+//     → calls processYaw() → EMA smoothing
+//     → cursorXAnim.setValue()           ← native layer, no re-render
+//     → throttled setFaceDetected / setDebugInfo (low frequency state)
+//
+//   Game engine RAF (JS thread, react-native-game-engine)
+//     → runs MovingToiletSystem (but skipped for touchless-toss — static toilet)
+//     → no competition from camera pipeline
+//
+// WHY createRunOnJS AND NOT SharedValue:
+//   VisionCamera worklet runtime ≠ Reanimated worklet runtime.
+//   SharedValue.value written from frame processor is NOT readable from JS.
+//   createRunOnJS is the only correct cross-runtime bridge.
+//   It is fast ONLY when the callback does ~nothing. Writing two fields to a
+//   plain object is ~500ns. All actual work happens in our own RAF loop.
+//
+// WHY requestAnimationFrame OVER setInterval:
+//   RAF is cooperative with the game engine's RAF — both get scheduled in the
+//   same 16ms frame budget and take turns. setInterval fires independently and
+//   can land mid-frame, interrupting the game engine's tick.
+//   Our RAF callback costs ~0.5ms (processYaw + setValue). Negligible.
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   View,
   Text,
@@ -11,7 +43,6 @@ import {
   Dimensions,
   Animated,
   Easing,
-  Platform,
 } from 'react-native';
 import {
   Camera,
@@ -20,27 +51,34 @@ import {
   useFrameProcessor,
 } from 'react-native-vision-camera';
 import { useFaceDetector } from 'react-native-vision-camera-face-detector';
-// import { Worklets } from 'react-native-worklets-core'; // Disabled until worklets threading resolved
+import { Worklets } from 'react-native-worklets-core';
 import { Audio } from 'expo-av';
 import { BlowDetector } from '../../services/BlowDetector';
 import { processYaw, resetYaw } from '../../services/HeadTracker';
+import { touchlessState } from '../../game/touchlessState';
 
 const { width: WIDTH, height: HEIGHT } = Dimensions.get('window');
 
-// === Aim arc constants ===
-const ARC_CENTER_X = WIDTH / 2;
-const ARC_CENTER_Y = HEIGHT - 24 - 56;
-const ARROW_LENGTH = 60;
+const LAUNCH_X = WIDTH / 2;
+const LAUNCH_Y = HEIGHT - 24 - 56;
+
 const MIN_ANGLE = Math.PI * 0.15;
 const MAX_ANGLE = Math.PI * 0.85;
 
-// === Power bar constants ===
-const POWER_BAR_HEIGHT = 180;
-const POWER_BAR_WIDTH = 24;
-const POWER_CYCLE_DURATION = 1200;
+const TRACK_PADDING  = 130;  // increase to narrow bar; e.g. 100=wider, 150=narrower
+const TRACK_WIDTH    = WIDTH - TRACK_PADDING * 2;
+const TRACK_Y        = HEIGHT - 24 - 56 - 20;
+const CURSOR_SIZE    = 20;
 
-// === Auto-sweep fallback ===
-const SWEEP_SPEED = 0.015; // radians per frame
+const POWER_BAR_HEIGHT = 180;
+const POWER_BAR_WIDTH  = 24;
+const POWER_CYCLE_MS   = 2200;
+
+// Face indicator / debug text update rate — only setState at this frequency
+const UI_UPDATE_MS = 150;
+
+const yawToCursorX = (yaw: number) =>
+  TRACK_PADDING + ((yaw + 1) / 2) * TRACK_WIDTH;
 
 interface TouchlessControlsProps {
   onLaunch: (v: {
@@ -54,298 +92,374 @@ interface TouchlessControlsProps {
   disabled?: boolean;
 }
 
-type Phase = 'aiming' | 'power' | 'launching';
+type Phase = 'aiming' | 'launching';
+
+// ─── HORIZONTAL AIM CURSOR ───────────────────────────────────────────────────
+const HorizontalAimCursor: React.FC<{
+  cursorXAnim: Animated.Value;
+  phase: Phase;
+}> = React.memo(({ cursorXAnim, phase }) => {
+  const color   = phase === 'aiming' ? '#4ECDC4' : '#FFD700';
+  const trackBg = phase === 'aiming'
+    ? 'rgba(78,205,196,0.2)'
+    : 'rgba(255,215,0,0.2)';
+
+  const triangleLeft = Animated.subtract(cursorXAnim, CURSOR_SIZE / 2);
+  const stemLeft     = Animated.subtract(cursorXAnim, 1);
+
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      {/* Track bar */}
+      <View style={{
+        position: 'absolute', left: TRACK_PADDING, top: TRACK_Y - 3,
+        width: TRACK_WIDTH, height: 6, borderRadius: 3,
+        backgroundColor: trackBg, borderWidth: 1, borderColor: color, zIndex: 51,
+      }} />
+      {/* Edge arrows */}
+      <Text style={{ position: 'absolute', left: TRACK_PADDING - 18, top: TRACK_Y - 10, fontSize: 14, color, opacity: 0.6, zIndex: 51 }}>◀</Text>
+      <Text style={{ position: 'absolute', left: TRACK_PADDING + TRACK_WIDTH + 4, top: TRACK_Y - 10, fontSize: 14, color, opacity: 0.6, zIndex: 51 }}>▶</Text>
+      {/* Center tick */}
+      <View style={{
+        position: 'absolute',
+        left: TRACK_PADDING + TRACK_WIDTH / 2 - 1,
+        top: TRACK_Y - 8, width: 2, height: 16,
+        backgroundColor: 'rgba(255,255,255,0.3)', zIndex: 51,
+      }} />
+      {/* Cursor triangle (pointing down onto the track) */}
+      <Animated.View style={{
+        position: 'absolute', left: triangleLeft, top: TRACK_Y - CURSOR_SIZE - 2,
+        width: 0, height: 0,
+        borderLeftWidth:  CURSOR_SIZE / 2,
+        borderRightWidth: CURSOR_SIZE / 2,
+        borderTopWidth:   CURSOR_SIZE,
+        borderLeftColor:  'transparent',
+        borderRightColor: 'transparent',
+        borderTopColor:   color,
+        zIndex: 52,
+      }} />
+      {/* Cursor stem */}
+      <Animated.View style={{
+        position: 'absolute', left: stemLeft, top: TRACK_Y - 2,
+        width: 2, height: 8, backgroundColor: color, zIndex: 52,
+      }} />
+    </View>
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const TouchlessControls: React.FC<TouchlessControlsProps> = ({
   onLaunch,
   onVector,
   disabled = false,
 }) => {
-  // =============================================
-  // Vision Camera setup
-  // =============================================
-  const { hasPermission: hasCamPermission, requestPermission: requestCamPermission } = useCameraPermission();
+  const {
+    hasPermission: hasCamPermission,
+    requestPermission: requestCamPermission,
+  } = useCameraPermission();
   const device = useCameraDevice('front');
 
-  // MLKit face detection setup
   const { detectFaces } = useFaceDetector({
     performanceMode: 'fast',
-    landmarkMode: 'none',
+    landmarkMode:     'none',
     classificationMode: 'none',
   });
 
-  // Mic permission
-  const [micReady, setMicReady] = useState(false);
-  const [permissionsChecked, setPermissionsChecked] = useState(false);
+  const [micReady,          setMicReady]          = useState(false);
+  const [permissionsReady,  setPermissionsReady]  = useState(false);
+  const [phase,             setPhase]             = useState<Phase>('aiming');
+  const [faceDetected,      setFaceDetected]      = useState(false);
+  const [debugInfo,         setDebugInfo]         = useState('Initializing...');
+  const [displayYaw,        setDisplayYaw]        = useState(0); // trajectory arc only
 
-  // Game state
-  const [phase, setPhase] = useState<Phase>('aiming');
-  const [lockedAngle, setLockedAngle] = useState<number>(Math.PI / 2);
-  const [currentYaw, setCurrentYaw] = useState<number>(0);
-  const [faceDetected, setFaceDetected] = useState(false);
-  const [debugInfo, setDebugInfo] = useState('Initializing...');
+  // Animated.Value driven directly by our RAF loop — no re-render on move
+  const cursorXAnim = useRef(new Animated.Value(yawToCursorX(0))).current;
 
-  // Face detection availability
-  const [useFaceDetection, setUseFaceDetection] = useState(false); // Force auto-sweep (frame processor disabled)
-  const faceDetectionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const faceEverDetected = useRef(false);
-
-  // Auto-sweep fallback state
-  const sweepAngle = useRef(Math.PI / 2);
-  const sweepDirection = useRef(1);
-  const sweepTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Power bar animation
-  const powerAnim = useRef(new Animated.Value(0)).current;
-  const powerRef = useRef(0);
+  const powerAnim    = useRef(new Animated.Value(0)).current;
+  const powerRef     = useRef(0);
   const powerAnimRef = useRef<Animated.CompositeAnimation | null>(null);
 
-  // Blow detector
-  const blowDetectorRef = useRef<BlowDetector | null>(null);
+  const blowDetectorRef  = useRef<BlowDetector | null>(null);
+  const phaseRef         = useRef<Phase>('aiming');
+  const currentYawRef    = useRef(0);   // smoothed target yaw from processYaw
+  const displayYawRef    = useRef(0);   // interpolated display yaw, updated every RAF tick
+  const onLaunchRef      = useRef(onLaunch);
+  const faceEverDetected = useRef(false);
+  const rafRef           = useRef<number>(0);
 
-  // Refs for latest state in callbacks (avoids stale closures)
-  const phaseRef = useRef<Phase>('aiming');
-  const lockedAngleRef = useRef<number>(Math.PI / 2);
-  const currentYawRef = useRef<number>(0);
-  const onLaunchRef = useRef(onLaunch);
-  const useFaceDetectionRef = useRef(true);
+  // How fast the cursor chases the target yaw each frame (0-1).
+  // 0.18 = smooth 60fps glide even with 12fps face updates.
+  // Raise toward 0.35 for snappier response, lower toward 0.10 for more glide.
+  const LERP_SPEED = 0.10;  // lower = more glide (was 0.18); range 0.08–0.25
 
-  useEffect(() => { phaseRef.current = phase; }, [phase]);
-  useEffect(() => { lockedAngleRef.current = lockedAngle; }, [lockedAngle]);
-  useEffect(() => { currentYawRef.current = currentYaw; }, [currentYaw]);
+  // Throttle refs (avoid setState every RAF tick)
+  const lastUIUpdateRef   = useRef(0);
+  const lastVectorUpdate  = useRef(0);
+  const lastFaceDetected  = useRef(false);
+
+  useEffect(() => { phaseRef.current = phase; },       [phase]);
   useEffect(() => { onLaunchRef.current = onLaunch; }, [onLaunch]);
-  useEffect(() => { useFaceDetectionRef.current = useFaceDetection; }, [useFaceDetection]);
 
-  const origin = useMemo(() => ({ x: ARC_CENTER_X, y: ARC_CENTER_Y }), []);
+  const origin = useMemo(() => ({ x: LAUNCH_X, y: LAUNCH_Y }), []);
 
-  // =============================================
-  // STEP 1: Request permissions SEQUENTIALLY
-  // =============================================
-  useEffect(() => {
-    let cancelled = false;
-
-    const requestPermissions = async () => {
-      try {
-        // --- Camera ---
-        setDebugInfo('Requesting camera...');
-        if (!hasCamPermission) {
-          const granted = await requestCamPermission();
-          console.log('[Touchless] Camera permission:', granted);
-          if (!granted) {
-            setDebugInfo('Camera denied');
-            setPermissionsChecked(true);
-            return;
-          }
-        }
-        console.log('[Touchless] Camera granted');
-
-        if (cancelled) return;
-
-        // --- Wait 1 second before requesting mic ---
-        setDebugInfo('Camera ready. Requesting mic in 1s...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        if (cancelled) return;
-
-        // --- Microphone ---
-        setDebugInfo('Requesting microphone...');
-        const micResult = await Audio.requestPermissionsAsync();
-        console.log('[Touchless] Mic permission:', micResult.status);
-
-        if (cancelled) return;
-
-        if (micResult.status === 'granted') {
-          setDebugInfo('Mic granted. Starting blow detector...');
-          setMicReady(true);
-        } else {
-          setDebugInfo('Mic denied — blow detection unavailable');
-        }
-
-        setPermissionsChecked(true);
-      } catch (error) {
-        console.error('[Touchless] Permission error:', error);
-        setDebugInfo(`Permission error: ${error}`);
-        setPermissionsChecked(true);
-      }
-    };
-
-    requestPermissions();
-    return () => { cancelled = true; };
-  }, []);
-
-  // Face detection fallback timer removed — auto-sweep is now the default
-
-  // =============================================
-  // STEP 3: Auto-sweep fallback
-  // =============================================
-  useEffect(() => {
-    if (useFaceDetection) return;
-    if (phase !== 'aiming') {
-      if (sweepTimer.current) { clearInterval(sweepTimer.current); sweepTimer.current = null; }
-      return;
-    }
-
-    sweepTimer.current = setInterval(() => {
-      sweepAngle.current += SWEEP_SPEED * sweepDirection.current;
-
-      if (sweepAngle.current >= MAX_ANGLE) {
-        sweepAngle.current = MAX_ANGLE;
-        sweepDirection.current = -1;
-      } else if (sweepAngle.current <= MIN_ANGLE) {
-        sweepAngle.current = MIN_ANGLE;
-        sweepDirection.current = 1;
-      }
-
-      const t = (sweepAngle.current - MIN_ANGLE) / (MAX_ANGLE - MIN_ANGLE);
-      const yaw = (1 - t) * 2 - 1;
-      setCurrentYaw(yaw);
-      currentYawRef.current = yaw;
-    }, 16);
-
-    return () => {
-      if (sweepTimer.current) { clearInterval(sweepTimer.current); sweepTimer.current = null; }
-    };
-  }, [useFaceDetection, phase]);
-
-  // =============================================
-  // Head yaw → aim angle conversion
-  // =============================================
   const yawToAngle = useCallback((yaw: number): number => {
     const t = (yaw + 1) / 2;
     return MAX_ANGLE - t * (MAX_ANGLE - MIN_ANGLE);
   }, []);
 
-  const aimAngle = phase === 'aiming' ? yawToAngle(currentYaw) : lockedAngle;
+  // =============================================
+  // createRunOnJS callback — writes ONLY to touchlessState.
+  // ~500ns. Does not call processYaw, setState, or any Animated method.
+  // This is the ONLY thing that should happen on the JS thread per camera frame.
+  // =============================================
+  const handleFaceJS = useRef(
+    Worklets.createRunOnJS((yawDeg: number, detected: boolean) => {
+      touchlessState.yawDeg   = yawDeg;
+      touchlessState.detected = detected;
+    })
+  ).current;
 
-  // Update trajectory overlay while aiming
+  // =============================================
+  // Frame processor — worklet thread only.
+  // Calls detectFaces and immediately dispatches to handleFaceJS.
+  // =============================================
+  const frameProcessor = useFrameProcessor((frame) => {
+    'worklet';
+    const faces = detectFaces(frame);
+    if (faces.length > 0) {
+      handleFaceJS(-(faces[0].yawAngle ?? 0), true);
+    } else {
+      handleFaceJS(0, false);
+    }
+  }, [detectFaces, handleFaceJS]);
+
+  // =============================================
+  // requestAnimationFrame loop — ALL JS work happens here.
+  //
+  // Cooperative with game engine's RAF: both are scheduled in the same
+  // 16ms frame budget. Ours costs ~0.5ms (processYaw + setValue).
+  //
+  // Per tick:
+  //   1. Read touchlessState (plain object read, ~10ns)
+  //   2. processYaw() — EMA smoothing (~50ns)
+  //   3. cursorXAnim.setValue() — native write, no React re-render
+  //   4. Every UI_UPDATE_MS: setState for face indicator + debug text
+  //   5. Every 200ms: setDisplayYaw for trajectory arc
+  // =============================================
+  useEffect(() => {
+    if (!permissionsReady) return;
+
+    const tick = () => {
+      const now      = Date.now();
+      const detected = touchlessState.detected;
+      const yawDeg   = touchlessState.yawDeg;
+
+      // ── Face indicator (low frequency setState) ──
+      if (now - lastUIUpdateRef.current >= UI_UPDATE_MS) {
+        lastUIUpdateRef.current = now;
+
+        if (detected !== lastFaceDetected.current) {
+          lastFaceDetected.current = detected;
+          setFaceDetected(detected);
+          if (detected && !faceEverDetected.current) {
+            faceEverDetected.current = true;
+            setDebugInfo('Face detected! Aim & blow to launch!');
+          } else if (!detected && faceEverDetected.current) {
+            setDebugInfo('Face lost — look at camera');
+          }
+        }
+      }
+
+      // ── Yaw processing: update EMA target (runs only when face present) ──
+      if (detected && phaseRef.current === 'aiming') {
+        processYaw(yawDeg, {
+          onYawUpdate: (yaw) => {
+            currentYawRef.current      = yaw;
+            touchlessState.smoothedYaw = yaw;
+          },
+        });
+      }
+
+      // ── Cursor: lerp display value toward target every RAF tick (60fps) ──
+      // Face detection fires at ~12fps. Without lerp the cursor snaps/jumps.
+      // With lerp it glides smoothly between sparse updates.
+      // LERP_SPEED = 0.18 → ~5 frames to close 60% of the gap at 60fps.
+      // Raise toward 0.35 for snappier feel, lower to 0.10 for more glide.
+      const target  = currentYawRef.current;
+      const current = displayYawRef.current;
+      const next    = current + (target - current) * LERP_SPEED;
+      displayYawRef.current = next;
+      cursorXAnim.setValue(yawToCursorX(next));
+
+      // Trajectory arc — 200ms updates are plenty for a dotted arc
+      if (now - lastVectorUpdate.current >= 200) {
+        lastVectorUpdate.current = now;
+        setDisplayYaw(next);
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [permissionsReady]);
+
+  // Trajectory overlay — driven by displayYaw state (200ms updates)
   useEffect(() => {
     if (phase === 'aiming' && onVector) {
-      const angle = yawToAngle(currentYaw);
-      const dx = Math.cos(angle);
-      const dy = Math.sin(angle);
-      onVector({ dx, dy, power: 0.5, angle, origin });
+      const angle = yawToAngle(currentYawRef.current);
+      onVector({
+        dx: Math.cos(angle), dy: Math.sin(angle),
+        power: 0.5, angle, origin,
+      });
     }
-  }, [currentYaw, phase, onVector, origin]);
+  }, [displayYaw, phase, onVector, origin, yawToAngle]);
 
-  // Power bar cycles continuously from mount
+  // =============================================
+  // Permissions
+  // =============================================
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      try {
+        if (!hasCamPermission) {
+          setDebugInfo('Requesting camera...');
+          const granted = await requestCamPermission();
+          if (!granted) {
+            setDebugInfo('Camera denied');
+            setPermissionsReady(true);
+            return;
+          }
+        }
+        if (cancelled) return;
+        setDebugInfo('Camera ready — requesting mic...');
+        await new Promise(r => setTimeout(r, 800));
+        if (cancelled) return;
+        const mic = await Audio.requestPermissionsAsync();
+        if (cancelled) return;
+        if (mic.status === 'granted') {
+          setMicReady(true);
+          setDebugInfo('Look at camera to aim, blow to launch!');
+        } else {
+          setDebugInfo('Mic denied — blow detection unavailable');
+        }
+        setPermissionsReady(true);
+      } catch (e) {
+        console.error('[TouchlessControls] Permission error:', e);
+        setPermissionsReady(true);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, []);
+
+  // =============================================
+  // Power bar
+  // =============================================
   useEffect(() => {
     const listenerId = powerAnim.addListener(({ value }) => {
       powerRef.current = value;
     });
-
     powerAnimRef.current = Animated.loop(
       Animated.sequence([
         Animated.timing(powerAnim, {
-          toValue: 1,
-          duration: POWER_CYCLE_DURATION / 2,
-          easing: Easing.inOut(Easing.sine),
-          useNativeDriver: false,
+          toValue: 1, duration: POWER_CYCLE_MS / 2,
+          easing: Easing.inOut(Easing.sin), useNativeDriver: false,
         }),
         Animated.timing(powerAnim, {
-          toValue: 0.1,
-          duration: POWER_CYCLE_DURATION / 2,
-          easing: Easing.inOut(Easing.sine),
-          useNativeDriver: false,
+          toValue: 0.1, duration: POWER_CYCLE_MS / 2,
+          easing: Easing.inOut(Easing.sin), useNativeDriver: false,
         }),
       ])
     );
-
     powerAnim.setValue(0.1);
     powerAnimRef.current.start();
-
     return () => {
       powerAnim.removeListener(listenerId);
-      if (powerAnimRef.current) powerAnimRef.current.stop();
+      powerAnimRef.current?.stop();
     };
   }, []);
 
   // =============================================
-  // Blow detection — single blow = launch
+  // Blow detection
   // =============================================
   useEffect(() => {
-    if (disabled || !micReady) {
-      console.log('[Touchless] Blow detector skipped — disabled:', disabled, 'micReady:', micReady);
-      return;
-    }
-
-    console.log('[Touchless] Starting blow detector (once)...');
-    setDebugInfo('Blow detector starting...');
+    if (disabled || !micReady) return;
 
     const detector = new BlowDetector({
       onBlow: () => {
-        if (phaseRef.current !== 'aiming') {
-          console.log('[Touchless] Ignoring blow — not in aiming phase');
-          return;
-        }
-
-        console.log('[Touchless] BLOW! Launching...');
+        if (phaseRef.current !== 'aiming') return;
         setPhase('launching');
+        phaseRef.current = 'launching';
 
-        const angle = yawToAngle(currentYawRef.current);
+        const yaw   = currentYawRef.current;
+        const angle = yawToAngle(yaw);
         const power = Math.max(0.15, powerRef.current);
-        const dx = Math.cos(angle);
-        const dy = Math.sin(angle);
 
-        onLaunchRef.current({ dx, dy, power, angle, origin });
-        setDebugInfo(`Launched! Power: ${Math.round(power * 100)}%`);
+        onLaunchRef.current({
+          dx: Math.cos(angle), dy: Math.sin(angle),
+          power, angle, origin,
+        });
 
-        // Reset for next throw
         setTimeout(() => {
           resetYaw();
-          setCurrentYaw(0);
-          sweepAngle.current = Math.PI / 2;
+          touchlessState.yawDeg      = 0;
+          touchlessState.detected    = false;
+          touchlessState.smoothedYaw = 0;
+          currentYawRef.current = 0;
+          displayYawRef.current = 0;
+          cursorXAnim.setValue(yawToCursorX(0));
+          setDisplayYaw(0);
           setPhase('aiming');
-          setDebugInfo(useFaceDetectionRef.current ? 'Turn your head to aim' : 'Auto-sweep — blow to lock');
+          phaseRef.current = 'aiming';
+          setDebugInfo('Aim & blow to launch!');
         }, 800);
       },
-      threshold: -15,
-      holdMs: 100,
-      cooldownMs: 1200, // Longer cooldown since one blow = full launch
+      threshold:      -35,  // more sensitive (was -20); raise toward -20 to require harder blow, lower toward -45 for even lighter
+      holdMs:          50,
+      cooldownMs:    1500,
+      pollIntervalMs: 250,
     });
 
     detector.start().then(() => {
-      console.log('[Touchless] Blow detector running:', detector.isRunning);
-      setDebugInfo(detector.isRunning
-        ? (useFaceDetection ? 'Ready! Turn head to aim, blow to launch' : 'Ready! Blow to launch')
-        : 'Blow detector failed to start');
+      setDebugInfo(
+        detector.isRunning
+          ? 'Ready! Turn head to aim, blow to launch'
+          : 'Blow detector failed to start'
+      );
     });
-
     blowDetectorRef.current = detector;
 
     return () => {
-      console.log('[Touchless] Stopping blow detector');
       detector.stop();
       blowDetectorRef.current = null;
     };
-  }, [disabled, micReady]);
+  }, [disabled, micReady, yawToAngle, origin]);
 
-  // Frame processor disabled — using auto-sweep until worklets threading is resolved
-  const frameProcessor = undefined;
-
-  // =============================================
-  // Arrow visuals
-  // =============================================
-  const powerBarFill = powerAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, POWER_BAR_HEIGHT - 4],
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Derived animated values for power bar
+  const powerBarFill  = powerAnim.interpolate({
+    inputRange: [0, 1], outputRange: [0, POWER_BAR_HEIGHT - 4],
   });
-
   const powerBarColor = powerAnim.interpolate({
-    inputRange: [0, 0.3, 0.6, 1],
-    outputRange: ['#4ECDC4', '#FFD700', '#FF6B35', '#FF2D55'],
+    inputRange:  [0,        0.3,       0.6,       1       ],
+    outputRange: ['#4ECDC4','#FFD700', '#FF6B35', '#FF2D55'],
   });
 
-  // =============================================
-  // Permission / device gate
-  // =============================================
-  if (!hasCamPermission && permissionsChecked) {
+  if (!hasCamPermission && permissionsReady) {
     return (
       <View style={styles.permissionContainer}>
-        <Text style={styles.permissionText}>Camera permission required for Touchless Mode</Text>
-        <Text style={styles.permissionSubtext}>Go to Settings → Flush Frenzy → Camera</Text>
+        <Text style={styles.permissionText}>
+          Camera permission required for Touchless Mode
+        </Text>
+        <Text style={styles.permissionSubtext}>
+          Go to Settings → Flush Frenzy → Camera
+        </Text>
       </View>
     );
   }
-
   if (!device) {
     return (
       <View style={styles.permissionContainer}>
@@ -356,122 +470,60 @@ const TouchlessControls: React.FC<TouchlessControlsProps> = ({
 
   return (
     <View style={styles.container} pointerEvents="none">
-      {/* Front camera preview with frame processor */}
+
+      {/* Camera preview (small, bottom-left) */}
       <View style={styles.cameraPreview}>
         {hasCamPermission && device && (
           <Camera
             style={styles.camera}
             device={device}
-            isActive={true}
+            isActive={!disabled}
+            frameProcessor={frameProcessor}
+            pixelFormat="yuv"
           />
         )}
         <View style={[
           styles.faceIndicator,
-          { backgroundColor: faceDetected ? '#4ECDC4' : (useFaceDetection ? '#FF6B6B' : '#FFD700') }
+          { backgroundColor: faceDetected ? '#4ECDC4' : '#FF6B6B' },
         ]} />
       </View>
 
-      {/* Debug info (remove for production) */}
+      {/* Instruction bar — positioned below header buttons */}
       <View style={styles.debugContainer}>
-        <Text style={styles.debugText}>{debugInfo}</Text>
+        <Text style={styles.debugText}>Turn your head to aim, blow to launch</Text>
       </View>
 
-      {/* Phase indicator */}
-      <View style={styles.phaseIndicator}>
-        <Text style={styles.phaseText}>
-          {phase === 'aiming'
-            ? (useFaceDetection ? '🎯 Aim & blow to launch!' : '🎯 Watch & blow to launch!')
-            : '🚀 Launching!'}
-        </Text>
-        <Text style={styles.phaseSubtext}>
-          {phase === 'aiming' ? 'Time the power bar!' : ''}
-        </Text>
-      </View>
 
-      {/* Direction arrow — vertical bar that rotates from its base (the origin dot) */}
-      <View
-        style={{
-          position: 'absolute',
-          left: ARC_CENTER_X - 3,
-          top: ARC_CENTER_Y - ARROW_LENGTH,
-          width: 6,
-          height: ARROW_LENGTH,
-          transformOrigin: '50% 100%', // Rotate from bottom-center (the aim origin)
-          transform: [{ rotate: `${90 - (aimAngle * 180 / Math.PI)}deg` }],
-          zIndex: 52,
-        }}
-      >
-        {/* Arrow shaft */}
-        <View style={{
-          flex: 1,
-          backgroundColor: phase === 'aiming' ? '#4ECDC4' : '#FFD700',
-          borderRadius: 3,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.3,
-          shadowRadius: 3,
-        }} />
-        {/* Arrowhead triangle at top */}
-        <View style={{
-          position: 'absolute',
-          top: -10,
-          alignSelf: 'center',
-          width: 0,
-          height: 0,
-          borderLeftWidth: 8,
-          borderRightWidth: 8,
-          borderBottomWidth: 12,
-          borderLeftColor: 'transparent',
-          borderRightColor: 'transparent',
-          borderBottomColor: phase === 'aiming' ? '#4ECDC4' : '#FFD700',
-        }} />
-      </View>
-
-      {/* Aim origin dot */}
-      <View style={{
-        position: 'absolute',
-        left: ARC_CENTER_X - 6,
-        top: ARC_CENTER_Y - 6,
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: 'rgba(255,255,255,0.9)',
-        borderWidth: 2,
-        borderColor: 'rgba(0,0,0,0.3)',
-        zIndex: 53,
-      }} />
+      {/* Horizontal aim slider */}
+      <HorizontalAimCursor cursorXAnim={cursorXAnim} phase={phase} />
 
       {/* Power bar */}
-      {phase !== 'launching' && (
-        <View style={styles.powerBarContainer}>
-          <View style={styles.powerBarTrack}>
-            <Animated.View
-              style={[
-                styles.powerBarFill,
-                { height: powerBarFill, backgroundColor: powerBarColor },
-              ]}
-            />
-          </View>
-          <Text style={styles.powerLabel}>POWER</Text>
+      <View style={[
+        styles.powerBarContainer,
+        phase === 'launching' && { opacity: 0 },
+      ]}>
+        <View style={styles.powerBarTrack}>
+          <Animated.View style={[
+            styles.powerBarFill,
+            { height: powerBarFill, backgroundColor: powerBarColor },
+          ]} />
         </View>
-      )}
+        <Text style={styles.powerLabel}>POWER</Text>
+      </View>
+
     </View>
   );
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    zIndex: 50,
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50,
   },
   cameraPreview: {
-    position: 'absolute',
-    bottom: 30, left: 15,
-    width: 80, height: 100,
-    borderRadius: 12, overflow: 'hidden',
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.6)',
-    zIndex: 60,
+    position: 'absolute', bottom: 30, left: 15,
+    width: 80, height: 100, borderRadius: 12, overflow: 'hidden',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.6)', zIndex: 60,
   },
   camera: { flex: 1 },
   faceIndicator: {
@@ -480,32 +532,26 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(0,0,0,0.3)',
   },
   debugContainer: {
-    position: 'absolute',
-    top: 100, left: 10, right: 10,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 8, padding: 8,
-    zIndex: 99,
+    position: 'absolute', top: 160, left: 20, right: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, padding: 8, zIndex: 99,
   },
   debugText: {
-    color: '#4ECDC4', fontSize: 11, fontWeight: '600',
-    textAlign: 'center',
+    color: '#4ECDC4', fontSize: 11, fontWeight: '600', textAlign: 'center',
   },
   phaseIndicator: {
-    position: 'absolute',
-    bottom: 160, left: 0, right: 0,
+    position: 'absolute', bottom: 160, left: 0, right: 0,
     alignItems: 'center', zIndex: 55,
   },
   phaseText: {
-    color: '#FFFFFF', fontSize: 16, fontWeight: '700',
+    color: '#FFFFFF', fontSize: 16, fontWeight: '700', textAlign: 'center',
     textShadowColor: 'rgba(0,0,0,0.6)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3, textAlign: 'center',
+    textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 3,
   },
   phaseSubtext: {
     color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: '500',
+    textAlign: 'center', marginTop: 4,
     textShadowColor: 'rgba(0,0,0,0.4)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2, marginTop: 4, textAlign: 'center',
+    textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2,
   },
   powerBarContainer: {
     position: 'absolute', right: 20, bottom: 100,
@@ -518,21 +564,17 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)',
     overflow: 'hidden', justifyContent: 'flex-end',
   },
-  powerBarFill: {
-    width: '100%', borderRadius: POWER_BAR_WIDTH / 2 - 2,
-  },
+  powerBarFill: { width: '100%', borderRadius: POWER_BAR_WIDTH / 2 - 2 },
   powerLabel: {
     color: '#FFFFFF', fontSize: 10, fontWeight: '800',
     marginTop: 6, letterSpacing: 1,
     textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2,
   },
   permissionContainer: {
     position: 'absolute', bottom: 40, left: 20, right: 20,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 12, padding: 20,
-    alignItems: 'center', zIndex: 60,
+    backgroundColor: 'rgba(0,0,0,0.7)', borderRadius: 12,
+    padding: 20, alignItems: 'center', zIndex: 60,
   },
   permissionText: {
     color: '#FFFFFF', fontSize: 14, fontWeight: '700',

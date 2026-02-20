@@ -50,9 +50,7 @@ export class BlowDetector {
     try {
       // Request microphone permission first (this triggers the iOS prompt)
       const permResult = await Audio.requestPermissionsAsync();
-      console.log('[BlowDetector] Mic permission status:', permResult.status);
       if (permResult.status !== 'granted') {
-        console.warn('[BlowDetector] Microphone permission not granted');
         return;
       }
 
@@ -64,13 +62,11 @@ export class BlowDetector {
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        interruptionModeIOS: 1, // DO_NOT_MIX
-        shouldDuckAndroid: true,
-        interruptionModeAndroid: 1,
+        interruptionModeIOS: 0,        // MIX_WITH_OTHERS — keeps game music playing
+        shouldDuckAndroid: false,
+        interruptionModeAndroid: 2,    // DoNotMix on Android
         playThroughEarpieceAndroid: false,
       });
-      console.log('[BlowDetector] Audio mode set for recording');
 
       // Create and prepare recording with metering enabled
       this.recording = new Audio.Recording();
@@ -100,12 +96,10 @@ export class BlowDetector {
 
       await this.recording.startAsync();
       this._started = true;
-      console.log('[BlowDetector] Recording started, polling metering');
 
       // Start polling metering data
       this.pollTimer = setInterval(() => this.poll(), this.opts.pollIntervalMs);
     } catch (error) {
-      console.warn('[BlowDetector] Failed to start:', error);
       this._started = false;
     }
   }
