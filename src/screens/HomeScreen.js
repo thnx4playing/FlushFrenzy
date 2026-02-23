@@ -26,6 +26,7 @@ import LeaderboardModal from '../leaderboard/LeaderboardModal';
 import { AudioManager } from '../audio/AudioManager';
 import { useAudioStore } from '../audio/AudioStore';
 import { Accelerometer } from 'expo-sensors';
+
 import { 
   isTablet, 
   getResponsiveSize, 

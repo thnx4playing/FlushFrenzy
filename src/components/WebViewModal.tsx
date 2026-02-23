@@ -43,7 +43,7 @@ const WebViewModal: React.FC<Props> = ({ visible, url, title, onClose, onActivit
           <View style={styles.placeholder} />
         </View>
         {/* WebView */}
-        <View style={styles.webViewContainer}>
+        <View style={[styles.webViewContainer, { marginBottom: -insets.bottom }]}>
           <WebView
             source={{ uri: url }}
             style={styles.webView}
@@ -73,7 +73,7 @@ const WebViewModal: React.FC<Props> = ({ visible, url, title, onClose, onActivit
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0a1628',
   },
   header: {
     flexDirection: 'row',
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 4,
-    paddingTop: 4,
+    paddingTop: 2,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
     backgroundColor: '#F8F9FA',
