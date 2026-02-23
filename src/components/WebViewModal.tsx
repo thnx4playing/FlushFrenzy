@@ -18,8 +18,9 @@ type Props = {
   url: string;
   title?: string;
   onClose: () => void;
+  onActivity?: () => void;
 };
-const WebViewModal: React.FC<Props> = ({ visible, url, title, onClose }) => {
+const WebViewModal: React.FC<Props> = ({ visible, url, title, onClose, onActivity }) => {
   const [loading, setLoading] = useState(true);
   const insets = useSafeAreaInsets();
   return (
@@ -30,9 +31,9 @@ const WebViewModal: React.FC<Props> = ({ visible, url, title, onClose }) => {
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
+      <View style={styles.container} onStartShouldSetResponderCapture={() => { onActivity?.(); return false; }}>
         {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={20} color="#2C3E50" />
           </TouchableOpacity>
@@ -79,8 +80,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 8,
-    paddingTop: 8,
+    paddingBottom: 4,
+    paddingTop: 4,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
     backgroundColor: '#F8F9FA',

@@ -25,6 +25,7 @@ import VolumeControlModal from '../components/VolumeControlModal';
 import LeaderboardModal from '../leaderboard/LeaderboardModal';
 import { AudioManager } from '../audio/AudioManager';
 import { useAudioStore } from '../audio/AudioStore';
+import { Accelerometer } from 'expo-sensors';
 import { 
   isTablet, 
   getResponsiveSize, 
@@ -87,9 +88,14 @@ export default function HomeScreen({ navigation, registerCleanup }) {
   // Bug fixes session timeout
   const BUGFIX_URL = 'https://virtuixtech.com/apps/flushfrenzy/bugfixes.html';
   const BUGFIX_ADMIN_URL = 'https://virtuixtech.com/apps/flushfrenzy/bugfixes_admin.html';
-  const SESSION_TIMEOUT_MS = 300_000;
+  const SESSION_TIMEOUT_MS = 1_200_000; // 20 min hard cap
+  const IDLE_TIMEOUT_MS = 300_000;      // 5 min idle (no motion/touch)
+  const ACCEL_MOTION_THRESHOLD = 0.03;  // g-force delta to count as motion
 
   const sessionTimerRef = useRef(null);
+  const idleTimerRef = useRef(null);
+  const prevAccelRef = useRef(null);
+  const accelSubscriptionRef = useRef(null);
 
   const stopSessionTimer = () => {
     if (sessionTimerRef.current) {
@@ -132,6 +138,55 @@ export default function HomeScreen({ navigation, registerCleanup }) {
     }, SESSION_TIMEOUT_MS);
   };
 
+  // Idle timer (resets on motion or touch)
+  const stopIdleTimer = () => {
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = null;
+    }
+  };
+
+  const startIdleTimer = () => {
+    stopIdleTimer();
+    idleTimerRef.current = setTimeout(() => {
+      closeAllOverlays();
+    }, IDLE_TIMEOUT_MS);
+  };
+
+  const resetIdleTimer = () => {
+    startIdleTimer();
+  };
+
+  // Accelerometer subscription for idle detection
+  const startAccelerometer = () => {
+    prevAccelRef.current = null;
+    Accelerometer.setUpdateInterval(500); // 2 Hz, low battery impact
+    accelSubscriptionRef.current = Accelerometer.addListener(({ x, y, z }) => {
+      const prev = prevAccelRef.current;
+      if (prev) {
+        const delta = Math.abs(x - prev.x) + Math.abs(y - prev.y) + Math.abs(z - prev.z);
+        if (delta > ACCEL_MOTION_THRESHOLD) {
+          resetIdleTimer();
+        }
+      }
+      prevAccelRef.current = { x, y, z };
+    });
+  };
+
+  const stopAccelerometer = () => {
+    if (accelSubscriptionRef.current) {
+      accelSubscriptionRef.current.remove();
+      accelSubscriptionRef.current = null;
+    }
+    prevAccelRef.current = null;
+  };
+
+  // Touch handler for overlay views — resets idle timer without stealing touches
+  const handleOverlayTouchCapture = () => {
+    resetIdleTimer();
+    return false;
+  };
+
   // Refresh high scores when HomeScreen is focused
   // Note: Menu music disabled - music only plays during gameplay
   useFocusEffect(
@@ -152,7 +207,9 @@ export default function HomeScreen({ navigation, registerCleanup }) {
     const cleanup = () => {
       // Immediate cleanup when app backgrounds
       stopSessionTimer();
-      
+      stopIdleTimer();
+      stopAccelerometer();
+
       // Use a fresh closure that accesses current refs (fixes stale closure)
       const forceCloseModals = () => {
         setSettingsVisible(false);
@@ -173,12 +230,19 @@ export default function HomeScreen({ navigation, registerCleanup }) {
     return unregister;
   }, [registerCleanup]); // Remove dependencies that could cause stale closures
 
-  // Start/stop the timer when Settings/Bug Report/WebView are visible
+  // Start/stop timers and accelerometer when Settings/Bug Report/WebView are visible
   useEffect(() => {
     const sessionActive =
       Boolean(settingsVisible) || Boolean(showDiscordModal) || Boolean(webViewVisible);
-    if (sessionActive) startSessionTimer();
-    else stopSessionTimer();
+    if (sessionActive) {
+      startSessionTimer();
+      startIdleTimer();
+      startAccelerometer();
+    } else {
+      stopSessionTimer();
+      stopIdleTimer();
+      stopAccelerometer();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsVisible, showDiscordModal, webViewVisible]);
 
@@ -387,7 +451,7 @@ export default function HomeScreen({ navigation, registerCleanup }) {
 
         {/* Settings Custom Overlay - Replace Modal to fix touch issues */}
         {settingsVisible && (
-          <View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]}>
+          <View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]} onStartShouldSetResponderCapture={handleOverlayTouchCapture}>
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
                 <Text style={styles.modalTitle}>Settings</Text>
@@ -426,10 +490,10 @@ export default function HomeScreen({ navigation, registerCleanup }) {
 
         {/* Discord Message Custom Overlay - Replace Modal to fix touch issues */}
         {showDiscordModal && (
-          <View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]}>
+            <View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]} onStartShouldSetResponderCapture={handleOverlayTouchCapture}>
             <GestureHandlerRootView style={StyleSheet.absoluteFill}>
               <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
+              <View style={styles.modalContent}>
                 {/* Buttons at the top */}
                 <View style={styles.buttonRow}>
                   <TouchableOpacity
@@ -469,8 +533,8 @@ export default function HomeScreen({ navigation, registerCleanup }) {
                   </TouchableOpacity>
                   <Text style={styles.disclaimerText}>.</Text>
                 </View>
-                </View>
               </View>
+            </View>
             </GestureHandlerRootView>
           </View>
         )}
@@ -483,6 +547,7 @@ export default function HomeScreen({ navigation, registerCleanup }) {
           onClose={() => {
             setWebViewVisible(false);
           }}
+          onActivity={resetIdleTimer}
         />
 
         {/* Leaderboard Modal with Game Mode Tabs */}

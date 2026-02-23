@@ -95,6 +95,12 @@ module.exports = {
         {
           microphonePermission: "Used in Touchless Mode to detect blowing into the microphone to launch toilet paper rolls."
         }
+      ],
+      [
+        "expo-sensors",
+        {
+          motionPermission: false
+        }
       ]
     ]
   }
