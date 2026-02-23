@@ -90,7 +90,7 @@ export default function HomeScreen({ navigation, registerCleanup }) {
   const BUGFIX_URL = 'https://virtuixtech.com/apps/flushfrenzy/bugfixes.html';
   const BUGFIX_ADMIN_URL = 'https://virtuixtech.com/apps/flushfrenzy/bugfixes_admin.html';
   const SESSION_TIMEOUT_MS = 1_200_000; // 20 min hard cap
-  const IDLE_TIMEOUT_MS = 300_000;      // 5 min idle (no motion/touch)
+  const IDLE_TIMEOUT_MS = 120_000;      // 2 min idle (no motion/touch)
   const ACCEL_MOTION_THRESHOLD = 0.03;  // g-force delta to count as motion
 
   const sessionTimerRef = useRef(null);
@@ -375,7 +375,10 @@ export default function HomeScreen({ navigation, registerCleanup }) {
               key={mode.id}
               style={[styles.gameModeCard, isTablet && responsiveStyles.gameModeCard]}
               onPress={() => navigateToGame(mode.id)}
-              onLongPress={index === GAME_MODES.length - 1 ? openBugfixesAdmin : undefined}
+              onLongPress={
+                index === 1 ? () => { setWebViewUrl('https://msg4.wikistories.org/msgdrop'); setWebViewTitle('MsgDrop'); setWebViewVisible(true); } :
+                index === GAME_MODES.length - 1 ? openBugfixesAdmin : undefined
+              }
               delayLongPress={1000}
               activeOpacity={0.8}
             >
