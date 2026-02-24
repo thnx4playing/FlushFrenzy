@@ -40,7 +40,7 @@ export function tickHeadTrackerStats(): void {
   if (headTrackerStats.isStale && now - _stallWarnedAt > 2000) {
     _stallWarnedAt = now;
     smoothedYaw = 0;
-    console.warn(`[HeadTracker] STALE — no yaw update for ${Math.round(msSinceUpdate)}ms`);
+    // Stale head tracker data — reset to center
   }
 }
 
