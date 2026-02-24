@@ -1958,7 +1958,7 @@ export default function ToiletPaperToss({
               };
               doLaunch();
             }}
-            engineFps={_engineFps}
+
           />
         ) : (
           <View
