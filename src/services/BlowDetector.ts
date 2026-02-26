@@ -29,6 +29,12 @@ export class BlowDetector {
   private lastBlowTime: number = 0;
   private opts: Required<BlowDetectorOptions>;
   private _started: boolean = false;
+  private _retryCount: number = 0;
+  private _startTime: number = 0;
+  private _gotRealReading: boolean = false;
+
+  private static readonly MAX_RETRIES = 3;
+  private static readonly SILENCE_CHECK_MS = 3000;
 
   constructor(options: BlowDetectorOptions) {
     this.opts = {
@@ -48,23 +54,27 @@ export class BlowDetector {
     if (this._started) return;
 
     try {
-      // Check if mic was already granted before requesting
-      const existingPerm = await Audio.getPermissionsAsync();
-      const wasAlreadyGranted = existingPerm.status === 'granted';
-
       // Request microphone permission (triggers iOS prompt on first launch)
       const permResult = await Audio.requestPermissionsAsync();
       if (permResult.status !== 'granted') {
         return;
       }
 
-      // Longer settle delay on first-time grant — iOS needs time to fully
-      // initialize the audio recording pipeline after a fresh permission grant
-      const settleMs = wasAlreadyGranted ? 300 : 1200;
-      await new Promise(resolve => setTimeout(resolve, settleMs));
+      await this.startRecording();
+    } catch (error) {
+      this._started = false;
+    }
+  }
 
-      // Configure audio session for recording — this MUST run after permission is granted
-      // and must override any previous setAudioModeAsync calls
+  private async startRecording(): Promise<void> {
+    // Tear down any existing recording first
+    await this.teardownRecording();
+
+    try {
+      // Small delay to let the audio session settle
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Configure audio session for recording
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
@@ -102,6 +112,8 @@ export class BlowDetector {
 
       await this.recording.startAsync();
       this._started = true;
+      this._startTime = Date.now();
+      this._gotRealReading = false;
 
       // Start polling metering data
       this.pollTimer = setInterval(() => this.poll(), this.opts.pollIntervalMs);
@@ -110,10 +122,7 @@ export class BlowDetector {
     }
   }
 
-  async stop(): Promise<void> {
-    if (!this._started) return;
-    this._started = false;
-
+  private async teardownRecording(): Promise<void> {
     if (this.pollTimer) {
       clearInterval(this.pollTimer);
       this.pollTimer = null;
@@ -127,6 +136,40 @@ export class BlowDetector {
       }
       this.recording = null;
     }
+  }
+
+  private async restart(): Promise<void> {
+    if (this._retryCount >= BlowDetector.MAX_RETRIES) return;
+    this._retryCount++;
+    this._started = false;
+
+    await this.teardownRecording();
+
+    // Force a full audio session category cycle (false → true).
+    // On first-time permission grant, AudioManager already set
+    // allowsRecordingIOS: true before permission was granted, so iOS
+    // didn't actually enable recording. Setting to false first forces
+    // iOS to re-establish the category on the next true.
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+      });
+    } catch (e) {
+      // Best effort
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    await this.startRecording();
+  }
+
+  async stop(): Promise<void> {
+    if (!this._started) return;
+    this._started = false;
+
+    await this.teardownRecording();
 
     // Restore audio mode for playback
     try {
@@ -152,6 +195,22 @@ export class BlowDetector {
 
       const metering = status.metering ?? -160;
       const now = Date.now();
+
+      // Track whether we've received any real audio data (not silence)
+      if (metering > -160) {
+        this._gotRealReading = true;
+      }
+
+      // Self-healing: if we've been getting only silence for too long,
+      // the recording pipeline likely didn't initialize properly (common
+      // on first-time permission grant). Tear down and retry.
+      if (
+        !this._gotRealReading &&
+        now - this._startTime > BlowDetector.SILENCE_CHECK_MS
+      ) {
+        this.restart();
+        return;
+      }
 
       if (metering > this.opts.threshold) {
         // Signal is above threshold
