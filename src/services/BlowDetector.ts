@@ -48,14 +48,20 @@ export class BlowDetector {
     if (this._started) return;
 
     try {
-      // Request microphone permission first (this triggers the iOS prompt)
+      // Check if mic was already granted before requesting
+      const existingPerm = await Audio.getPermissionsAsync();
+      const wasAlreadyGranted = existingPerm.status === 'granted';
+
+      // Request microphone permission (triggers iOS prompt on first launch)
       const permResult = await Audio.requestPermissionsAsync();
       if (permResult.status !== 'granted') {
         return;
       }
 
-      // Small delay to ensure any competing audio mode changes have settled
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Longer settle delay on first-time grant — iOS needs time to fully
+      // initialize the audio recording pipeline after a fresh permission grant
+      const settleMs = wasAlreadyGranted ? 300 : 1200;
+      await new Promise(resolve => setTimeout(resolve, settleMs));
 
       // Configure audio session for recording — this MUST run after permission is granted
       // and must override any previous setAudioModeAsync calls
