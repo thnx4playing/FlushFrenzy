@@ -16,7 +16,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.thnx4playing.FlushFrenzy",
-      buildNumber: "14",
+      buildNumber: "15",
       icon: path.resolve(__dirname, 'assets/default/app-icon.png'),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -32,6 +32,7 @@ module.exports = {
         },
         NSMicrophoneUsageDescription: "Used in Touchless Mode to detect blowing into the microphone to launch toilet paper rolls.",
         NSCameraUsageDescription: "Used in Touchless Mode for head tracking to aim without touching the screen.",
+        NSLocationWhenInUseUsageDescription: "This app does not use your location. This entry is required by a camera library dependency.",
         UIRequiresFullScreen: true,
         UISupportedInterfaceOrientations: ["UIInterfaceOrientationPortrait"]
       },
