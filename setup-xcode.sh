@@ -2,7 +2,7 @@
 
 # Flush Frenzy - Xcode Setup Script
 # This script prepares the project for Xcode development and building
-# Updated: Feb 2026 - Touchless Mode V2
+# Updated: Apr 2026 - SDK 53 patches + fmt consteval Podfile fix
 
 set -e  # Exit on any error
 
@@ -131,6 +131,33 @@ else
 fi
 print_success "iOS prebuild completed"
 
+# Patch Podfile with C++20 standard so fmt's consteval calls compile
+# under newer Xcode versions. Without this, builds fail with errors like:
+#   "Call to consteval function fmt::basic_format_string<...> is not
+#    a constant expression"
+# Safe to re-run — patch is idempotent.
+if [ -f "ios/Podfile" ]; then
+    if grep -q "CLANG_CXX_LANGUAGE_STANDARD" ios/Podfile; then
+        print_status "Podfile already patched for C++20 (fmt fix) - skipping"
+    else
+        print_status "Patching Podfile with C++20 standard (fmt consteval fix)..."
+        cat >> ios/Podfile <<'PODFILE_PATCH'
+
+# --- Added by setup-xcode.sh ---
+# Force C++20 across all pod targets so libfmt's consteval calls compile.
+# CocoaPods chains post_install hooks, so this runs after Expo's own.
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'gnu++20'
+    end
+  end
+end
+PODFILE_PATCH
+        print_success "Podfile patched"
+    fi
+fi
+
 # Navigate to iOS directory and install pods
 if [[ "$OSTYPE" == "darwin"* ]] && [ -d "ios" ]; then
     print_status "Installing iOS CocoaPods dependencies..."
@@ -166,11 +193,15 @@ echo "✅ Dependencies installed"
 echo "✅ iOS prebuild completed (iOS 16.0 deployment target)"
 echo "✅ CocoaPods dependencies installed"
 echo ""
+APP_VERSION=$(node -e "console.log(require('./app.config.js').expo.version)" 2>/dev/null || echo "?")
+APP_BUILD=$(node -e "console.log(require('./app.config.js').expo.ios.buildNumber)" 2>/dev/null || echo "?")
+APP_PLUGINS=$(node -e "console.log(require('./app.config.js').expo.plugins.map(p=>Array.isArray(p)?p[0]:p).join(', '))" 2>/dev/null || echo "?")
+
 echo "📋 Current Configuration:"
-echo "   - Version: 1.3.1"
-echo "   - Build: 10"
+echo "   - Version: $APP_VERSION"
+echo "   - Build: $APP_BUILD"
 echo "   - Deployment Target: iOS 16.0"
-echo "   - Plugins: expo-build-properties, expo-camera, react-native-vision-camera, expo-av, expo-audio"
+echo "   - Plugins: $APP_PLUGINS"
 echo ""
 echo "📋 Next Steps:"
 echo "1. Open Xcode: open ios/FlushFrenzy.xcworkspace"
