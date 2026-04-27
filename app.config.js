@@ -5,7 +5,7 @@ module.exports = {
     owner: "thnx4playing",
     name: "Flush Frenzy",
     slug: "FlushFrenzy",
-    version: "1.3.1",
+    version: "1.3.2",
     orientation: "portrait",
     icon: path.resolve(__dirname, 'assets/default/app-icon.png'),
     userInterfaceStyle: "light",
@@ -16,7 +16,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.thnx4playing.FlushFrenzy",
-      buildNumber: "18",
+      buildNumber: "19",
       icon: path.resolve(__dirname, 'assets/default/app-icon.png'),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -70,8 +70,8 @@ module.exports = {
           }
         }
       ],
-      "expo-web-browser",
       "expo-dev-client",
+      "expo-font",
       [
         "expo-camera",
         {

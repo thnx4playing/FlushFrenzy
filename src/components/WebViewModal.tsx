@@ -5,14 +5,12 @@ import {
   Modal,
   StyleSheet,
   TouchableOpacity,
-  Text,
   ActivityIndicator,
-  Dimensions,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
-const { width, height } = Dimensions.get('window');
 type Props = {
   visible: boolean;
   url: string;
@@ -20,7 +18,7 @@ type Props = {
   onClose: () => void;
   onActivity?: () => void;
 };
-const WebViewModal: React.FC<Props> = ({ visible, url, title, onClose, onActivity }) => {
+const WebViewModal: React.FC<Props> = ({ visible, url, onClose, onActivity }) => {
   const [loading, setLoading] = useState(true);
   const insets = useSafeAreaInsets();
   return (
@@ -31,18 +29,11 @@ const WebViewModal: React.FC<Props> = ({ visible, url, title, onClose, onActivit
       statusBarTranslucent
       onRequestClose={onClose}
     >
+      <StatusBar hidden animated />
       <View style={styles.container} onStartShouldSetResponderCapture={() => { onActivity?.(); return false; }}>
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top }]}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={20} color="#2C3E50" />
-          </TouchableOpacity>
-          <Text style={styles.title} numberOfLines={1}>
-            {title || 'Loading...'}
-          </Text>
-          <View style={styles.placeholder} />
-        </View>
-        {/* WebView */}
+        {/* WebView — edge-to-edge, content goes behind the Dynamic Island.
+            Page-side CSS uses env(safe-area-inset-top) to keep interactive
+            UI clear of the island. */}
         <View style={[styles.webViewContainer, { marginBottom: -insets.bottom }]}>
           <WebView
             source={{ uri: url }}
@@ -66,6 +57,15 @@ const WebViewModal: React.FC<Props> = ({ visible, url, title, onClose, onActivit
             </View>
           )}
         </View>
+        {/* Floating close button — sits below the Dynamic Island */}
+        <TouchableOpacity
+          onPress={onClose}
+          style={[styles.floatingClose, { top: insets.top + 8 }]}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityLabel="Close"
+        >
+          <Ionicons name="close" size={20} color="#fff" />
+        </TouchableOpacity>
       </View>
     </Modal>
   );
@@ -74,36 +74,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0a1628',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 4,
-    paddingTop: 2,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    backgroundColor: '#F8F9FA',
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#E0E0E0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2C3E50',
-    textAlign: 'center',
-    marginHorizontal: 12,
-  },
-  placeholder: {
-    width: 32,
   },
   webViewContainer: {
     flex: 1,
@@ -116,6 +86,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  floatingClose: {
+    position: 'absolute',
+    left: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+    elevation: 10,
   },
 });
 export default WebViewModal;
