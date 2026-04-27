@@ -131,25 +131,47 @@ else
 fi
 print_success "iOS prebuild completed"
 
-# Patch Podfile with C++20 standard so fmt's consteval calls compile
-# under newer Xcode versions. Without this, builds fail with errors like:
-#   "Call to consteval function fmt::basic_format_string<...> is not
-#    a constant expression"
-# Safe to re-run — patch is idempotent.
+# Patch Podfile to fix the libfmt consteval build error on newer Xcode.
+# Symptom (without this patch):
+#   "Call to consteval function fmt::basic_format_string<char,
+#    fmt::basic_string_view<char>...>::basic_format_string<FMT_COMPILE_STRING, 0>'
+#    is not a constant expression"
+# Two settings are applied across all pod targets:
+#   1. CLANG_CXX_LANGUAGE_STANDARD = gnu++20 (fmt needs C++20)
+#   2. FMT_USE_CONSTEVAL=0 — flips fmt off its consteval path onto the
+#      C++17 constexpr fallback. fmt only defines this internally if not
+#      already set, so a -D from the build settings wins.
+# CocoaPods chains post_install hooks, so this runs after Expo's own.
+# Idempotent — re-runs are safe.
 if [ -f "ios/Podfile" ]; then
-    if grep -q "CLANG_CXX_LANGUAGE_STANDARD" ios/Podfile; then
-        print_status "Podfile already patched for C++20 (fmt fix) - skipping"
+    if grep -q "FMT_USE_CONSTEVAL=0" ios/Podfile; then
+        print_status "Podfile already patched for fmt consteval fix - skipping"
     else
-        print_status "Patching Podfile with C++20 standard (fmt consteval fix)..."
+        print_status "Patching Podfile (C++20 + FMT_USE_CONSTEVAL=0)..."
+        # Strip any older partial patch (the previous C++20-only version)
+        # so we don't end up with two competing post_install blocks.
+        if grep -q "Added by setup-xcode.sh" ios/Podfile; then
+            awk '/# --- Added by setup-xcode\.sh ---/{exit} {print}' ios/Podfile > ios/Podfile.tmp \
+                && mv ios/Podfile.tmp ios/Podfile
+        fi
         cat >> ios/Podfile <<'PODFILE_PATCH'
 
 # --- Added by setup-xcode.sh ---
-# Force C++20 across all pod targets so libfmt's consteval calls compile.
-# CocoaPods chains post_install hooks, so this runs after Expo's own.
+# Fix libfmt consteval build error on Xcode 16+ (RN 0.79 / Folly).
+# Sets C++20 across all pods AND disables fmt's consteval path via a
+# preprocessor define. CocoaPods chains post_install hooks, so this runs
+# after Expo's own without overriding it.
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
       config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'gnu++20'
+
+      defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
+      defs = [defs] unless defs.is_a?(Array)
+      unless defs.any? { |d| d.to_s.include?('FMT_USE_CONSTEVAL') }
+        defs << 'FMT_USE_CONSTEVAL=0'
+      end
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
     end
   end
 end
