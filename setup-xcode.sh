@@ -131,52 +131,16 @@ else
 fi
 print_success "iOS prebuild completed"
 
-# Patch Podfile to fix the libfmt consteval build error on newer Xcode.
-# Symptom (without this patch):
-#   "Call to consteval function fmt::basic_format_string<char,
-#    fmt::basic_string_view<char>...>::basic_format_string<FMT_COMPILE_STRING, 0>'
-#    is not a constant expression"
-# Two settings are applied across all pod targets:
-#   1. CLANG_CXX_LANGUAGE_STANDARD = gnu++20 (fmt needs C++20)
-#   2. FMT_USE_CONSTEVAL=0 — flips fmt off its consteval path onto the
-#      C++17 constexpr fallback. fmt only defines this internally if not
-#      already set, so a -D from the build settings wins.
-# CocoaPods chains post_install hooks, so this runs after Expo's own.
-# Idempotent — re-runs are safe.
+# Verify the fmt consteval patch from the withFmtConstevalFix config
+# plugin was applied to the Podfile during prebuild. The plugin splices
+# CLANG_CXX_LANGUAGE_STANDARD=gnu++20 and FMT_USE_CONSTEVAL=0 into the
+# existing post_install block, fixing libfmt build errors on Xcode 16+.
 if [ -f "ios/Podfile" ]; then
     if grep -q "FMT_USE_CONSTEVAL=0" ios/Podfile; then
-        print_status "Podfile already patched for fmt consteval fix - skipping"
+        print_success "Podfile fmt consteval fix applied (via config plugin)"
     else
-        print_status "Patching Podfile (C++20 + FMT_USE_CONSTEVAL=0)..."
-        # Strip any older partial patch (the previous C++20-only version)
-        # so we don't end up with two competing post_install blocks.
-        if grep -q "Added by setup-xcode.sh" ios/Podfile; then
-            awk '/# --- Added by setup-xcode\.sh ---/{exit} {print}' ios/Podfile > ios/Podfile.tmp \
-                && mv ios/Podfile.tmp ios/Podfile
-        fi
-        cat >> ios/Podfile <<'PODFILE_PATCH'
-
-# --- Added by setup-xcode.sh ---
-# Fix libfmt consteval build error on Xcode 16+ (RN 0.79 / Folly).
-# Sets C++20 across all pods AND disables fmt's consteval path via a
-# preprocessor define. CocoaPods chains post_install hooks, so this runs
-# after Expo's own without overriding it.
-post_install do |installer|
-  installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |config|
-      config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'gnu++20'
-
-      defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
-      defs = [defs] unless defs.is_a?(Array)
-      unless defs.any? { |d| d.to_s.include?('FMT_USE_CONSTEVAL') }
-        defs << 'FMT_USE_CONSTEVAL=0'
-      end
-      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
-    end
-  end
-end
-PODFILE_PATCH
-        print_success "Podfile patched"
+        print_warning "Podfile is missing the fmt consteval fix - the build may fail on Xcode 16+"
+        print_warning "Confirm 'withFmtConstevalFix' is listed in app.config.js plugins"
     fi
 fi
 

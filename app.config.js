@@ -98,7 +98,8 @@ module.exports = {
         }
       ],
       "expo-sensors",
-      "./plugins/removeMotionPermission"
+      "./plugins/removeMotionPermission",
+      "./plugins/withFmtConstevalFix"
     ]
   }
 };
