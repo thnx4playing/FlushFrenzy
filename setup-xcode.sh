@@ -120,6 +120,23 @@ print_status "Cleaning previous iOS builds..."
 rm -rf ios/ .expo/
 print_success "Previous builds cleaned"
 
+# Wipe Xcode DerivedData for this project. Xcode caches precompiled
+# module headers there, and "Clean Build Folder" inside Xcode doesn't
+# touch them — which is why fmt build errors can persist after a fresh
+# pod install. macOS-only.
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    DERIVED="$HOME/Library/Developer/Xcode/DerivedData"
+    if [ -d "$DERIVED" ]; then
+        # shellcheck disable=SC2010
+        STALE=$(ls -1 "$DERIVED" 2>/dev/null | grep -i "^FlushFrenzy-" || true)
+        if [ -n "$STALE" ]; then
+            print_status "Wiping stale Xcode DerivedData for FlushFrenzy..."
+            for d in $STALE; do rm -rf "$DERIVED/$d"; done
+            print_success "DerivedData cleared"
+        fi
+    fi
+fi
+
 # Prebuild for iOS
 print_status "Running Expo prebuild for iOS..."
 print_status "This will generate the native iOS project with current app.config.js settings"

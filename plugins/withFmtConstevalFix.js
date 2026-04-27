@@ -60,6 +60,15 @@ module.exports = function withFmtConstevalFix(config) {
         return config;
       }
 
+      // Disable every fmt macro that might trigger compile-time evaluation.
+      // Different fmt versions (Folly bundles 9.x or 11.x depending on RN
+      // release) gate the consteval path on different macros, so we set
+      // them all defensively. Also pin C++20 since fmt requires it.
+      const FMT_FLAGS = [
+        'FMT_USE_CONSTEVAL=0',
+        'FMT_HAS_CONSTEVAL=0',
+        'FMT_USE_NONTYPE_TEMPLATE_ARGS=0',
+      ];
       const patchLines = [
         '',
         `    ${PATCH_MARKER}`,
@@ -68,7 +77,10 @@ module.exports = function withFmtConstevalFix(config) {
         `        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'gnu++20'`,
         `        defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']`,
         '        defs = [defs] unless defs.is_a?(Array)',
-        `        defs << 'FMT_USE_CONSTEVAL=0' unless defs.any? { |d| d.to_s.include?('FMT_USE_CONSTEVAL') }`,
+        `        [${FMT_FLAGS.map(f => `'${f}'`).join(', ')}].each do |flag|`,
+        '          key = flag.split(\'=\').first',
+        '          defs << flag unless defs.any? { |d| d.to_s.include?(key) }',
+        '        end',
         `        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs`,
         '      end',
         '    end',
