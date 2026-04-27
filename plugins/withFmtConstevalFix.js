@@ -14,17 +14,37 @@ const path = require('path');
 
 const PATCH_MARKER = '# --- withFmtConstevalFix plugin ---';
 
-const PATCH = `
-  ${PATCH_MARKER}
-  installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |config|
-      config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'gnu++20'
-      defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
-      defs = [defs] unless defs.is_a?(Array)
-      defs << 'FMT_USE_CONSTEVAL=0' unless defs.any? { |d| d.to_s.include?('FMT_USE_CONSTEVAL') }
-      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
-    end
-  end`;
+// Locate the `post_install do |installer| ... end` block by indent.
+// Ruby blocks at the same nesting level share the same leading
+// whitespace, so we capture the indent of the `post_install` line
+// and find the first `end` at exactly that indent — that's the
+// matching close, regardless of how the block is nested.
+function injectIntoPostInstall(podfile, patchLines) {
+  const lines = podfile.split('\n');
+  const startRegex = /^(\s*)post_install\s+do\s+\|installer\|/;
+
+  let startLineIdx = -1;
+  let indent = '';
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(startRegex);
+    if (m) {
+      startLineIdx = i;
+      indent = m[1];
+      break;
+    }
+  }
+  if (startLineIdx === -1) return null;
+
+  // Indent only contains whitespace; safe to splice into a regex literal.
+  const endRegex = new RegExp(`^${indent}end\\s*$`);
+  for (let i = startLineIdx + 1; i < lines.length; i++) {
+    if (endRegex.test(lines[i])) {
+      lines.splice(i, 0, ...patchLines);
+      return lines.join('\n');
+    }
+  }
+  return null;
+}
 
 module.exports = function withFmtConstevalFix(config) {
   return withDangerousMod(config, [
@@ -40,21 +60,29 @@ module.exports = function withFmtConstevalFix(config) {
         return config;
       }
 
-      // Splice our patch in just before the closing `end` of the
-      // existing `post_install do |installer| ... end` block.
-      const replaced = podfile.replace(
-        /(post_install\s+do\s+\|installer\|[\s\S]*?)\n(end\s*$)/m,
-        `$1${PATCH}\n$2`
-      );
+      const patchLines = [
+        '',
+        `    ${PATCH_MARKER}`,
+        '    installer.pods_project.targets.each do |target|',
+        '      target.build_configurations.each do |config|',
+        `        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'gnu++20'`,
+        `        defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']`,
+        '        defs = [defs] unless defs.is_a?(Array)',
+        `        defs << 'FMT_USE_CONSTEVAL=0' unless defs.any? { |d| d.to_s.include?('FMT_USE_CONSTEVAL') }`,
+        `        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs`,
+        '      end',
+        '    end',
+      ];
 
-      if (replaced === podfile) {
+      const result = injectIntoPostInstall(podfile, patchLines);
+      if (!result) {
         console.warn(
-          '[withFmtConstevalFix] post_install block not found in Podfile; skipping patch'
+          '[withFmtConstevalFix] Could not locate post_install block in Podfile; skipping patch'
         );
         return config;
       }
 
-      fs.writeFileSync(podfilePath, replaced);
+      fs.writeFileSync(podfilePath, result);
       return config;
     },
   ]);
