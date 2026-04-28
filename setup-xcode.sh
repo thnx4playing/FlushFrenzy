@@ -175,22 +175,39 @@ if [[ "$OSTYPE" == "darwin"* ]] && [ -d "ios" ]; then
     # consteval evaluation than the macros gate. Constexpr is functionally
     # equivalent at runtime; we only lose compile-time-only guarantees in
     # fmt's format-string validation.
+    #
+    # Uses perl, not sed: BSD sed on macOS doesn't support \b for word
+    # boundaries (silently no-ops), which is why earlier attempts of this
+    # patch ran successfully but didn't actually rewrite anything.
     if [ -d "ios/Pods/fmt/include/fmt" ]; then
         PATCHED=0
         for f in ios/Pods/fmt/include/fmt/*.h; do
             if grep -qw "consteval" "$f" 2>/dev/null; then
-                # Replace the consteval keyword only when it appears as a
-                # whole word (won't touch the string "consteval" inside
-                # comments etc., but a stray match there is harmless).
-                sed -i.bak 's/\bconsteval\b/constexpr/g' "$f"
-                rm -f "$f.bak"
+                perl -i -pe 's/\bconsteval\b/constexpr/g' "$f"
                 PATCHED=$((PATCHED + 1))
             fi
         done
-        if [ $PATCHED -gt 0 ]; then
-            print_success "Rewrote consteval -> constexpr in $PATCHED fmt header(s)"
+
+        # Verify: count any remaining `consteval` keyword across all fmt
+        # headers. Non-zero means the patch silently failed.
+        REMAINING=0
+        for f in ios/Pods/fmt/include/fmt/*.h; do
+            n=$(grep -cw "consteval" "$f" 2>/dev/null || echo 0)
+            REMAINING=$((REMAINING + n))
+        done
+
+        if [ "$REMAINING" -eq 0 ]; then
+            if [ $PATCHED -gt 0 ]; then
+                print_success "Rewrote consteval -> constexpr in $PATCHED fmt header(s) (0 remaining)"
+            else
+                print_status "No consteval keyword found in fmt headers (already patched or different fmt version)"
+            fi
         else
-            print_status "No consteval keyword found in fmt headers (already patched or different fmt version)"
+            print_error "Patch ran on $PATCHED files but $REMAINING consteval occurrences remain in fmt headers"
+            for f in ios/Pods/fmt/include/fmt/*.h; do
+                n=$(grep -cw "consteval" "$f" 2>/dev/null || echo 0)
+                [ "$n" -gt 0 ] && echo "       $f: $n remaining"
+            done
         fi
     else
         print_warning "ios/Pods/fmt/include/fmt not found — skipping consteval rewrite"
