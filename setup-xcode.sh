@@ -168,6 +168,33 @@ if [[ "$OSTYPE" == "darwin"* ]] && [ -d "ios" ]; then
     pod install --repo-update
     cd ..
     print_success "CocoaPods dependencies installed"
+
+    # Sledgehammer: directly rewrite `consteval` -> `constexpr` in fmt
+    # headers. The Podfile preprocessor defines (FMT_USE_CONSTEVAL=0 etc.)
+    # turn out to be insufficient on Xcode 26+, which is stricter about
+    # consteval evaluation than the macros gate. Constexpr is functionally
+    # equivalent at runtime; we only lose compile-time-only guarantees in
+    # fmt's format-string validation.
+    if [ -d "ios/Pods/fmt/include/fmt" ]; then
+        PATCHED=0
+        for f in ios/Pods/fmt/include/fmt/*.h; do
+            if grep -qw "consteval" "$f" 2>/dev/null; then
+                # Replace the consteval keyword only when it appears as a
+                # whole word (won't touch the string "consteval" inside
+                # comments etc., but a stray match there is harmless).
+                sed -i.bak 's/\bconsteval\b/constexpr/g' "$f"
+                rm -f "$f.bak"
+                PATCHED=$((PATCHED + 1))
+            fi
+        done
+        if [ $PATCHED -gt 0 ]; then
+            print_success "Rewrote consteval -> constexpr in $PATCHED fmt header(s)"
+        else
+            print_status "No consteval keyword found in fmt headers (already patched or different fmt version)"
+        fi
+    else
+        print_warning "ios/Pods/fmt/include/fmt not found — skipping consteval rewrite"
+    fi
 fi
 
 # Final verification
