@@ -189,12 +189,9 @@ if [[ "$OSTYPE" == "darwin"* ]] && [ -d "ios" ]; then
         done
 
         # Verify: count any remaining `consteval` keyword across all fmt
-        # headers. Non-zero means the patch silently failed.
-        REMAINING=0
-        for f in ios/Pods/fmt/include/fmt/*.h; do
-            n=$(grep -cw "consteval" "$f" 2>/dev/null || echo 0)
-            REMAINING=$((REMAINING + n))
-        done
+        # headers. Use perl to count so we don't have to fight grep's
+        # exit-code-1-on-zero-matches behavior under set -e.
+        REMAINING=$(perl -ne 'BEGIN{$c=0} $c++ while /\bconsteval\b/g; END{print $c}' ios/Pods/fmt/include/fmt/*.h)
 
         if [ "$REMAINING" -eq 0 ]; then
             if [ $PATCHED -gt 0 ]; then
@@ -205,7 +202,7 @@ if [[ "$OSTYPE" == "darwin"* ]] && [ -d "ios" ]; then
         else
             print_error "Patch ran on $PATCHED files but $REMAINING consteval occurrences remain in fmt headers"
             for f in ios/Pods/fmt/include/fmt/*.h; do
-                n=$(grep -cw "consteval" "$f" 2>/dev/null || echo 0)
+                n=$(perl -ne 'BEGIN{$c=0} $c++ while /\bconsteval\b/g; END{print $c}' "$f")
                 [ "$n" -gt 0 ] && echo "       $f: $n remaining"
             done
         fi
