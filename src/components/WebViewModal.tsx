@@ -4,13 +4,11 @@ import {
   View,
   Modal,
   StyleSheet,
-  TouchableOpacity,
   ActivityIndicator,
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
-import { Ionicons } from '@expo/vector-icons';
 type Props = {
   visible: boolean;
   url: string;
@@ -18,6 +16,9 @@ type Props = {
   onClose: () => void;
   onActivity?: () => void;
 };
+// onClose is still wired to the modal's onRequestClose so iOS gestures
+// like minimizing the app dismiss it cleanly. There is no on-screen X
+// because users return to the host app via the iOS app switcher.
 const WebViewModal: React.FC<Props> = ({ visible, url, onClose, onActivity }) => {
   const [loading, setLoading] = useState(true);
   const insets = useSafeAreaInsets();
@@ -57,15 +58,6 @@ const WebViewModal: React.FC<Props> = ({ visible, url, onClose, onActivity }) =>
             </View>
           )}
         </View>
-        {/* Floating close button — sits below the Dynamic Island */}
-        <TouchableOpacity
-          onPress={onClose}
-          style={[styles.floatingClose, { top: insets.top + 8 }]}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          accessibilityLabel="Close"
-        >
-          <Ionicons name="close" size={20} color="#fff" />
-        </TouchableOpacity>
       </View>
     </Modal>
   );
@@ -86,20 +78,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  floatingClose: {
-    position: 'absolute',
-    left: 12,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-    elevation: 10,
   },
 });
 export default WebViewModal;
