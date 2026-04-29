@@ -6,19 +6,23 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "channel": "development",
       "ios": {
         "resourceClass": "m-medium",
-        "simulator": true
+        "simulator": true,
+        "image": "latest"
       }
     },
     "preview": {
       "distribution": "store",
+      "channel": "preview",
       "ios": {
         "resourceClass": "m-medium",
         "image": "latest"
       }
     },
     "production": {
+      "channel": "production",
       "ios": {
         "resourceClass": "m-medium",
         "image": "latest"

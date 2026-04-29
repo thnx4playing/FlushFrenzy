@@ -172,7 +172,7 @@ const PracticeCustomizationModal: React.FC<Props> = ({
                     }
                     minimumTrackTintColor="#4DA8FF"
                     maximumTrackTintColor="#E0E0E0"
-                    thumbStyle={styles.sliderThumb}
+                    thumbTintColor="#4DA8FF"
                   />
                   <View style={styles.sliderLabels}>
                     <Text style={styles.sliderLabel}>Slow</Text>
@@ -196,7 +196,7 @@ const PracticeCustomizationModal: React.FC<Props> = ({
                     }
                     minimumTrackTintColor="#4DA8FF"
                     maximumTrackTintColor="#E0E0E0"
-                    thumbStyle={styles.sliderThumb}
+                    thumbTintColor="#4DA8FF"
                   />
                   <View style={styles.sliderLabels}>
                     <Text style={styles.sliderLabel}>Very Low</Text>

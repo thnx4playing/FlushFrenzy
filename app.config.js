@@ -12,11 +12,16 @@ module.exports = {
     loading: {
       backgroundColor: "transparent"
     },
+    runtimeVersion: { policy: "fingerprint" },
+    updates: {
+      url: "https://u.expo.dev/3305a902-de48-4658-8acd-97ef7dca15c4",
+      fallbackToCacheTimeout: 0
+    },
 
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.thnx4playing.FlushFrenzy",
-      buildNumber: "20",
+      buildNumber: "21",
       icon: path.resolve(__dirname, 'assets/default/app-icon.png'),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
