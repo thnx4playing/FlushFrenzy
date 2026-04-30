@@ -9,6 +9,7 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AppState, AppRegistry } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ScreenOrientation from 'expo-screen-orientation';
 
 // Import screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -38,6 +39,16 @@ export default function App() {
         cleanupCallbacks.current.splice(index, 1);
       }
     };
+  }, []);
+
+  // Lock portrait at the app level. The plist allows landscape so the
+  // WebViewModal can opt-in to rotation while it's open; everything else
+  // (HomeScreen, GameScreen) stays portrait by inheriting this lock.
+  // WebViewModal restores PORTRAIT_UP when it closes, so the lock here
+  // is the default state the app falls back to.
+  useEffect(() => {
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP)
+      .catch(() => {});
   }, []);
 
   // Initialize audio once at app startup

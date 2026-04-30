@@ -21,7 +21,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.thnx4playing.FlushFrenzy",
-      buildNumber: "21",
+      buildNumber: "22",
       icon: path.resolve(__dirname, 'assets/default/app-icon.png'),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -39,7 +39,11 @@ module.exports = {
         NSCameraUsageDescription: "Used in Touchless Mode for head tracking to aim without touching the screen.",
         NSLocationWhenInUseUsageDescription: "This app does not use your location. This entry is required by a camera library dependency.",
         UIRequiresFullScreen: true,
-        UISupportedInterfaceOrientations: ["UIInterfaceOrientationPortrait"]
+        UISupportedInterfaceOrientations: [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
+        ]
       },
       config: {
         usesNonExemptEncryption: false

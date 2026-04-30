@@ -1,5 +1,5 @@
 // src/components/WebViewModal.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Modal,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
+import * as ScreenOrientation from 'expo-screen-orientation';
 type Props = {
   visible: boolean;
   url: string;
@@ -22,6 +23,22 @@ type Props = {
 const WebViewModal: React.FC<Props> = ({ visible, url, onClose, onActivity }) => {
   const [loading, setLoading] = useState(true);
   const insets = useSafeAreaInsets();
+
+  // Allow rotation while the modal is open. The host app is portrait by
+  // default; the modal is content-agnostic and just lets iOS respond to
+  // the user's physical phone orientation while they're viewing web
+  // content. On close, restore portrait so the rest of the app (game
+  // screens, home) stays portrait. No URL inspection — the modal only
+  // knows about its own visible state.
+  useEffect(() => {
+    if (!visible) return;
+    ScreenOrientation.unlockAsync().catch(() => {});
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP)
+        .catch(() => {});
+    };
+  }, [visible]);
+
   return (
     <Modal
       visible={visible}
