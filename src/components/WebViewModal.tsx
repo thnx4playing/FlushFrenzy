@@ -54,6 +54,11 @@ const WebViewModal: React.FC<Props> = ({ visible, url, onClose, onActivity }) =>
       presentationStyle="fullScreen"
       statusBarTranslucent
       onRequestClose={onClose}
+      // React Native's Modal defaults to portrait-only on iOS regardless
+      // of the app's plist or expo-screen-orientation calls. Explicitly
+      // declare the orientations this modal supports so iOS allows the
+      // modal's view controller to rotate.
+      supportedOrientations={['portrait', 'landscape-left', 'landscape-right']}
     >
       <StatusBar hidden animated />
       <View style={styles.container} onStartShouldSetResponderCapture={() => { onActivity?.(); return false; }}>
