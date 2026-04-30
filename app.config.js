@@ -5,7 +5,7 @@ module.exports = {
     owner: "thnx4playing",
     name: "Flush Frenzy",
     slug: "FlushFrenzy",
-    version: "1.3.4",
+    version: "1.3.5",
     orientation: "portrait",
     icon: path.resolve(__dirname, 'assets/default/app-icon.png'),
     userInterfaceStyle: "light",
@@ -21,7 +21,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.thnx4playing.FlushFrenzy",
-      buildNumber: "23",
+      buildNumber: "24",
       icon: path.resolve(__dirname, 'assets/default/app-icon.png'),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,

@@ -10,6 +10,15 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AppState, AppRegistry } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import { enableScreens } from 'react-native-screens';
+
+// Disable react-native-screens' native UIViewController-per-screen mode so
+// expo-screen-orientation's runtime lock/unlock has full control over the
+// active view controller's supportedInterfaceOrientations. Without this,
+// react-native-screens' iOS swizzling can ignore unlockAsync() (known issue
+// expo/expo#43692, #36869). Performance impact is negligible for our two
+// JS screens; correctness is what matters here.
+enableScreens(false);
 
 // Import screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -41,14 +50,15 @@ export default function App() {
     };
   }, []);
 
-  // Lock portrait at the app level. The plist allows landscape so the
-  // WebViewModal can opt-in to rotation while it's open; everything else
-  // (HomeScreen, GameScreen) stays portrait by inheriting this lock.
-  // WebViewModal restores PORTRAIT_UP when it closes, so the lock here
-  // is the default state the app falls back to.
+  // Lock portrait at the app level via lockPlatformAsync — more direct
+  // and reliable than lockAsync(PORTRAIT_UP) on iOS 16+. The plist allows
+  // landscape so the WebViewModal can opt-in to rotation while open;
+  // everything else (HomeScreen, GameScreen) stays portrait by inheriting
+  // this lock until the modal flips it.
   useEffect(() => {
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP)
-      .catch(() => {});
+    ScreenOrientation.lockPlatformAsync({
+      screenOrientationArrayIOS: [ScreenOrientation.Orientation.PORTRAIT_UP],
+    }).catch(() => {});
   }, []);
 
   // Initialize audio once at app startup

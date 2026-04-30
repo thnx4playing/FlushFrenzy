@@ -24,18 +24,26 @@ const WebViewModal: React.FC<Props> = ({ visible, url, onClose, onActivity }) =>
   const [loading, setLoading] = useState(true);
   const insets = useSafeAreaInsets();
 
-  // Allow rotation while the modal is open. The host app is portrait by
-  // default; the modal is content-agnostic and just lets iOS respond to
-  // the user's physical phone orientation while they're viewing web
-  // content. On close, restore portrait so the rest of the app (game
-  // screens, home) stays portrait. No URL inspection — the modal only
-  // knows about its own visible state.
+  // Allow rotation while the modal is open. Use lockPlatformAsync with an
+  // explicit iOS orientation array — more reliable than unlockAsync() on
+  // iOS 16+ (known interaction issue with react-native-screens). The host
+  // app is portrait by default; the modal is content-agnostic and lets
+  // iOS respond to the user's physical phone orientation. On close,
+  // restore PORTRAIT_UP. No URL inspection — modal only knows its own
+  // visible state.
   useEffect(() => {
     if (!visible) return;
-    ScreenOrientation.unlockAsync().catch(() => {});
+    ScreenOrientation.lockPlatformAsync({
+      screenOrientationArrayIOS: [
+        ScreenOrientation.Orientation.PORTRAIT_UP,
+        ScreenOrientation.Orientation.LANDSCAPE_LEFT,
+        ScreenOrientation.Orientation.LANDSCAPE_RIGHT,
+      ],
+    }).catch(() => {});
     return () => {
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP)
-        .catch(() => {});
+      ScreenOrientation.lockPlatformAsync({
+        screenOrientationArrayIOS: [ScreenOrientation.Orientation.PORTRAIT_UP],
+      }).catch(() => {});
     };
   }, [visible]);
 
