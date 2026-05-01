@@ -6,6 +6,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   StatusBar,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
@@ -22,7 +24,23 @@ type Props = {
 // because users return to the host app via the iOS app switcher.
 const WebViewModal: React.FC<Props> = ({ visible, url, onClose, onActivity }) => {
   const [loading, setLoading] = useState(true);
+  // Track AppState so we can render a privacy cover during 'inactive' /
+  // 'background'. iOS captures the App Switcher snapshot during the
+  // 'inactive' state — without a cover, the snapshot shows the page
+  // contents, leaving them visible in the multitasking preview after the
+  // user has swiped away. The cover hides the page in the snapshot.
+  const [appActive, setAppActive] = useState(
+    AppState.currentState === 'active'
+  );
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    const sub = AppState.addEventListener(
+      'change',
+      (next: AppStateStatus) => setAppActive(next === 'active')
+    );
+    return () => sub.remove();
+  }, []);
 
   // Allow rotation while the modal is open. Use lockPlatformAsync with an
   // explicit iOS orientation array — more reliable than unlockAsync() on
@@ -88,6 +106,20 @@ const WebViewModal: React.FC<Props> = ({ visible, url, onClose, onActivity }) =>
             </View>
           )}
         </View>
+        {/* Privacy cover for the iOS App Switcher snapshot. Shown whenever
+            the app isn't 'active' — Face ID prompts, Control Center,
+            multitasking gesture, app switching, etc. iOS captures the
+            multitasking snapshot during 'inactive' so the cover ends up
+            in the preview rather than the WebView contents. Pre-mounted
+            and toggled via opacity for the fastest possible reveal so
+            the snapshot reliably catches it. */}
+        <View
+          style={[
+            styles.privacyCover,
+            { opacity: appActive ? 0 : 1 },
+          ]}
+          pointerEvents={appActive ? 'none' : 'auto'}
+        />
       </View>
     </Modal>
   );
@@ -108,6 +140,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  privacyCover: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#0a1628',
   },
 });
 export default WebViewModal;
