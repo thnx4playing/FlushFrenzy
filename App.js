@@ -84,13 +84,20 @@ export default function App() {
     };
   }, []);
 
-  // App-level AppState handler for touch system reset
+  // App-level AppState handler for touch system reset.
+  // Only fire cleanup on actual 'background' transitions, NOT on transient
+  // 'inactive' states. iOS dispatches 'inactive' for Face ID / Touch ID
+  // prompts, Control Center pulls, incoming call screens, etc. — short
+  // suspensions that always return to 'active' without going to background.
+  // Closing modals or stopping timers during those interruptions destroys
+  // user state mid-task (e.g. Face ID for the Photos picker would close
+  // the WebViewModal). 'background' is hit only when the user actually
+  // backgrounds the app via the app switcher / home gesture, which is
+  // when full cleanup makes sense.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState !== 'active') {
+      if (nextAppState === 'background') {
         backgroundedRef.current = true;
-        
-        // IMMEDIATE cleanup when app backgrounds (restored since custom overlays work)
         cleanupCallbacks.current.forEach(callback => {
           try {
             callback();
@@ -98,13 +105,11 @@ export default function App() {
             // Silent error handling
           }
         });
-        
-      } else if (backgroundedRef.current) {
-        // App is resuming from background - no special action needed since custom overlays work properly
+      } else if (nextAppState === 'active' && backgroundedRef.current) {
         backgroundedRef.current = false;
       }
     });
-    
+
     return () => sub.remove();
   }, []);
 
