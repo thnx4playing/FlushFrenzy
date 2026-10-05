@@ -6,6 +6,8 @@ import { useAudioStore } from './AudioStore';
 class AudioManagerClass {
   constructor() {
     this._initialized = false;
+    this._silenceHolds = new Set();
+    this._musicWanted = false;
     this._music = null;
     this._musicKind = null;
     this._sfx = {};
@@ -58,58 +60,50 @@ class AudioManagerClass {
     } catch (e) {}
   }
 
+  // Silence only the game's sound objects. Never disable the shared iOS
+  // audio session: the WebView still needs its microphone and call audio.
+  acquireSilence() {
+    const hold = Symbol('webview');
+    this._silenceHolds.add(hold);
+    const ready = this._applyState(useAudioStore.getState());
+    return {
+      ready,
+      release: () => {
+        if (!this._silenceHolds.delete(hold)) return;
+        void this._applyState(useAudioStore.getState());
+      },
+    };
+  }
+
   _applyState(state) {
+    const silenced = this._silenceHolds.size > 0;
+    const updates = [];
     if (this._music) {
-      this._music.getStatusAsync().then(status => {
-        if (!status.isLoaded) {
-          this._music = null;
-          this._musicKind = null;
-          this.init();
-          return;
-        }
-        try {
-          const mv = state.musicMuted ? 0 : state.musicVolume ?? 1;
-          this._music.setVolumeAsync(mv).catch(() => {});
-          if (state.musicMuted) {
-            this._music.setIsMutedAsync(true).catch(() => {});
-            this._music.stopAsync().catch(() => {});
-          } else {
-            this._music.setIsMutedAsync(false).catch(() => {});
-            if (this._musicKind === 'menu') {
-              this._music.replayAsync().catch(() => {});
-            } else if (this._musicKind === 'game') {
-              this._music.playAsync().catch(() => {});
-            }
-          }
-        } catch (error) {
-          this._music = null;
-          this._musicKind = null;
-        }
-      }).catch(() => {
-        this._music = null;
-        this._musicKind = null;
-      });
+      updates.push(this._music.setStatusAsync({
+        volume: silenced || state.musicMuted ? 0 : state.musicVolume ?? 1,
+        isMuted: silenced || state.musicMuted,
+        shouldPlay: !silenced && !state.musicMuted && this._musicWanted,
+      }).catch(() => {}));
     }
-    const sv = state.sfxMuted ? 0 : state.sfxVolume ?? 1;
-    for (const key of Object.keys(this._sfx)) {
-      const snd = this._sfx[key];
-      if (snd) {
-        try {
-          snd.setVolumeAsync(sv).catch(() => {});
-        } catch (error) {
-          this._sfx[key] = null;
-        }
-      }
+    for (const snd of Object.values(this._sfx)) {
+      if (!snd) continue;
+      updates.push(snd.setStatusAsync({
+        volume: silenced || state.sfxMuted ? 0 : state.sfxVolume ?? 1,
+        isMuted: silenced || state.sfxMuted,
+        ...(silenced ? { shouldPlay: false } : {}),
+      }).catch(() => {}));
     }
+    return Promise.all(updates);
   }
 
   async _ensureInit() {
-    if (!this._initialized) await this.init();
+    if (!this._initialized && !this._silenceHolds.size) await this.init();
   }
 
   async playMenuMusic() {
+    this._musicWanted = true;
+    if (this._silenceHolds.size) return;
     await this._ensureInit();
-    const { musicMuted } = useAudioStore.getState();
     if (!this._music || this._musicKind !== 'menu') {
       try {
         if (this._music) await this._music.unloadAsync().catch(() => {});
@@ -126,18 +120,16 @@ class AudioManagerClass {
         return;
       }
     }
-    if (!musicMuted && this._music) {
-      try {
-        await this._music.setIsMutedAsync(false).catch(() => {});
-        await this._music.stopAsync().catch(() => {});
-        await this._music.replayAsync().catch(() => {});
-      } catch (error) {}
+    if (this._music && this._musicWanted && !this._silenceHolds.size) {
+      await this._music.stopAsync().catch(() => {});
     }
+    await this._applyState(useAudioStore.getState());
   }
 
   async playGameMusic({ loop = true } = {}) {
+    this._musicWanted = true;
+    if (this._silenceHolds.size) return;
     await this._ensureInit();
-    const { musicMuted } = useAudioStore.getState();
     if (!this._music || this._musicKind !== 'game') {
       if (this._music) await this._music.unloadAsync().catch(() => {});
       const { sound } = await Audio.Sound.createAsync(
@@ -148,39 +140,38 @@ class AudioManagerClass {
       this._musicKind = 'game';
       this._applyState(useAudioStore.getState());
     }
-    if (!musicMuted) {
-      await this._music.setIsMutedAsync(false).catch(() => {});
+    if (this._music && this._musicWanted && !this._silenceHolds.size) {
       await this._music.stopAsync().catch(() => {});
-      await this._music.playAsync().catch(() => {});
     }
+    await this._applyState(useAudioStore.getState());
   }
 
   async stopMusic() {
-    await this._ensureInit();
+    this._musicWanted = false;
     if (this._music) await this._music.stopAsync().catch(() => {});
   }
 
   async pauseMusic() {
-    await this._ensureInit();
-    if (this._music) {
-      try { await this._music.pauseAsync(); } catch (error) {}
-    }
+    this._musicWanted = false;
+    await this._applyState(useAudioStore.getState());
   }
 
   async resumeMusic() {
+    this._musicWanted = true;
+    if (this._silenceHolds.size) return;
     await this._ensureInit();
-    if (this._music) {
-      try { await this._music.playAsync(); } catch (error) {}
-    }
+    await this._applyState(useAudioStore.getState());
   }
 
   async playSfx(name) {
+    if (this._silenceHolds.size) return;
     await this._ensureInit();
     const { sfxMuted } = useAudioStore.getState();
-    if (sfxMuted) return;
+    if (sfxMuted || this._silenceHolds.size) return;
     const snd = this._sfx[name];
     if (snd) {
       await snd.stopAsync().catch(() => {});
+      if (this._silenceHolds.size || useAudioStore.getState().sfxMuted) return;
       await snd.replayAsync().catch(() => {});
     }
   }
