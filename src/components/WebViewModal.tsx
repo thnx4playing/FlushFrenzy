@@ -10,6 +10,7 @@ import {
   AppStateStatus,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AudioManager } from '../audio/AudioManager';
 import { WebView } from 'react-native-webview';
 import * as ScreenOrientation from 'expo-screen-orientation';
 type Props = {
@@ -23,6 +24,15 @@ type Props = {
 // like minimizing the app dismiss it cleanly. There is no on-screen X
 // because users return to the host app via the iOS app switcher.
 const WebViewModal: React.FC<Props> = ({ visible, url, onClose, onActivity }) => {
+  const [audioReady, setAudioReady] = useState(false);
+  useEffect(() => {
+    if (!visible) { setAudioReady(false); return; }
+    let active = true;
+    const silence = AudioManager.acquireSilence();
+    void silence.ready.then(() => { if (active) setAudioReady(true); });
+    return () => { active = false; setAudioReady(false); silence.release(); };
+  }, [visible]);
+
   const [loading, setLoading] = useState(true);
   // Track AppState so we can render a privacy cover during 'inactive' /
   // 'background'. iOS captures the App Switcher snapshot during the
@@ -84,7 +94,7 @@ const WebViewModal: React.FC<Props> = ({ visible, url, onClose, onActivity }) =>
             Page-side CSS uses env(safe-area-inset-top) to keep interactive
             UI clear of the island. */}
         <View style={[styles.webViewContainer, { marginBottom: -insets.bottom }]}>
-          <WebView
+          {visible && audioReady && <WebView
             source={{ uri: url }}
             style={styles.webView}
             onLoadStart={() => setLoading(true)}
@@ -99,8 +109,8 @@ const WebViewModal: React.FC<Props> = ({ visible, url, onClose, onActivity }) =>
             mediaPlaybackRequiresUserAction={false}
             // Android: auto-grant whatever resources the page requests
             onPermissionRequest={(request) => request.grant(request.resources)}
-          />
-          {loading && (
+          />}
+          {(loading || !audioReady) && (
             <View style={styles.loadingOverlay}>
               <ActivityIndicator size="large" color="#4DA8FF" />
             </View>

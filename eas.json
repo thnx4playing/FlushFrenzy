@@ -33,7 +33,7 @@
     "production": {
       "ios": {
         "ascAppId": "6751166248",
-        "ascApiKeyPath": "C:\\Users\\Mike\\Downloads\\AuthKey_3A9N7566G6.p8",
+        "ascApiKeyPath": "/mnt/c/Users/Mike/Downloads/AuthKey_3A9N7566G6.p8",
         "ascApiKeyIssuerId": "bd1f78d7-b682-4940-9421-6a001eb7ca85",
         "ascApiKeyId": "3A9N7566G6"
       }
@@ -41,7 +41,7 @@
     "preview": {
       "ios": {
         "ascAppId": "6751166248",
-        "ascApiKeyPath": "C:\\Users\\Mike\\Downloads\\AuthKey_3A9N7566G6.p8",
+        "ascApiKeyPath": "/mnt/c/Users/Mike/Downloads/AuthKey_3A9N7566G6.p8",
         "ascApiKeyIssuerId": "bd1f78d7-b682-4940-9421-6a001eb7ca85",
         "ascApiKeyId": "3A9N7566G6"
       }
